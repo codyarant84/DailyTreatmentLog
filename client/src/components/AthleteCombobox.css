@@ -1,0 +1,55 @@
+.athlete-combobox {
+  position: relative;
+}
+
+.combobox-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-primary);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  max-height: 220px;
+  overflow-y: auto;
+  list-style: none;
+  padding: 0.25rem 0;
+  z-index: 200;
+  margin: 0;
+}
+
+.combobox-option {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: var(--color-text);
+  cursor: pointer;
+  display: block;
+  transition: background 0.1s;
+}
+
+.combobox-option:hover,
+.combobox-option--active {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.combobox-empty {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  box-shadow: var(--shadow);
+  z-index: 200;
+}
