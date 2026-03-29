@@ -7,8 +7,11 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Track which school's invite form is open: schoolId → email string
-  const [inviteForms, setInviteForms] = useState({});
+  // Track generated invite links: schoolId → url string
+  const [inviteLinks, setInviteLinks] = useState({});
+  const [inviteGenerating, setInviteGenerating] = useState({});
+  const [copiedId, setCopiedId] = useState(null);
+
   // Track which schools are expanded
   const [expanded, setExpanded] = useState({});
   const [actionError, setActionError] = useState(null);
@@ -33,34 +36,33 @@ export default function Admin() {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
   }
 
-  function openInvite(schoolId) {
-    setInviteForms((prev) => ({ ...prev, [schoolId]: '' }));
-    setExpanded((prev) => ({ ...prev, [schoolId]: true }));
-  }
-
-  function closeInvite(schoolId) {
-    setInviteForms((prev) => {
-      const next = { ...prev };
-      delete next[schoolId];
-      return next;
-    });
-  }
-
-  async function handleInvite(e, schoolId) {
-    e.preventDefault();
-    const email = inviteForms[schoolId]?.trim();
-    if (!email) return;
+  async function handleGenerateInvite(schoolId) {
+    setInviteGenerating((prev) => ({ ...prev, [schoolId]: true }));
     setActionError(null);
     try {
-      await api.post('/api/admin/invite', {
-        email,
+      const { data } = await api.post('/api/admin/invite', {
         school_id: schoolId,
         redirect_origin: window.location.origin,
       });
-      closeInvite(schoolId);
+      setInviteLinks((prev) => ({ ...prev, [schoolId]: data.invite_url }));
+      setExpanded((prev) => ({ ...prev, [schoolId]: true }));
       await loadSchools();
     } catch (err) {
       setActionError(err.response?.data?.error ?? err.message);
+    } finally {
+      setInviteGenerating((prev) => ({ ...prev, [schoolId]: false }));
+    }
+  }
+
+  async function handleCopyLink(schoolId, url) {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedId(schoolId);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      // Fallback: select the text
+      const el = document.getElementById(`invite-link-${schoolId}`);
+      el?.select();
     }
   }
 
@@ -80,6 +82,7 @@ export default function Admin() {
     setActionError(null);
     try {
       await api.delete(`/api/admin/schools/${schoolId}`);
+      setInviteLinks((prev) => { const n = { ...prev }; delete n[schoolId]; return n; });
       await loadSchools();
     } catch (err) {
       setActionError(err.response?.data?.error ?? err.message);
@@ -127,8 +130,8 @@ export default function Admin() {
       <div className="admin-schools">
         {schools.map((school) => {
           const isExpanded = expanded[school.id];
-          const inviteEmail = inviteForms[school.id];
-          const hasInviteForm = inviteEmail !== undefined;
+          const inviteLink = inviteLinks[school.id];
+          const isGenerating = inviteGenerating[school.id];
 
           return (
             <div key={school.id} className="school-card">
@@ -152,9 +155,10 @@ export default function Admin() {
                 <div className="school-actions">
                   <button
                     className="btn btn--sm btn--outline"
-                    onClick={() => hasInviteForm ? closeInvite(school.id) : openInvite(school.id)}
+                    onClick={() => handleGenerateInvite(school.id)}
+                    disabled={isGenerating}
                   >
-                    {hasInviteForm ? 'Cancel Invite' : 'Invite User'}
+                    {isGenerating ? 'Generating...' : '+ Invite Link'}
                   </button>
                   <button
                     className="btn btn--sm btn--danger"
@@ -165,30 +169,28 @@ export default function Admin() {
                 </div>
               </div>
 
-              {/* Invite form */}
-              {hasInviteForm && (
-                <form
-                  className="invite-form"
-                  onSubmit={(e) => handleInvite(e, school.id)}
-                >
+              {/* Generated invite link */}
+              {inviteLink && (
+                <div className="invite-link-row">
+                  <span className="invite-link-label">Share this link:</span>
                   <input
-                    type="email"
-                    className="form-input"
-                    placeholder="Email address to invite"
-                    value={inviteEmail}
-                    onChange={(e) =>
-                      setInviteForms((prev) => ({ ...prev, [school.id]: e.target.value }))
-                    }
-                    required
-                    autoFocus
+                    id={`invite-link-${school.id}`}
+                    type="text"
+                    className="form-input invite-link-input"
+                    value={inviteLink}
+                    readOnly
+                    onFocus={(e) => e.target.select()}
                   />
-                  <button type="submit" className="btn btn--sm btn--primary">
-                    Send Invite
+                  <button
+                    className="btn btn--sm btn--primary"
+                    onClick={() => handleCopyLink(school.id, inviteLink)}
+                  >
+                    {copiedId === school.id ? 'Copied!' : 'Copy'}
                   </button>
-                </form>
+                </div>
               )}
 
-              {/* Expanded user + invite list */}
+              {/* Expanded user + pending invite list */}
               {isExpanded && (
                 <div className="school-detail">
                   {school.users.length === 0 && school.pending_invites.length === 0 && (
@@ -202,7 +204,7 @@ export default function Admin() {
                         {user.is_admin && <span className="admin-badge">admin</span>}
                       </div>
                       <button
-                        className="btn btn--sm btn--danger-ghost"
+                        className="btn--danger-ghost"
                         onClick={() => handleDeleteUser(user.id, user.email)}
                       >
                         Remove
@@ -213,11 +215,11 @@ export default function Admin() {
                   {school.pending_invites.map((inv) => (
                     <div key={inv.id} className="user-row user-row--invite">
                       <div className="user-info">
-                        <span className="user-email">{inv.email}</span>
-                        <span className="pending-badge">invite pending</span>
+                        <span className="user-email invite-token-label">Invite link</span>
+                        <span className="pending-badge">pending</span>
                       </div>
                       <button
-                        className="btn btn--sm btn--danger-ghost"
+                        className="btn--danger-ghost"
                         onClick={() => handleCancelInvite(inv.id)}
                       >
                         Cancel

@@ -12,6 +12,7 @@ import Login from './pages/Login.jsx';
 import SetupProfile from './pages/SetupProfile.jsx';
 import Admin from './pages/Admin.jsx';
 import Settings from './pages/Settings.jsx';
+import InviteAccept from './pages/InviteAccept.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import './App.css';
 
@@ -117,6 +118,7 @@ function App() {
             element={session ? <Navigate to="/" replace /> : <Login />}
           />
           <Route path="/setup" element={<SetupProfile />} />
+          <Route path="/invite/:token" element={<InviteAccept />} />
           <Route
             path="/admin"
             element={<ProtectedRoute><Admin /></ProtectedRoute>}

@@ -83,37 +83,24 @@ router.delete('/users/:id', async (req, res) => {
 });
 
 // POST /api/admin/invite
-// Creates an invite record and sends a Supabase invite email to the user.
+// Creates an invite record and returns a shareable link (no email sending required).
 router.post('/invite', async (req, res) => {
-  const { email, school_id, redirect_origin } = req.body;
-  if (!email || !school_id || !redirect_origin) {
-    return res.status(400).json({ error: 'email, school_id, and redirect_origin are required' });
+  const { school_id, redirect_origin } = req.body;
+  if (!school_id || !redirect_origin) {
+    return res.status(400).json({ error: 'school_id and redirect_origin are required' });
   }
 
   try {
-    // Create invite record to store the school association
     const { data: invite, error: inviteErr } = await supabase
       .from('invites')
-      .insert([{ email: email.trim().toLowerCase(), school_id }])
+      .insert([{ email: null, school_id }])
       .select('token')
       .single();
 
     if (inviteErr) throw inviteErr;
 
-    const redirectTo = `${redirect_origin}/setup?invite=${invite.token}`;
-
-    // Send invite email via Supabase Auth
-    const { error: authErr } = await supabase.auth.admin.inviteUserByEmail(email.trim(), {
-      redirectTo,
-    });
-
-    if (authErr) {
-      // Roll back the invite record if the email send fails
-      await supabase.from('invites').delete().eq('token', invite.token);
-      throw authErr;
-    }
-
-    res.status(201).json({ message: `Invite sent to ${email}` });
+    const invite_url = `${redirect_origin}/invite/${invite.token}`;
+    res.status(201).json({ invite_url });
   } catch (err) {
     console.error('POST /admin/invite error:', err.message);
     res.status(500).json({ error: err.message });

@@ -4,6 +4,70 @@ import { requireJwt } from '../middleware/requireJwt.js';
 
 const router = express.Router();
 
+// GET /api/auth/invite-info/:token
+// Public endpoint — returns the school name for a valid unused invite token.
+router.get('/invite-info/:token', async (req, res) => {
+  try {
+    const { data: invite, error } = await supabase
+      .from('invites')
+      .select('id, used, schools(name)')
+      .eq('token', req.params.token)
+      .single();
+
+    if (error || !invite) return res.status(404).json({ error: 'Invite not found or expired' });
+    if (invite.used) return res.status(409).json({ error: 'This invite link has already been used' });
+
+    res.json({ school_name: invite.schools.name });
+  } catch (err) {
+    console.error('GET /auth/invite-info error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/auth/accept-invite-signup
+// Creates a confirmed Supabase account and profile in one step for an invited user.
+// No email confirmation required — the invite link is the proof of authorization.
+router.post('/accept-invite-signup', async (req, res) => {
+  const { token, email, password } = req.body;
+  if (!token || !email || !password) {
+    return res.status(400).json({ error: 'token, email, and password are required' });
+  }
+
+  try {
+    const { data: invite, error: inviteErr } = await supabase
+      .from('invites')
+      .select('id, school_id, used')
+      .eq('token', token)
+      .single();
+
+    if (inviteErr || !invite) return res.status(404).json({ error: 'Invite not found or expired' });
+    if (invite.used) return res.status(409).json({ error: 'This invite link has already been used' });
+
+    // Create a pre-confirmed Supabase user (bypasses email confirmation)
+    const { data: { user }, error: createErr } = await supabase.auth.admin.createUser({
+      email: email.trim().toLowerCase(),
+      password,
+      email_confirm: true,
+    });
+
+    if (createErr) throw createErr;
+
+    // Create profile and mark invite used
+    const [profileResult, usedResult] = await Promise.all([
+      supabase.from('profiles').insert([{ id: user.id, school_id: invite.school_id }]),
+      supabase.from('invites').update({ used: true }).eq('id', invite.id),
+    ]);
+
+    if (profileResult.error) throw profileResult.error;
+    if (usedResult.error) throw usedResult.error;
+
+    res.status(201).json({ success: true });
+  } catch (err) {
+    console.error('POST /auth/accept-invite-signup error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/auth/setup-profile
 // Called once after initial signup. Finds or creates the school and links it to the user.
 router.post('/setup-profile', requireJwt, async (req, res) => {
