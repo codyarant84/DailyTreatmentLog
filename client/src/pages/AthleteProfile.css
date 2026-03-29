@@ -74,6 +74,17 @@
   min-width: 120px;
 }
 
+.stat-card--savings {
+  border-color: var(--color-success);
+  background: #edf7ed;
+}
+
+.stat-value--savings {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-success);
+}
+
 .stat-label {
   font-size: 0.73rem;
   font-weight: 600;

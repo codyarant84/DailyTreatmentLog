@@ -54,10 +54,11 @@ export default function AthleteProfile() {
   const hasFilters = Object.values(filters).some(Boolean);
 
   // Stats are always computed from the filtered set so they stay in sync
-  const totalMinutes  = filtered.reduce((n, t) => n + (t.duration_minutes ?? 0), 0);
-  const uniqueDays    = new Set(filtered.map((t) => t.date)).size;
-  const topBodyPart   = mostCommon(filtered.map((t) => t.body_part));
-  const topType       = mostCommon(filtered.map((t) => t.treatment_type));
+  const totalMinutes    = filtered.reduce((n, t) => n + (t.duration_minutes ?? 0), 0);
+  const uniqueDays      = new Set(filtered.map((t) => t.date)).size;
+  const topBodyPart     = mostCommon(filtered.map((t) => t.body_part));
+  const topType         = mostCommon(filtered.map((t) => t.treatment_type));
+  const totalSavings    = filtered.reduce((n, t) => n + (t.estimated_savings ?? 0), 0);
 
   function setFilter(key, value) {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -138,6 +139,14 @@ export default function AthleteProfile() {
           <span className="stat-value stat-value--sm">{topType ?? '—'}</span>
           <span className="stat-label">Top Treatment</span>
         </div>
+        {totalSavings > 0 && (
+          <div className="stat-card stat-card--savings">
+            <span className="stat-value stat-value--savings">
+              {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(totalSavings)}
+            </span>
+            <span className="stat-label">Est. Total Savings</span>
+          </div>
+        )}
       </div>
 
       {/* Filter bar */}

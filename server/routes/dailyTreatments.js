@@ -1,6 +1,7 @@
 import express from 'express';
 import { supabase } from '../lib/supabase.js';
 import { requireAuth } from '../middleware/requireAuth.js';
+import { calculateSavings } from '../lib/cptCodes.js';
 
 const router = express.Router();
 const TABLE = 'daily_treatments';
@@ -86,6 +87,7 @@ router.post('/', async (req, res) => {
         duration_minutes: duration_minutes || null,
         notes: notes || null,
         exercises_performed: exercises_performed || null,
+        estimated_savings: calculateSavings(treatment_type, body_part).total || null,
         school_id: req.schoolId,
         logged_by_email,
       }])

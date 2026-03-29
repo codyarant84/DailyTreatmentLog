@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import api from '../lib/api.js';
 import AthleteCombobox from '../components/AthleteCombobox.jsx';
+import { calculateSavings, formatDollars } from '../lib/cptCodes.js';
 import './NewTreatment.css';
 
 const TREATMENT_TYPES = [
@@ -62,6 +63,7 @@ function NewTreatment() {
   const [athletes, setAthletes] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [review, setReview] = useState(null); // post-save review data
 
   const exerciseSelected = selectedTypes.includes('Exercise');
 
@@ -160,12 +162,88 @@ function NewTreatment() {
     try {
       setSubmitting(true);
       await api.post('/api/daily-treatments', payload);
-      navigate('/');
+      const { total, breakdown } = calculateSavings(payload.treatment_type, payload.body_part);
+      setReview({
+        athleteName: payload.athlete_name,
+        date: payload.date,
+        bodyPart: payload.body_part,
+        treatmentType: payload.treatment_type,
+        breakdown,
+        total,
+      });
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to save treatment. Please try again.');
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (review) {
+    return (
+      <div className="new-treatment">
+        <div className="review-card">
+          <div className="review-check">✓</div>
+          <h2 className="review-title">Treatment Saved</h2>
+          <div className="review-summary">
+            <span className="review-athlete">{review.athleteName}</span>
+            <span className="review-meta">{review.bodyPart} &middot; {review.date}</span>
+          </div>
+
+          <div className="review-cpt">
+            <h3 className="review-cpt-title">CPT Billing Codes Applied</h3>
+            {review.breakdown.length === 0 ? (
+              <p className="review-no-cpt">No billable codes for this treatment type.</p>
+            ) : (
+              <table className="cpt-table">
+                <thead>
+                  <tr>
+                    <th>Code</th>
+                    <th>Description</th>
+                    <th>Est. Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {review.breakdown.map((item, i) => (
+                    <tr key={i}>
+                      <td className="cpt-code">{item.code}</td>
+                      <td>{item.description}</td>
+                      <td className="cpt-rate">{formatDollars(item.rate)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan={2} className="cpt-total-label">Estimated session savings</td>
+                    <td className="cpt-total">{formatDollars(review.total)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            )}
+            <p className="review-disclaimer">
+              Estimates based on national average Medicare allowable rates. Actual savings vary by provider and location.
+            </p>
+          </div>
+
+          <div className="review-actions">
+            <button
+              className="btn btn--outline"
+              onClick={() => {
+                setReview(null);
+                setSelectedTypes([]);
+                setSelectedExercises([]);
+                setAthleteName('');
+                setBodyPart('');
+                setNotes('');
+                setDurationMinutes('');
+              }}
+            >
+              Log Another Treatment
+            </button>
+            <Link to="/" className="btn btn--primary">View Log</Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

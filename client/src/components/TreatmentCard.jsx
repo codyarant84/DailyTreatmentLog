@@ -1,6 +1,10 @@
 import { Link } from 'react-router-dom';
 import './TreatmentCard.css';
 
+function formatDollars(n) {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+}
+
 const TREATMENT_COLORS = {
   'Ice':                   '#2980b9',
   'Heat':                  '#e67e22',
@@ -40,7 +44,7 @@ function formatDate(dateStr) {
 }
 
 function TreatmentCard({ treatment, onDelete }) {
-  const { id, athlete_name, date, treatment_type, body_part, notes, duration_minutes, exercises_performed } = treatment;
+  const { id, athlete_name, date, treatment_type, body_part, notes, duration_minutes, exercises_performed, estimated_savings } = treatment;
 
   // treatment_type may be a comma-separated string (e.g. "Ice, Heat, Cupping")
   const types = treatment_type ? treatment_type.split(',').map((t) => t.trim()).filter(Boolean) : [];
@@ -82,6 +86,11 @@ function TreatmentCard({ treatment, onDelete }) {
           <span className="tag tag--body">{body_part}</span>
           {duration_minutes && (
             <span className="tag tag--duration">{duration_minutes} min</span>
+          )}
+          {estimated_savings > 0 && (
+            <span className="tag tag--savings" title="Estimated cost savings">
+              {formatDollars(estimated_savings)} saved
+            </span>
           )}
         </div>
 

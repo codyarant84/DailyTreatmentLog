@@ -54,6 +54,12 @@ function Home() {
           <h1 className="page-title">Treatment Log</h1>
           <p className="page-subtitle">
             {treatments.length} record{treatments.length !== 1 ? 's' : ''} on file
+            {(() => {
+              const total = treatments.reduce((n, t) => n + (t.estimated_savings ?? 0), 0);
+              return total > 0
+                ? ` · ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(total)} est. saved`
+                : null;
+            })()}
           </p>
         </div>
         <Link to="/new" className="btn btn--primary">
