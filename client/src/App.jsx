@@ -13,6 +13,9 @@ import SetupProfile from './pages/SetupProfile.jsx';
 import Admin from './pages/Admin.jsx';
 import Settings from './pages/Settings.jsx';
 import InviteAccept from './pages/InviteAccept.jsx';
+import ExerciseLibrary from './pages/ExerciseLibrary.jsx';
+import RehabPrograms from './pages/RehabPrograms.jsx';
+import ProgramBuilder from './pages/ProgramBuilder.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import './App.css';
 
@@ -90,6 +93,18 @@ function App() {
                 + New Treatment
               </Link>
               <Link
+                to="/exercises"
+                className={`nav-link ${location.pathname === '/exercises' ? 'active' : ''}`}
+              >
+                Library
+              </Link>
+              <Link
+                to="/programs"
+                className={`nav-link ${location.pathname.startsWith('/programs') ? 'active' : ''}`}
+              >
+                Programs
+              </Link>
+              <Link
                 to="/settings"
                 className={`nav-link ${location.pathname === '/settings' ? 'active' : ''}`}
               >
@@ -126,6 +141,22 @@ function App() {
           <Route
             path="/settings"
             element={<ProtectedRoute><Settings /></ProtectedRoute>}
+          />
+          <Route
+            path="/exercises"
+            element={<ProtectedRoute><ExerciseLibrary /></ProtectedRoute>}
+          />
+          <Route
+            path="/programs"
+            element={<ProtectedRoute><RehabPrograms /></ProtectedRoute>}
+          />
+          <Route
+            path="/programs/new"
+            element={<ProtectedRoute><ProgramBuilder /></ProtectedRoute>}
+          />
+          <Route
+            path="/programs/:id"
+            element={<ProtectedRoute><ProgramBuilder /></ProtectedRoute>}
           />
           <Route
             path="/"

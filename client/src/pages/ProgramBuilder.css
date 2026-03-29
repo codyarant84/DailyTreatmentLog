@@ -1,0 +1,242 @@
+.program-builder {
+  max-width: 860px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.pb-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.back-link {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  padding-top: 0.25rem;
+  transition: color 0.15s;
+}
+.back-link:hover { color: var(--color-primary); text-decoration: none; }
+
+.pb-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.pb-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+/* Info grid */
+.pb-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+.form-group--full { grid-column: 1 / -1; }
+
+/* Exercise rows header */
+.pb-exercises-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.pb-empty {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  padding: 0.5rem 0;
+}
+
+/* Individual exercise row */
+.exercise-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.exercise-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.85rem;
+}
+
+/* Order controls */
+.row-order {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  flex-shrink: 0;
+  padding-top: 1.4rem;
+}
+
+.order-btn {
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  font-size: 0.6rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.1s, color 0.1s;
+}
+.order-btn:hover:not(:disabled) { background: var(--color-border); color: var(--color-text); }
+.order-btn:disabled { opacity: 0.3; cursor: default; }
+
+.order-num {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  line-height: 1;
+  padding: 0.2rem 0;
+}
+
+/* Row content */
+.row-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.row-top {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.exercise-select-group { flex: 1; }
+
+.row-video-thumb {
+  position: relative;
+  display: block;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+.row-video-thumb img {
+  width: 60px;
+  height: 45px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  display: block;
+}
+.row-play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  color: white;
+  background: rgba(0,0,0,0.35);
+  border-radius: 4px;
+}
+
+/* Param fields */
+.row-params {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.param-group { width: 80px; flex-shrink: 0; }
+.param-group--notes { width: auto; flex: 1; min-width: 140px; }
+
+/* Delete button */
+.row-delete {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+  padding: 0.25rem;
+  cursor: pointer;
+  border-radius: 4px;
+  flex-shrink: 0;
+  margin-top: 1.4rem;
+  transition: background 0.15s, color 0.15s;
+}
+.row-delete:hover { background: var(--color-danger-light); color: var(--color-danger); }
+
+.add-more-btn { align-self: flex-start; }
+
+/* Actions */
+.pb-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+/* Shared */
+.form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+.form-label { font-size: 0.85rem; font-weight: 600; color: var(--color-text); }
+.required { color: var(--color-danger); }
+.form-input {
+  padding: 0.55rem 0.75rem; border: 1.5px solid var(--color-border); border-radius: var(--radius);
+  font-size: 0.9rem; font-family: inherit; color: var(--color-text); background: var(--color-surface);
+  transition: border-color 0.15s; width: 100%;
+}
+.form-input:focus { outline: none; border-color: var(--color-primary); }
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2rem;
+  cursor: pointer;
+}
+.form-textarea { resize: vertical; min-height: 70px; }
+.form-error {
+  background: var(--color-danger-light); color: var(--color-danger);
+  border: 1px solid var(--color-danger); border-radius: var(--radius);
+  padding: 0.6rem 0.85rem; font-size: 0.875rem;
+}
+
+.btn {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.55rem 1.1rem; border-radius: var(--radius);
+  font-size: 0.9rem; font-weight: 600; border: none; cursor: pointer;
+  transition: background 0.15s, color 0.15s; text-decoration: none; font-family: inherit;
+}
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn--primary { background: var(--color-primary); color: white; }
+.btn--primary:hover:not(:disabled) { background: var(--color-primary-dark); color: white; text-decoration: none; }
+.btn--ghost { background: transparent; color: var(--color-text-muted); border: 1px solid var(--color-border); }
+.btn--ghost:hover { background: var(--color-bg); color: var(--color-text); text-decoration: none; }
+.btn--sm { padding: 0.35rem 0.75rem; font-size: 0.8rem; }
+.btn--outline { background: transparent; color: var(--color-primary); border: 1.5px solid var(--color-primary); }
+.btn--outline:hover:not(:disabled) { background: var(--color-primary-light); text-decoration: none; }
+
+@media (max-width: 600px) {
+  .pb-info-grid { grid-template-columns: 1fr; }
+  .form-group--full { grid-column: 1; }
+  .row-params { gap: 0.5rem; }
+  .param-group { width: 70px; }
+}
