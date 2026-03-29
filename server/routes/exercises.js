@@ -5,13 +5,12 @@ import { requireAuth } from '../middleware/requireAuth.js';
 const router = express.Router();
 router.use(requireAuth);
 
-// GET /api/exercises — all exercises for this school, alphabetical
+// GET /api/exercises — global library, all schools, alphabetical
 router.get('/', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('exercises')
       .select('id, name, description, video_url')
-      .eq('school_id', req.schoolId)
       .order('name');
 
     if (error) throw error;
@@ -31,7 +30,6 @@ router.post('/', async (req, res) => {
     const { data, error } = await supabase
       .from('exercises')
       .insert([{
-        school_id: req.schoolId,
         name: name.trim(),
         description: description?.trim() || null,
         video_url: video_url?.trim() || null,
@@ -64,7 +62,6 @@ router.put('/:id', async (req, res) => {
         video_url: video_url?.trim() || null,
       })
       .eq('id', req.params.id)
-      .eq('school_id', req.schoolId)
       .select('id, name, description, video_url')
       .single();
 
@@ -83,8 +80,7 @@ router.delete('/:id', async (req, res) => {
     const { error } = await supabase
       .from('exercises')
       .delete()
-      .eq('id', req.params.id)
-      .eq('school_id', req.schoolId);
+      .eq('id', req.params.id);
 
     if (error) throw error;
     res.status(204).send();
