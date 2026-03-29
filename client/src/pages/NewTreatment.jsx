@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import api from '../lib/api.js';
 import AthleteCombobox from '../components/AthleteCombobox.jsx';
@@ -11,6 +11,7 @@ const TREATMENT_TYPES = [
   'E-Stim',
   'Massage',
   'Taping',
+  'Cupping',
   'Exercise',
 ];
 
@@ -39,50 +40,121 @@ const BODY_PARTS = [
 
 const today = new Date().toISOString().split('T')[0];
 
-const INITIAL_FORM = {
-  athlete_name: '',
-  date: today,
-  treatment_type: '',
-  body_part: '',
-  duration_minutes: '',
-  notes: '',
-};
-
 function NewTreatment() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const [form, setForm] = useState({
-    ...INITIAL_FORM,
-    athlete_name: searchParams.get('athlete') ?? '',
-  });
+  const [athleteName, setAthleteName] = useState(searchParams.get('athlete') ?? '');
+  const [date, setDate] = useState(today);
+  const [durationMinutes, setDurationMinutes] = useState('');
+  const [selectedTypes, setSelectedTypes] = useState([]);
+  const [bodyPart, setBodyPart] = useState('');
+  const [notes, setNotes] = useState('');
+
+  // Exercise library
+  const [exerciseLibrary, setExerciseLibrary] = useState([]);
+  const [selectedExercises, setSelectedExercises] = useState([]);
+  const [exerciseSearch, setExerciseSearch] = useState('');
+  const [exerciseOpen, setExerciseOpen] = useState(false);
+  const [addingExercise, setAddingExercise] = useState(false);
+  const exerciseRef = useRef(null);
+
   const [athletes, setAthletes] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
+  const exerciseSelected = selectedTypes.includes('Exercise');
+
   useEffect(() => {
     api.get('/api/daily-treatments/athletes')
       .then(({ data }) => setAthletes(data))
-      .catch(() => {/* non-fatal — combobox works without suggestions */});
+      .catch(() => {});
   }, []);
 
-  function handleChange(e) {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+  useEffect(() => {
+    if (!exerciseSelected) return;
+    api.get('/api/exercises')
+      .then(({ data }) => setExerciseLibrary(data.map((e) => e.name)))
+      .catch(() => {});
+  }, [exerciseSelected]);
+
+  // Close exercise dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (exerciseRef.current && !exerciseRef.current.contains(e.target)) {
+        setExerciseOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  function toggleType(type) {
+    setSelectedTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    );
+    if (type === 'Exercise') {
+      setSelectedExercises([]);
+      setExerciseSearch('');
+      setExerciseOpen(false);
+    }
   }
+
+  function toggleExercise(name) {
+    setSelectedExercises((prev) =>
+      prev.includes(name) ? prev.filter((e) => e !== name) : [...prev, name]
+    );
+  }
+
+  async function handleAddExercise() {
+    const name = exerciseSearch.trim();
+    if (!name) return;
+    if (exerciseLibrary.map((e) => e.toLowerCase()).includes(name.toLowerCase())) {
+      // Already exists — just select it
+      if (!selectedExercises.includes(name)) {
+        setSelectedExercises((prev) => [...prev, name]);
+      }
+      setExerciseSearch('');
+      return;
+    }
+    setAddingExercise(true);
+    try {
+      await api.post('/api/exercises', { name });
+      setExerciseLibrary((prev) => [...prev, name].sort((a, b) => a.localeCompare(b)));
+      setSelectedExercises((prev) => [...prev, name]);
+      setExerciseSearch('');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to add exercise.');
+    } finally {
+      setAddingExercise(false);
+    }
+  }
+
+  const filteredExercises = exerciseLibrary.filter((e) =>
+    e.toLowerCase().includes(exerciseSearch.toLowerCase())
+  );
+
+  const showAddNew =
+    exerciseSearch.trim() &&
+    !exerciseLibrary.some((e) => e.toLowerCase() === exerciseSearch.trim().toLowerCase());
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
 
-    if (!form.athlete_name.trim() || !form.date || !form.treatment_type || !form.body_part) {
+    if (!athleteName.trim() || !date || selectedTypes.length === 0 || !bodyPart) {
       setError('Please fill in all required fields.');
       return;
     }
 
     const payload = {
-      ...form,
-      duration_minutes: form.duration_minutes ? Number(form.duration_minutes) : null,
+      athlete_name: athleteName.trim(),
+      date,
+      treatment_type: selectedTypes.join(', '),
+      body_part: bodyPart,
+      duration_minutes: durationMinutes ? Number(durationMinutes) : null,
+      notes: notes || null,
+      exercises_performed: selectedExercises.length > 0 ? selectedExercises.join(', ') : null,
     };
 
     try {
@@ -116,14 +188,14 @@ function NewTreatment() {
         )}
 
         <div className="form-grid">
-          {/* Athlete Name — searchable combobox */}
+          {/* Athlete Name */}
           <div className="form-group form-group--full">
             <label className="form-label">
               Athlete Name <span className="required">*</span>
             </label>
             <AthleteCombobox
-              value={form.athlete_name}
-              onChange={(val) => setForm((prev) => ({ ...prev, athlete_name: val }))}
+              value={athleteName}
+              onChange={setAthleteName}
               athletes={athletes}
             />
           </div>
@@ -135,11 +207,10 @@ function NewTreatment() {
             </label>
             <input
               id="date"
-              name="date"
               type="date"
               className="form-input"
-              value={form.date}
-              onChange={handleChange}
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
               required
             />
           </div>
@@ -151,36 +222,120 @@ function NewTreatment() {
             </label>
             <input
               id="duration_minutes"
-              name="duration_minutes"
               type="number"
               className="form-input"
               placeholder="e.g. 20"
               min="1"
               max="480"
-              value={form.duration_minutes}
-              onChange={handleChange}
+              value={durationMinutes}
+              onChange={(e) => setDurationMinutes(e.target.value)}
             />
           </div>
 
-          {/* Treatment Type */}
-          <div className="form-group">
-            <label htmlFor="treatment_type" className="form-label">
+          {/* Treatment Type — checklist */}
+          <div className="form-group form-group--full">
+            <label className="form-label">
               Treatment Type <span className="required">*</span>
             </label>
-            <select
-              id="treatment_type"
-              name="treatment_type"
-              className="form-input form-select"
-              value={form.treatment_type}
-              onChange={handleChange}
-              required
-            >
-              <option value="">-- Select type --</option>
-              {TREATMENT_TYPES.map((t) => (
-                <option key={t} value={t}>{t}</option>
+            <div className="type-checklist">
+              {TREATMENT_TYPES.map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  className={`type-pill ${selectedTypes.includes(type) ? 'type-pill--selected' : ''}`}
+                  onClick={() => toggleType(type)}
+                >
+                  {selectedTypes.includes(type) && <span className="pill-check">✓</span>}
+                  {type}
+                </button>
               ))}
-            </select>
+            </div>
           </div>
+
+          {/* Exercise selector — shown only when Exercise is checked */}
+          {exerciseSelected && (
+            <div className="form-group form-group--full">
+              <label className="form-label">Exercises</label>
+              <div className="exercise-selector" ref={exerciseRef}>
+                {/* Selected chips */}
+                {selectedExercises.length > 0 && (
+                  <div className="exercise-chips">
+                    {selectedExercises.map((ex) => (
+                      <span key={ex} className="exercise-chip">
+                        {ex}
+                        <button
+                          type="button"
+                          className="chip-remove"
+                          onClick={() => toggleExercise(ex)}
+                          aria-label={`Remove ${ex}`}
+                        >
+                          &times;
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Dropdown toggle */}
+                <button
+                  type="button"
+                  className="exercise-toggle"
+                  onClick={() => setExerciseOpen((o) => !o)}
+                >
+                  {exerciseOpen ? 'Close' : 'Select exercises...'}
+                  <span className="toggle-caret">{exerciseOpen ? '▲' : '▼'}</span>
+                </button>
+
+                {exerciseOpen && (
+                  <div className="exercise-dropdown">
+                    <div className="exercise-search-row">
+                      <input
+                        type="text"
+                        className="form-input exercise-search"
+                        placeholder="Search or add new..."
+                        value={exerciseSearch}
+                        onChange={(e) => setExerciseSearch(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (showAddNew) handleAddExercise();
+                          }
+                        }}
+                        autoFocus
+                      />
+                    </div>
+
+                    <div className="exercise-list">
+                      {filteredExercises.length === 0 && !showAddNew && (
+                        <p className="exercise-empty">No exercises found.</p>
+                      )}
+                      {filteredExercises.map((ex) => (
+                        <label key={ex} className="exercise-option">
+                          <input
+                            type="checkbox"
+                            checked={selectedExercises.includes(ex)}
+                            onChange={() => toggleExercise(ex)}
+                          />
+                          <span>{ex}</span>
+                        </label>
+                      ))}
+                    </div>
+
+                    {showAddNew && (
+                      <button
+                        type="button"
+                        className="exercise-add-new"
+                        onClick={handleAddExercise}
+                        disabled={addingExercise}
+                      >
+                        {addingExercise ? 'Adding...' : `+ Add "${exerciseSearch.trim()}" to library`}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Body Part */}
           <div className="form-group">
@@ -189,10 +344,9 @@ function NewTreatment() {
             </label>
             <select
               id="body_part"
-              name="body_part"
               className="form-input form-select"
-              value={form.body_part}
-              onChange={handleChange}
+              value={bodyPart}
+              onChange={(e) => setBodyPart(e.target.value)}
               required
             >
               <option value="">-- Select body part --</option>
@@ -204,17 +358,14 @@ function NewTreatment() {
 
           {/* Notes */}
           <div className="form-group form-group--full">
-            <label htmlFor="notes" className="form-label">
-              Notes
-            </label>
+            <label htmlFor="notes" className="form-label">Notes</label>
             <textarea
               id="notes"
-              name="notes"
               className="form-input form-textarea"
               placeholder="Additional details, observations, or follow-up instructions..."
               rows={4}
-              value={form.notes}
-              onChange={handleChange}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
             />
           </div>
         </div>

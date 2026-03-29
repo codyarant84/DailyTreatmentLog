@@ -6,9 +6,10 @@ const TREATMENT_COLORS = {
   'Heat':                  '#e67e22',
   'Massage':               '#8e44ad',
   'Taping':                '#16a085',
-  'E-Stim':               '#d35400',
+  'E-Stim':                '#d35400',
   'Ultrasound':            '#2c3e50',
   'Exercise':              '#c0392b',
+  'Cupping':               '#6d4c8f',
   // legacy values from earlier scaffold
   'Ice / Cryotherapy':     '#2980b9',
   'Heat Therapy':          '#e67e22',
@@ -19,8 +20,16 @@ const TREATMENT_COLORS = {
   'Other':                 '#7f8c8d',
 };
 
+const DEFAULT_COLOR = '#7f8c8d';
+
 function badgeColor(type) {
-  return TREATMENT_COLORS[type] || '#7f8c8d';
+  return TREATMENT_COLORS[type.trim()] || DEFAULT_COLOR;
+}
+
+function accentColor(types) {
+  // Use the first type's color for the left accent bar
+  const first = types[0];
+  return first ? badgeColor(first) : DEFAULT_COLOR;
 }
 
 function formatDate(dateStr) {
@@ -31,12 +40,15 @@ function formatDate(dateStr) {
 }
 
 function TreatmentCard({ treatment, onDelete }) {
-  const { id, athlete_name, date, treatment_type, body_part, notes, duration_minutes } = treatment;
-  const color = badgeColor(treatment_type);
+  const { id, athlete_name, date, treatment_type, body_part, notes, duration_minutes, exercises_performed } = treatment;
+
+  // treatment_type may be a comma-separated string (e.g. "Ice, Heat, Cupping")
+  const types = treatment_type ? treatment_type.split(',').map((t) => t.trim()).filter(Boolean) : [];
+  const exercises = exercises_performed ? exercises_performed.split(',').map((e) => e.trim()).filter(Boolean) : [];
 
   return (
     <article className="treatment-card">
-      <div className="card-accent" style={{ backgroundColor: color }} />
+      <div className="card-accent" style={{ backgroundColor: accentColor(types) }} />
       <div className="card-body">
         <div className="card-header">
           <div className="card-meta">
@@ -59,14 +71,27 @@ function TreatmentCard({ treatment, onDelete }) {
         </div>
 
         <div className="card-tags">
-          <span className="tag" style={{ backgroundColor: color + '22', color }}>
-            {treatment_type}
-          </span>
+          {types.map((type) => {
+            const color = badgeColor(type);
+            return (
+              <span key={type} className="tag" style={{ backgroundColor: color + '22', color }}>
+                {type}
+              </span>
+            );
+          })}
           <span className="tag tag--body">{body_part}</span>
           {duration_minutes && (
             <span className="tag tag--duration">{duration_minutes} min</span>
           )}
         </div>
+
+        {exercises.length > 0 && (
+          <div className="card-exercises">
+            {exercises.map((ex) => (
+              <span key={ex} className="exercise-tag">{ex}</span>
+            ))}
+          </div>
+        )}
 
         {notes && <p className="card-notes">{notes}</p>}
       </div>

@@ -65,7 +65,7 @@ router.get('/', async (req, res) => {
 // POST /api/daily-treatments
 router.post('/', async (req, res) => {
   try {
-    const { athlete_name, date, treatment_type, body_part, duration_minutes, notes } = req.body;
+    const { athlete_name, date, treatment_type, body_part, duration_minutes, notes, exercises_performed } = req.body;
 
     if (!athlete_name || !date || !treatment_type || !body_part) {
       return res.status(400).json({
@@ -85,6 +85,7 @@ router.post('/', async (req, res) => {
         body_part,
         duration_minutes: duration_minutes || null,
         notes: notes || null,
+        exercises_performed: exercises_performed || null,
         school_id: req.schoolId,
         logged_by_email,
       }])
