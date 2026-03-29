@@ -2,9 +2,9 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export default function ProtectedRoute({ children }) {
-  const { session, loading } = useAuth();
+  const { session, hasProfile, loading } = useAuth();
 
-  if (loading) {
+  if (loading || (session && hasProfile === null)) {
     return (
       <div className="state-msg">
         <div className="spinner" />
@@ -15,6 +15,10 @@ export default function ProtectedRoute({ children }) {
 
   if (!session) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (hasProfile === false) {
+    return <Navigate to="/setup" replace />;
   }
 
   return children;

@@ -8,6 +8,7 @@ import Athletes from './pages/Athletes.jsx';
 import AthleteProfile from './pages/AthleteProfile.jsx';
 import ImportAthletes from './pages/ImportAthletes.jsx';
 import Login from './pages/Login.jsx';
+import SetupProfile from './pages/SetupProfile.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import './App.css';
 
@@ -70,6 +71,7 @@ function App() {
             path="/login"
             element={session ? <Navigate to="/" replace /> : <Login />}
           />
+          <Route path="/setup" element={<SetupProfile />} />
           <Route
             path="/"
             element={<ProtectedRoute><Home /></ProtectedRoute>}

@@ -67,7 +67,10 @@ router.get('/me', requireJwt, async (req, res) => {
       supabase.auth.admin.getUserById(req.userId),
     ]);
 
-    if (profileResult.error) throw profileResult.error;
+    if (profileResult.error) {
+      // No profile row means setup is incomplete
+      return res.status(403).json({ error: 'User profile not found' });
+    }
 
     res.json({
       user_id: req.userId,

@@ -36,11 +36,16 @@ export default function Login() {
           return;
         }
 
-        const { data, error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: window.location.origin + '/setup' },
+        });
         if (error) throw error;
 
         if (!data.session) {
-          // Email confirmation is required — profile will be set up after confirmation
+          // Email confirmation is required — store school name for after verification
+          localStorage.setItem('pendingSchoolName', schoolName.trim());
           setEmailSent(true);
           return;
         }
