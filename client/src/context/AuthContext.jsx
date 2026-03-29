@@ -10,6 +10,7 @@ export function AuthProvider({ children }) {
   // null = unknown, true = profile exists, false = no profile yet
   const [hasProfile, setHasProfile] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [branding, setBranding] = useState({ primaryColor: null, logoUrl: null });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -18,7 +19,7 @@ export function AuthProvider({ children }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session ?? null);
-      if (!session) { setHasProfile(null); setIsAdmin(false); }
+      if (!session) { setHasProfile(null); setIsAdmin(false); setBranding({ primaryColor: null, logoUrl: null }); }
     });
 
     return () => subscription.unsubscribe();
@@ -34,6 +35,7 @@ export function AuthProvider({ children }) {
       .then(({ data }) => {
         setHasProfile(true);
         setIsAdmin(data.is_admin ?? false);
+        setBranding({ primaryColor: data.primary_color ?? null, logoUrl: data.logo_url ?? null });
       })
       .catch((err) => {
         if (err.response?.status === 403) {
@@ -43,7 +45,7 @@ export function AuthProvider({ children }) {
   }, [session]);
 
   return (
-    <AuthContext.Provider value={{ session, hasProfile, isAdmin, loading: session === undefined }}>
+    <AuthContext.Provider value={{ session, hasProfile, isAdmin, branding, setBranding, loading: session === undefined }}>
       {children}
     </AuthContext.Provider>
   );

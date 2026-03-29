@@ -72,11 +72,19 @@ router.get('/me', requireJwt, async (req, res) => {
       return res.status(403).json({ error: 'User profile not found' });
     }
 
+    const { data: school } = await supabase
+      .from('schools')
+      .select('primary_color, logo_url')
+      .eq('id', profileResult.data.school_id)
+      .single();
+
     res.json({
       user_id: req.userId,
       email: userResult.data.user?.email ?? null,
       school_id: profileResult.data.school_id,
       is_admin: profileResult.data.is_admin ?? false,
+      primary_color: school?.primary_color ?? null,
+      logo_url: school?.logo_url ?? null,
     });
   } catch (err) {
     console.error('GET /auth/me error:', err.message);
