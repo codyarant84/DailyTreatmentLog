@@ -9,12 +9,13 @@ import AthleteProfile from './pages/AthleteProfile.jsx';
 import ImportAthletes from './pages/ImportAthletes.jsx';
 import Login from './pages/Login.jsx';
 import SetupProfile from './pages/SetupProfile.jsx';
+import Admin from './pages/Admin.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import './App.css';
 
 function App() {
   const location = useLocation();
-  const { session, loading } = useAuth();
+  const { session, isAdmin, loading } = useAuth();
 
   if (loading) return null;
 
@@ -57,6 +58,14 @@ function App() {
               >
                 + New Treatment
               </Link>
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  className={`nav-link ${location.pathname === '/admin' ? 'active' : ''}`}
+                >
+                  Admin
+                </Link>
+              )}
               <button className="nav-signout" onClick={handleSignOut}>
                 Sign Out
               </button>
@@ -72,6 +81,10 @@ function App() {
             element={session ? <Navigate to="/" replace /> : <Login />}
           />
           <Route path="/setup" element={<SetupProfile />} />
+          <Route
+            path="/admin"
+            element={<ProtectedRoute><Admin /></ProtectedRoute>}
+          />
           <Route
             path="/"
             element={<ProtectedRoute><Home /></ProtectedRoute>}

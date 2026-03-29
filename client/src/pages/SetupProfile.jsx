@@ -1,12 +1,16 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext.jsx';
 import './SetupProfile.css';
 
 export default function SetupProfile() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { session, hasProfile } = useAuth();
+
+  const inviteToken = searchParams.get('invite');
+
   const [schoolName, setSchoolName] = useState(
     () => localStorage.getItem('pendingSchoolName') ?? ''
   );
@@ -18,6 +22,23 @@ export default function SetupProfile() {
     navigate('/', { replace: true });
     return null;
   }
+
+  // Auto-accept invite as soon as we have a session
+  useEffect(() => {
+    if (!inviteToken || !session) return;
+    setLoading(true);
+    axios
+      .post(
+        '/api/auth/accept-invite',
+        { token: inviteToken },
+        { headers: { Authorization: `Bearer ${session.access_token}` } }
+      )
+      .then(() => navigate('/', { replace: true }))
+      .catch((err) => {
+        setError(err.response?.data?.error ?? err.message);
+        setLoading(false);
+      });
+  }, [inviteToken, session]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -40,6 +61,31 @@ export default function SetupProfile() {
       setError(err.response?.data?.error ?? err.message);
       setLoading(false);
     }
+  }
+
+  // Invite flow — show a loading state while auto-accepting
+  if (inviteToken) {
+    return (
+      <div className="setup-page">
+        <div className="setup-card">
+          <div className="login-brand">
+            <span className="brand-icon">+</span>
+            <span className="brand-name">Daily Treatment Log</span>
+          </div>
+          {error ? (
+            <>
+              <h1 className="login-title">Invite error</h1>
+              <div className="form-error" role="alert">{error}</div>
+            </>
+          ) : (
+            <>
+              <h1 className="login-title">Setting up your account...</h1>
+              <p className="setup-subtitle">Just a moment while we link you to your school.</p>
+            </>
+          )}
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -7,6 +7,7 @@ import dailyTreatmentsRouter from './routes/dailyTreatments.js';
 import athletesRouter from './routes/athletes.js';
 import authRouter from './routes/auth.js';
 import exercisesRouter from './routes/exercises.js';
+import adminRouter from './routes/admin.js';
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use('/api/treatments', treatmentsRouter);
 app.use('/api/daily-treatments', dailyTreatmentsRouter);
 app.use('/api/athletes', athletesRouter);
 app.use('/api/exercises', exercisesRouter);
+app.use('/api/admin', adminRouter);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

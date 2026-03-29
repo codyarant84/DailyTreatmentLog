@@ -59,11 +59,11 @@ router.post('/setup-profile', requireJwt, async (req, res) => {
 });
 
 // GET /api/auth/me
-// Returns the current user's email and school_id — used by the dashboard for the realtime filter.
+// Returns the current user's email, school_id, and admin status.
 router.get('/me', requireJwt, async (req, res) => {
   try {
     const [profileResult, userResult] = await Promise.all([
-      supabase.from('profiles').select('school_id').eq('id', req.userId).single(),
+      supabase.from('profiles').select('school_id, is_admin').eq('id', req.userId).single(),
       supabase.auth.admin.getUserById(req.userId),
     ]);
 
@@ -76,9 +76,58 @@ router.get('/me', requireJwt, async (req, res) => {
       user_id: req.userId,
       email: userResult.data.user?.email ?? null,
       school_id: profileResult.data.school_id,
+      is_admin: profileResult.data.is_admin ?? false,
     });
   } catch (err) {
     console.error('GET /auth/me error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/auth/accept-invite
+// Called when an invited user lands on /setup?invite=TOKEN after clicking their email link.
+// Looks up the invite, creates their profile for the invited school, and marks the invite used.
+router.post('/accept-invite', requireJwt, async (req, res) => {
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ error: 'token is required' });
+
+  try {
+    const { data: invite, error: inviteErr } = await supabase
+      .from('invites')
+      .select('id, school_id, used')
+      .eq('token', token)
+      .single();
+
+    if (inviteErr || !invite) {
+      return res.status(404).json({ error: 'Invite not found or expired' });
+    }
+    if (invite.used) {
+      return res.status(409).json({ error: 'Invite has already been used' });
+    }
+
+    // Check if profile already exists
+    const { data: existing } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', req.userId)
+      .single();
+
+    if (existing) {
+      return res.status(409).json({ error: 'Profile already exists' });
+    }
+
+    // Create profile and mark invite used atomically
+    const [profileResult, usedResult] = await Promise.all([
+      supabase.from('profiles').insert([{ id: req.userId, school_id: invite.school_id }]),
+      supabase.from('invites').update({ used: true }).eq('id', invite.id),
+    ]);
+
+    if (profileResult.error) throw profileResult.error;
+    if (usedResult.error) throw usedResult.error;
+
+    res.status(201).json({ school_id: invite.school_id });
+  } catch (err) {
+    console.error('POST /auth/accept-invite error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });

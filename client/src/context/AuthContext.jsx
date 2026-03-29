@@ -9,6 +9,7 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(undefined);
   // null = unknown, true = profile exists, false = no profile yet
   const [hasProfile, setHasProfile] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -17,7 +18,7 @@ export function AuthProvider({ children }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session ?? null);
-      if (!session) setHasProfile(null);
+      if (!session) { setHasProfile(null); setIsAdmin(false); }
     });
 
     return () => subscription.unsubscribe();
@@ -30,7 +31,10 @@ export function AuthProvider({ children }) {
       .get('/api/auth/me', {
         headers: { Authorization: `Bearer ${session.access_token}` },
       })
-      .then(() => setHasProfile(true))
+      .then(({ data }) => {
+        setHasProfile(true);
+        setIsAdmin(data.is_admin ?? false);
+      })
       .catch((err) => {
         if (err.response?.status === 403) {
           setHasProfile(false);
@@ -39,7 +43,7 @@ export function AuthProvider({ children }) {
   }, [session]);
 
   return (
-    <AuthContext.Provider value={{ session, hasProfile, loading: session === undefined }}>
+    <AuthContext.Provider value={{ session, hasProfile, isAdmin, loading: session === undefined }}>
       {children}
     </AuthContext.Provider>
   );
