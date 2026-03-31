@@ -104,6 +104,62 @@ router.post('/', async (req, res) => {
   }
 });
 
+// GET /api/daily-treatments/:id — single record
+router.get('/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select('*')
+      .eq('id', req.params.id)
+      .eq('school_id', req.schoolId)
+      .single();
+
+    if (error || !data) return res.status(404).json({ error: 'Treatment not found.' });
+    res.json(data);
+  } catch (err) {
+    console.error('GET /daily-treatments/:id error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/daily-treatments/:id
+router.put('/:id', async (req, res) => {
+  try {
+    const { athlete_name, sport, date, treatment_type, body_part, duration_minutes, notes, exercises_performed } = req.body;
+
+    if (!athlete_name || !sport || !date || !treatment_type || !body_part) {
+      return res.status(400).json({
+        error: 'athlete_name, sport, date, treatment_type, and body_part are required.',
+      });
+    }
+
+    const { data, error } = await supabase
+      .from(TABLE)
+      .update({
+        athlete_name: athlete_name.trim(),
+        sport,
+        date,
+        treatment_type,
+        body_part,
+        duration_minutes: duration_minutes || null,
+        notes: notes || null,
+        exercises_performed: exercises_performed || null,
+        estimated_savings: calculateSavings(treatment_type, body_part).total || null,
+      })
+      .eq('id', req.params.id)
+      .eq('school_id', req.schoolId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Treatment not found.' });
+    res.json(data);
+  } catch (err) {
+    console.error('PUT /daily-treatments/:id error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // DELETE /api/daily-treatments/:id
 router.delete('/:id', async (req, res) => {
   try {

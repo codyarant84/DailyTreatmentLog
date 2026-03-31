@@ -80,78 +80,7 @@
   letter-spacing: 0.05em;
 }
 
-/* ── Table ──────────────────────────────────────────────────────────── */
-.table-wrap {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  overflow-x: auto;
-}
-
-.dash-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
-
-.dash-table thead {
-  background: var(--color-bg);
-  border-bottom: 2px solid var(--color-border);
-}
-
-.dash-table th {
-  text-align: left;
-  padding: 0.75rem 1rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  white-space: nowrap;
-}
-
-.dash-table td {
-  padding: 0.85rem 1rem;
-  border-bottom: 1px solid var(--color-border);
-  vertical-align: middle;
-  color: var(--color-text);
-}
-
-.dash-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.dash-table tbody tr {
-  transition: background 0.15s;
-}
-
-.dash-table tbody tr:hover {
-  background: var(--color-bg);
-}
-
-/* New row flash animation */
-@keyframes flash-in {
-  0%   { background-color: #d1fae5; }
-  100% { background-color: transparent; }
-}
-
-.dash-table tbody tr.row--new {
-  animation: flash-in 2.5s ease-out forwards;
-}
-
-/* ── Cell variants ──────────────────────────────────────────────────── */
-.cell-time {
-  font-variant-numeric: tabular-nums;
-  color: var(--color-text-muted);
-  font-size: 0.85rem;
-  white-space: nowrap;
-}
-
-.cell-athlete {
-  font-weight: 700;
-}
-
+/* ── Type badge (shared) ────────────────────────────────────────────── */
 .type-badge {
   display: inline-block;
   padding: 0.2rem 0.65rem;
@@ -163,30 +92,179 @@
   white-space: nowrap;
 }
 
-.cell-duration {
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+/* ── Day cards ──────────────────────────────────────────────────────── */
+.day-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
 }
 
-.athlete-cell-link {
+.day-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  transition: box-shadow 0.2s;
+}
+
+.day-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Flash animation for new cards */
+@keyframes flash-in {
+  0%   { background-color: #d1fae5; border-color: #6ee7b7; }
+  100% { background-color: var(--color-surface); border-color: var(--color-border); }
+}
+
+.day-card--new {
+  animation: flash-in 2.5s ease-out forwards;
+}
+
+/* Card header row */
+.day-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.day-card-top-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.day-card-athlete {
+  font-size: 1rem;
   font-weight: 700;
   color: var(--color-text);
   text-decoration: none;
   transition: color 0.15s;
+  line-height: 1.2;
 }
 
-.athlete-cell-link:hover {
+.day-card-athlete:hover {
   color: var(--color-primary);
   text-decoration: underline;
 }
 
-.cell-trainer {
+.day-card-sport {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #fff;
+  background: #1e3a5f;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  width: fit-content;
+  letter-spacing: 0.02em;
+}
+
+.day-card-top-right {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.day-card-time {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.day-card-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
   color: var(--color-text-muted);
   font-size: 0.85rem;
-  max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+
+.day-card-edit:hover {
+  background: var(--color-primary-light, rgba(29,111,165,0.12));
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  text-decoration: none;
+}
+
+/* Tags row */
+.day-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.day-card-tag {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.day-card-tag--body {
+  background-color: #f0f0f0;
+  color: #444;
+}
+
+.day-card-tag--duration {
+  background-color: #edf7ed;
+  color: var(--color-success);
+}
+
+/* Exercises */
+.day-card-exercises {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.day-card-exercise-tag {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  background-color: rgba(192, 57, 43, 0.1);
+  color: #c0392b;
+  border: 1px solid rgba(192, 57, 43, 0.25);
+}
+
+/* Notes */
+.day-card-notes {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  border-top: 1px solid var(--color-border);
+  padding-top: 0.5rem;
+  margin: 0;
+}
+
+/* Footer (logged by) */
+.day-card-footer {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+  padding-top: 0.45rem;
+}
+
+.day-card-footer strong {
+  color: var(--color-text);
 }
 
 /* ── Empty state ────────────────────────────────────────────────────── */

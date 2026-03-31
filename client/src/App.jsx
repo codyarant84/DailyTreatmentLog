@@ -4,6 +4,7 @@ import { useAuth } from './context/AuthContext.jsx';
 import { supabase } from './lib/supabase.js';
 import Home from './pages/Home.jsx';
 import NewTreatment from './pages/NewTreatment.jsx';
+import EditTreatment from './pages/EditTreatment.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Athletes from './pages/Athletes.jsx';
 import AthleteProfile from './pages/AthleteProfile.jsx';
@@ -181,6 +182,10 @@ function App() {
           <Route
             path="/new"
             element={<ProtectedRoute><NewTreatment /></ProtectedRoute>}
+          />
+          <Route
+            path="/treatments/:id/edit"
+            element={<ProtectedRoute><EditTreatment /></ProtectedRoute>}
           />
         </Routes>
       </main>
