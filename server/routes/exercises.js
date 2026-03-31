@@ -10,7 +10,7 @@ router.get('/', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('exercises')
-      .select('id, name, description, video_url')
+      .select('id, name, description, video_url, body_parts')
       .order('name');
 
     if (error) throw error;
@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
 
 // POST /api/exercises
 router.post('/', async (req, res) => {
-  const { name, description, video_url } = req.body;
+  const { name, description, video_url, body_parts } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'name is required' });
 
   try {
@@ -33,8 +33,9 @@ router.post('/', async (req, res) => {
         name: name.trim(),
         description: description?.trim() || null,
         video_url: video_url?.trim() || null,
+        body_parts: body_parts?.trim() || null,
       }])
-      .select('id, name, description, video_url')
+      .select('id, name, description, video_url, body_parts')
       .single();
 
     if (error) {
@@ -50,7 +51,7 @@ router.post('/', async (req, res) => {
 
 // PUT /api/exercises/:id
 router.put('/:id', async (req, res) => {
-  const { name, description, video_url } = req.body;
+  const { name, description, video_url, body_parts } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'name is required' });
 
   try {
@@ -60,9 +61,10 @@ router.put('/:id', async (req, res) => {
         name: name.trim(),
         description: description?.trim() || null,
         video_url: video_url?.trim() || null,
+        body_parts: body_parts?.trim() || null,
       })
       .eq('id', req.params.id)
-      .select('id, name, description, video_url')
+      .select('id, name, description, video_url, body_parts')
       .single();
 
     if (error) throw error;

@@ -22,11 +22,104 @@
   font-size: 0.9rem;
 }
 
-/* Grid */
+/* Filter bar */
+.lib-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.lib-filter-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.lib-filter-select {
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+  min-width: 180px;
+}
+
+.lib-filter-select:focus { border-color: var(--color-primary); }
+
+/* Accordion sections */
+.lib-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.lib-section {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+}
+
+.lib-section-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1.25rem;
+  background: var(--color-surface);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.lib-section-header:hover {
+  background: var(--color-bg);
+}
+
+.lib-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  flex: 1;
+}
+
+.lib-section-meta {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.lib-chevron {
+  font-size: 1.1rem;
+  color: var(--color-text-muted);
+  transition: transform 0.2s;
+  line-height: 1;
+}
+
+.lib-chevron--collapsed {
+  transform: rotate(-90deg);
+}
+
+/* Grid (inside each section) */
 .exercise-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1rem;
+  padding: 1rem;
+  border-top: 1px solid var(--color-border);
 }
 
 /* Card */
@@ -168,6 +261,45 @@
   font-size: 0.85rem;
 }
 .form-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.25rem; }
+
+/* Body part checkboxes in form */
+.body-part-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.bp-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  user-select: none;
+}
+
+.bp-check input[type="checkbox"] {
+  display: none;
+}
+
+.bp-check--active {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.bp-check:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
 
 .btn {
   display: inline-flex; align-items: center; gap: 0.4rem;

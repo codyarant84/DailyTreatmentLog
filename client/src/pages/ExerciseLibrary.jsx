@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import api from '../lib/api.js';
 import './ExerciseLibrary.css';
 
@@ -8,12 +8,31 @@ function getYouTubeId(url) {
   return m?.[1] ?? null;
 }
 
-const EMPTY_FORM = { name: '', description: '', video_url: '' };
+export const BODY_PARTS = [
+  'Knee',
+  'Hip',
+  'Ankle & Foot',
+  'Shoulder',
+  'Elbow, Wrist & Hand',
+  'Core & Low Back',
+  'Upper Back & Thoracic',
+  'Cervical (Neck)',
+];
+
+const EMPTY_FORM = { name: '', description: '', video_url: '', body_parts: '' };
+
+function parseBodyParts(str) {
+  if (!str) return [];
+  return str.split(',').map((p) => p.trim()).filter(Boolean);
+}
 
 export default function ExerciseLibrary() {
   const [exercises, setExercises] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [filterPart, setFilterPart] = useState('');
+  // Set of body part names that are collapsed
+  const [collapsed, setCollapsed] = useState(new Set());
 
   // null = closed, 'new' = add form, exerciseId = edit form
   const [openForm, setOpenForm] = useState(null);
@@ -35,6 +54,46 @@ export default function ExerciseLibrary() {
     }
   }
 
+  // Group exercises into sections by body part
+  const grouped = useMemo(() => {
+    const sections = [];
+    const seen = new Set(); // track which exercises appear in at least one section
+
+    for (const part of BODY_PARTS) {
+      if (filterPart && filterPart !== part) continue;
+      const exes = exercises
+        .filter((ex) => parseBodyParts(ex.body_parts).includes(part))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      if (exes.length > 0) {
+        exes.forEach((ex) => seen.add(ex.id));
+        sections.push({ part, exercises: exes });
+      }
+    }
+
+    // Uncategorized — exercises with no body_parts assigned
+    if (!filterPart) {
+      const uncategorized = exercises.filter((ex) => !seen.has(ex.id));
+      if (uncategorized.length > 0) {
+        sections.push({ part: 'Other', exercises: uncategorized.sort((a, b) => a.name.localeCompare(b.name)) });
+      }
+    }
+
+    return sections;
+  }, [exercises, filterPart]);
+
+  const totalShown = useMemo(() => {
+    const ids = new Set(grouped.flatMap((s) => s.exercises.map((e) => e.id)));
+    return ids.size;
+  }, [grouped]);
+
+  function toggleCollapse(part) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      next.has(part) ? next.delete(part) : next.add(part);
+      return next;
+    });
+  }
+
   function openNew() {
     setForm(EMPTY_FORM);
     setFormError(null);
@@ -42,7 +101,12 @@ export default function ExerciseLibrary() {
   }
 
   function openEdit(ex) {
-    setForm({ name: ex.name, description: ex.description ?? '', video_url: ex.video_url ?? '' });
+    setForm({
+      name: ex.name,
+      description: ex.description ?? '',
+      video_url: ex.video_url ?? '',
+      body_parts: ex.body_parts ?? '',
+    });
     setFormError(null);
     setOpenForm(ex.id);
   }
@@ -60,7 +124,7 @@ export default function ExerciseLibrary() {
     try {
       if (openForm === 'new') {
         const { data } = await api.post('/api/exercises', form);
-        setExercises((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+        setExercises((prev) => [...prev, data]);
       } else {
         const { data } = await api.put(`/api/exercises/${openForm}`, form);
         setExercises((prev) => prev.map((ex) => ex.id === openForm ? data : ex));
@@ -89,15 +153,41 @@ export default function ExerciseLibrary() {
 
   return (
     <div className="exercise-library">
+
+      {/* Header */}
       <div className="lib-header">
         <div>
           <h1 className="page-title">Exercise Library</h1>
-          <p className="page-subtitle">{exercises.length} exercise{exercises.length !== 1 ? 's' : ''}</p>
+          <p className="page-subtitle">
+            {exercises.length} exercise{exercises.length !== 1 ? 's' : ''}
+            {filterPart && ` · ${totalShown} in ${filterPart}`}
+          </p>
         </div>
         <button className="btn btn--primary" onClick={openNew}>+ Add Exercise</button>
       </div>
 
-      {/* Add form */}
+      {/* Filter dropdown */}
+      <div className="lib-filter-bar">
+        <label className="lib-filter-label" htmlFor="bp-filter">Body Part</label>
+        <select
+          id="bp-filter"
+          className="lib-filter-select"
+          value={filterPart}
+          onChange={(e) => setFilterPart(e.target.value)}
+        >
+          <option value="">All Body Parts</option>
+          {BODY_PARTS.map((p) => (
+            <option key={p} value={p}>{p}</option>
+          ))}
+        </select>
+        {filterPart && (
+          <button className="btn btn--ghost btn--sm" onClick={() => setFilterPart('')}>
+            Clear
+          </button>
+        )}
+      </div>
+
+      {/* Add form (full-width, above sections) */}
       {openForm === 'new' && (
         <ExerciseForm
           form={form}
@@ -114,54 +204,76 @@ export default function ExerciseLibrary() {
         <p className="lib-empty">No exercises yet. Add one to get started.</p>
       )}
 
-      <div className="exercise-grid">
-        {exercises.map((ex) => {
-          const ytId = getYouTubeId(ex.video_url);
-          const isEditing = openForm === ex.id;
-
+      {/* Accordion sections */}
+      <div className="lib-sections">
+        {grouped.map(({ part, exercises: exes }) => {
+          const isCollapsed = collapsed.has(part);
           return (
-            <div key={ex.id} className={`exercise-card ${isEditing ? 'exercise-card--editing' : ''}`}>
-              {isEditing ? (
-                <ExerciseForm
-                  form={form}
-                  setForm={setForm}
-                  onSave={handleSave}
-                  onCancel={closeForm}
-                  saving={saving}
-                  error={formError}
-                  title="Edit Exercise"
-                />
-              ) : (
-                <>
-                  {ytId && (
-                    <a
-                      href={ex.video_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="video-thumb-link"
-                    >
-                      <img
-                        src={`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`}
-                        alt={`${ex.name} video`}
-                        className="video-thumb"
-                      />
-                      <span className="play-badge">▶ Watch</span>
-                    </a>
-                  )}
-                  <div className="exercise-card-body">
-                    <h3 className="exercise-name">{ex.name}</h3>
-                    {ex.description && <p className="exercise-desc">{ex.description}</p>}
-                    {ex.video_url && !ytId && (
-                      <a href={ex.video_url} target="_blank" rel="noopener noreferrer" className="video-link">
-                        🔗 Video
-                      </a>
-                    )}
-                  </div>
-                  <div className="exercise-card-actions">
-                    <button className="btn btn--sm btn--ghost" onClick={() => openEdit(ex)}>Edit</button>
-                    <button className="btn btn--sm btn--danger-ghost" onClick={() => handleDelete(ex.id, ex.name)}>Delete</button>
-                  </div>
-                </>
+            <div key={part} className="lib-section">
+              <button
+                className="lib-section-header"
+                onClick={() => toggleCollapse(part)}
+                aria-expanded={!isCollapsed}
+              >
+                <span className="lib-section-title">{part}</span>
+                <span className="lib-section-meta">{exes.length} exercise{exes.length !== 1 ? 's' : ''}</span>
+                <span className={`lib-chevron ${isCollapsed ? 'lib-chevron--collapsed' : ''}`}>▾</span>
+              </button>
+
+              {!isCollapsed && (
+                <div className="exercise-grid">
+                  {exes.map((ex) => {
+                    const ytId = getYouTubeId(ex.video_url);
+                    const isEditing = openForm === ex.id;
+
+                    return (
+                      <div key={ex.id} className={`exercise-card ${isEditing ? 'exercise-card--editing' : ''}`}>
+                        {isEditing ? (
+                          <ExerciseForm
+                            form={form}
+                            setForm={setForm}
+                            onSave={handleSave}
+                            onCancel={closeForm}
+                            saving={saving}
+                            error={formError}
+                            title="Edit Exercise"
+                          />
+                        ) : (
+                          <>
+                            {ytId && (
+                              <a
+                                href={ex.video_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="video-thumb-link"
+                              >
+                                <img
+                                  src={`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`}
+                                  alt={`${ex.name} video`}
+                                  className="video-thumb"
+                                />
+                                <span className="play-badge">▶ Watch</span>
+                              </a>
+                            )}
+                            <div className="exercise-card-body">
+                              <h3 className="exercise-name">{ex.name}</h3>
+                              {ex.description && <p className="exercise-desc">{ex.description}</p>}
+                              {ex.video_url && !ytId && (
+                                <a href={ex.video_url} target="_blank" rel="noopener noreferrer" className="video-link">
+                                  🔗 Video
+                                </a>
+                              )}
+                            </div>
+                            <div className="exercise-card-actions">
+                              <button className="btn btn--sm btn--ghost" onClick={() => openEdit(ex)}>Edit</button>
+                              <button className="btn btn--sm btn--danger-ghost" onClick={() => handleDelete(ex.id, ex.name)}>Delete</button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
           );
@@ -173,6 +285,14 @@ export default function ExerciseLibrary() {
 
 function ExerciseForm({ form, setForm, onSave, onCancel, saving, error, title }) {
   const ytId = getYouTubeId(form.video_url);
+  const selectedParts = parseBodyParts(form.body_parts);
+
+  function togglePart(part) {
+    const next = selectedParts.includes(part)
+      ? selectedParts.filter((p) => p !== part)
+      : [...selectedParts, part];
+    setForm((p) => ({ ...p, body_parts: next.join(', ') }));
+  }
 
   return (
     <form className="exercise-form-card" onSubmit={onSave} noValidate>
@@ -190,6 +310,22 @@ function ExerciseForm({ form, setForm, onSave, onCancel, saving, error, title })
           autoFocus
           required
         />
+      </div>
+
+      <div className="form-group">
+        <label className="form-label">Body Part(s)</label>
+        <div className="body-part-checks">
+          {BODY_PARTS.map((part) => (
+            <label key={part} className={`bp-check ${selectedParts.includes(part) ? 'bp-check--active' : ''}`}>
+              <input
+                type="checkbox"
+                checked={selectedParts.includes(part)}
+                onChange={() => togglePart(part)}
+              />
+              {part}
+            </label>
+          ))}
+        </div>
       </div>
 
       <div className="form-group">
