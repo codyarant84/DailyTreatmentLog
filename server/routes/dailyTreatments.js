@@ -67,7 +67,7 @@ router.get('/', async (req, res) => {
 // POST /api/daily-treatments
 router.post('/', async (req, res) => {
   try {
-    const { athlete_name, sport, date, treatment_type, body_part, duration_minutes, notes, exercises_performed } = req.body;
+    const { athlete_name, sport, date, treatment_type, body_part, duration_minutes, notes, exercises_performed, injury_id } = req.body;
 
     if (!athlete_name || !sport || !date || !treatment_type || !body_part) {
       return res.status(400).json({
@@ -90,6 +90,7 @@ router.post('/', async (req, res) => {
         notes: notes || null,
         exercises_performed: exercises_performed || null,
         estimated_savings: calculateSavings(treatment_type, body_part).total || null,
+        injury_id: injury_id || null,
         school_id: req.schoolId,
         logged_by_email,
       }])
@@ -125,7 +126,7 @@ router.get('/:id', async (req, res) => {
 // PUT /api/daily-treatments/:id
 router.put('/:id', async (req, res) => {
   try {
-    const { athlete_name, sport, date, treatment_type, body_part, duration_minutes, notes, exercises_performed } = req.body;
+    const { athlete_name, sport, date, treatment_type, body_part, duration_minutes, notes, exercises_performed, injury_id } = req.body;
 
     if (!athlete_name || !sport || !date || !treatment_type || !body_part) {
       return res.status(400).json({
@@ -145,6 +146,7 @@ router.put('/:id', async (req, res) => {
         notes: notes || null,
         exercises_performed: exercises_performed || null,
         estimated_savings: calculateSavings(treatment_type, body_part).total || null,
+        injury_id: injury_id || null,
       })
       .eq('id', req.params.id)
       .eq('school_id', req.schoolId)

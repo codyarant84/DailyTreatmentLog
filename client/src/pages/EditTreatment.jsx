@@ -35,6 +35,8 @@ export default function EditTreatment() {
   const [addingExercise, setAddingExercise] = useState(false);
   const exerciseRef = useRef(null);
 
+  const [injuryId, setInjuryId] = useState('');
+  const [activeInjuries, setActiveInjuries] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
@@ -56,6 +58,13 @@ export default function EditTreatment() {
       setBodyPart(record.body_part ?? '');
       setNotes(record.notes ?? '');
       setSelectedExercises(record.exercises_performed ? record.exercises_performed.split(',').map((e) => e.trim()).filter(Boolean) : []);
+      setInjuryId(record.injury_id ?? '');
+      // Fetch active injuries for this athlete
+      if (record.athlete_name) {
+        api.get(`/api/injuries?active=true&athlete_name=${encodeURIComponent(record.athlete_name)}`)
+          .then(({ data }) => setActiveInjuries(data))
+          .catch(() => {});
+      }
       setLoadingRecord(false);
     }).catch(() => { setError('Failed to load treatment.'); setLoadingRecord(false); });
   }, [id]);
@@ -124,6 +133,7 @@ export default function EditTreatment() {
         duration_minutes: durationMinutes ? Number(durationMinutes) : null,
         notes: notes || null,
         exercises_performed: selectedExercises.length > 0 ? selectedExercises.join(', ') : null,
+        injury_id: injuryId || null,
       });
       navigate(-1);
     } catch (err) {
@@ -243,6 +253,27 @@ export default function EditTreatment() {
               {BODY_PARTS.map((b) => <option key={b} value={b}>{b}</option>)}
             </select>
           </div>
+
+          {/* Link to Injury */}
+          {activeInjuries.length > 0 && (
+            <div className="form-group form-group--full">
+              <label htmlFor="et-injury" className="form-label">Link to Injury</label>
+              <select
+                id="et-injury"
+                className="form-input form-select"
+                value={injuryId}
+                onChange={(e) => setInjuryId(e.target.value)}
+              >
+                <option value="">— General treatment (no linked injury) —</option>
+                {activeInjuries.map((inj) => (
+                  <option key={inj.id} value={inj.id}>
+                    {inj.injury_type} · {inj.body_part}
+                    {inj.injury_date ? ` (${new Date(inj.injury_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Notes */}
           <div className="form-group form-group--full">

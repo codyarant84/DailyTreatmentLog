@@ -63,6 +63,8 @@ function NewTreatment() {
   const exerciseRef = useRef(null);
 
   const [athletes, setAthletes] = useState([]);
+  const [injuryId, setInjuryId] = useState('');
+  const [activeInjuries, setActiveInjuries] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [review, setReview] = useState(null); // post-save review data
@@ -74,6 +76,14 @@ function NewTreatment() {
       .then(({ data }) => setAthletes(data))
       .catch(() => {});
   }, []);
+
+  // Fetch active injuries when athlete name is filled in
+  useEffect(() => {
+    if (!athleteName.trim()) { setActiveInjuries([]); setInjuryId(''); return; }
+    api.get(`/api/injuries?active=true&athlete_name=${encodeURIComponent(athleteName.trim())}`)
+      .then(({ data }) => { setActiveInjuries(data); })
+      .catch(() => setActiveInjuries([]));
+  }, [athleteName]);
 
   useEffect(() => {
     if (!exerciseSelected) return;
@@ -160,6 +170,7 @@ function NewTreatment() {
       duration_minutes: durationMinutes ? Number(durationMinutes) : null,
       notes: notes || null,
       exercises_performed: selectedExercises.length > 0 ? selectedExercises.join(', ') : null,
+      injury_id: injuryId || null,
     };
 
     try {
@@ -239,6 +250,8 @@ function NewTreatment() {
                 setBodyPart('');
                 setNotes('');
                 setDurationMinutes('');
+                setInjuryId('');
+                setActiveInjuries([]);
               }}
             >
               Log Another Treatment
@@ -445,6 +458,27 @@ function NewTreatment() {
               ))}
             </select>
           </div>
+
+          {/* Link to Injury */}
+          {activeInjuries.length > 0 && (
+            <div className="form-group form-group--full">
+              <label htmlFor="injury_link" className="form-label">Link to Injury</label>
+              <select
+                id="injury_link"
+                className="form-input form-select"
+                value={injuryId}
+                onChange={(e) => setInjuryId(e.target.value)}
+              >
+                <option value="">— General treatment (no linked injury) —</option>
+                {activeInjuries.map((inj) => (
+                  <option key={inj.id} value={inj.id}>
+                    {inj.injury_type} · {inj.body_part}
+                    {inj.injury_date ? ` (${new Date(inj.injury_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Notes */}
           <div className="form-group form-group--full">

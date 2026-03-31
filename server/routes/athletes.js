@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from(TABLE)
-      .select('id, name, sport, grade, date_of_birth, created_at')
+      .select('id, name, sport, grade, date_of_birth, emergency_contact_name, emergency_contact_phone, created_at')
       .eq('school_id', req.schoolId)
       .order('name');
 
@@ -20,6 +20,44 @@ router.get('/', async (req, res) => {
     res.json(data);
   } catch (err) {
     console.error('GET /athletes error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/athletes — create a single athlete
+router.post('/', async (req, res) => {
+  const { first_name, last_name, sport, grade, date_of_birth, emergency_contact_name, emergency_contact_phone } = req.body;
+
+  if (!first_name?.trim()) return res.status(400).json({ error: 'First name is required.' });
+  if (!last_name?.trim())  return res.status(400).json({ error: 'Last name is required.' });
+  if (!sport?.trim())      return res.status(400).json({ error: 'Sport is required.' });
+  if (!grade?.trim())      return res.status(400).json({ error: 'Grade is required.' });
+
+  const name = `${first_name.trim()} ${last_name.trim()}`;
+
+  try {
+    const { data, error } = await supabase
+      .from(TABLE)
+      .insert({
+        school_id:               req.schoolId,
+        name,
+        sport:                   sport.trim(),
+        grade:                   grade.trim(),
+        date_of_birth:           date_of_birth || null,
+        emergency_contact_name:  emergency_contact_name?.trim() || null,
+        emergency_contact_phone: emergency_contact_phone?.trim() || null,
+      })
+      .select('id, name, sport, grade, date_of_birth, emergency_contact_name, emergency_contact_phone, created_at')
+      .single();
+
+    if (error) {
+      if (error.code === '23505') return res.status(409).json({ error: `An athlete named "${name}" already exists.` });
+      throw error;
+    }
+
+    res.status(201).json(data);
+  } catch (err) {
+    console.error('POST /athletes error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });

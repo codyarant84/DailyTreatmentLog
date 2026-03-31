@@ -16,6 +16,7 @@ import Settings from './pages/Settings.jsx';
 import InviteAccept from './pages/InviteAccept.jsx';
 import ExerciseLibrary from './pages/ExerciseLibrary.jsx';
 import RehabPrograms from './pages/RehabPrograms.jsx';
+import Injuries from './pages/Injuries.jsx';
 import ProgramBuilder from './pages/ProgramBuilder.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import './App.css';
@@ -94,6 +95,12 @@ function App() {
                 + New Treatment
               </Link>
               <Link
+                to="/injuries"
+                className={`nav-link ${location.pathname.startsWith('/injuries') ? 'active' : ''}`}
+              >
+                Injuries
+              </Link>
+              <Link
                 to="/exercises"
                 className={`nav-link ${location.pathname === '/exercises' ? 'active' : ''}`}
               >
@@ -142,6 +149,10 @@ function App() {
           <Route
             path="/settings"
             element={<ProtectedRoute><Settings /></ProtectedRoute>}
+          />
+          <Route
+            path="/injuries"
+            element={<ProtectedRoute><Injuries /></ProtectedRoute>}
           />
           <Route
             path="/exercises"

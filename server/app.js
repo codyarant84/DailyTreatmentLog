@@ -10,6 +10,7 @@ import exercisesRouter from './routes/exercises.js';
 import adminRouter from './routes/admin.js';
 import schoolRouter from './routes/school.js';
 import rehabProgramsRouter from './routes/rehabPrograms.js';
+import injuriesRouter from './routes/injuries.js';
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use('/api/exercises', exercisesRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/school', schoolRouter);
 app.use('/api/rehab-programs', rehabProgramsRouter);
+app.use('/api/injuries', injuriesRouter);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
