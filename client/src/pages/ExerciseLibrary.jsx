@@ -158,7 +158,8 @@ export default function ExerciseLibrary() {
       <div className="lib-header">
         <div>
           <h1 className="page-title">Exercise Library</h1>
-          <p className="page-subtitle">
+          <p className="page-subtitle">Browse and reference exercises by body part. Add to athlete treatment notes or rehab programs.</p>
+          <p className="page-subtitle" style={{ marginTop: '0.2rem' }}>
             {exercises.length} exercise{exercises.length !== 1 ? 's' : ''}
             {filterPart && ` · ${totalShown} in ${filterPart}`}
           </p>

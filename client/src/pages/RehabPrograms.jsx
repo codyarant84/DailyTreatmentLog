@@ -45,9 +45,16 @@ export default function RehabPrograms() {
       <div className="rp-header">
         <div>
           <h1 className="page-title">Rehab Programs</h1>
-          <p className="page-subtitle">{programs.length} program{programs.length !== 1 ? 's' : ''}</p>
+          <p className="page-subtitle">Build and assign multi-week rehab protocols to individual athletes or develop standardized treatment protocols. Track completion and progress over time.</p>
+          <p className="page-subtitle" style={{ marginTop: '0.2rem' }}>{programs.length} program{programs.length !== 1 ? 's' : ''}</p>
         </div>
-        <Link to="/programs/new" className="btn btn--primary">+ New Program</Link>
+        <Link
+          to="/programs/new"
+          className="btn btn--primary"
+          title="Create a structured week-by-week rehab plan for an athlete recovering from injury."
+        >
+          + New Program
+        </Link>
       </div>
 
       {error && <div className="page-error">{error}</div>}
