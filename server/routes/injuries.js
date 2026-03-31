@@ -100,6 +100,9 @@ router.put('/:id', async (req, res) => {
       return res.status(400).json({ error: 'injury_date, body_part, and injury_type are required.' });
     }
 
+    const wasActive = is_active ?? true;
+    const isNowInactive = wasActive === false;
+
     const { data, error } = await supabase
       .from('injuries')
       .update({
@@ -110,7 +113,8 @@ router.put('/:id', async (req, res) => {
         severity:   severity   || null,
         rtp_status: rtp_status || 'Out',
         notes:      notes      || null,
-        is_active:  is_active  ?? true,
+        is_active:  wasActive,
+        ...(isNowInactive ? { cleared_at: new Date().toISOString() } : {}),
       })
       .eq('id', req.params.id)
       .eq('school_id', req.schoolId)

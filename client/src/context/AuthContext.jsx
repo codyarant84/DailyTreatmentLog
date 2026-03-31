@@ -10,7 +10,7 @@ export function AuthProvider({ children }) {
   // null = unknown, true = profile exists, false = no profile yet
   const [hasProfile, setHasProfile] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [branding, setBranding] = useState({ primaryColor: null, logoUrl: null });
+  const [branding, setBranding] = useState({ primaryColor: null, logoUrl: null, costPerVisit: 50 });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -35,7 +35,7 @@ export function AuthProvider({ children }) {
       .then(({ data }) => {
         setHasProfile(true);
         setIsAdmin(data.is_admin ?? false);
-        setBranding({ primaryColor: data.primary_color ?? null, logoUrl: data.logo_url ?? null });
+        setBranding({ primaryColor: data.primary_color ?? null, logoUrl: data.logo_url ?? null, costPerVisit: data.cost_per_visit ?? 50 });
       })
       .catch((err) => {
         if (err.response?.status === 403) {

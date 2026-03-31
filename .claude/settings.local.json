@@ -2,7 +2,22 @@
   "permissions": {
     "allow": [
       "Bash(npm install:*)",
-      "Read(//Users/codyarant/**)"
+      "Read(//Users/codyarant/**)",
+      "WebSearch",
+      "WebFetch(domain:www.dragonflymax.com)",
+      "WebFetch(domain:www.askdoctorjo.com)",
+      "WebFetch(domain:www.youtube.com)",
+      "WebFetch(domain:www.mindluster.com)",
+      "WebFetch(domain:www.dailymotion.com)",
+      "WebFetch(domain:vnahg.org)",
+      "WebFetch(domain:health.cornell.edu)",
+      "WebFetch(domain:oahct.com)",
+      "WebFetch(domain:myteampt.com)",
+      "WebFetch(domain:www.stoneclinic.com)",
+      "WebFetch(domain:ota.org)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ]
   }
 }

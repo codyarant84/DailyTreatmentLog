@@ -138,7 +138,7 @@ router.get('/me', requireJwt, async (req, res) => {
 
     const { data: school } = await supabase
       .from('schools')
-      .select('primary_color, logo_url')
+      .select('primary_color, logo_url, cost_per_visit')
       .eq('id', profileResult.data.school_id)
       .single();
 
@@ -149,6 +149,7 @@ router.get('/me', requireJwt, async (req, res) => {
       is_admin: profileResult.data.is_admin ?? false,
       primary_color: school?.primary_color ?? null,
       logo_url: school?.logo_url ?? null,
+      cost_per_visit: school?.cost_per_visit ?? 50,
     });
   } catch (err) {
     console.error('GET /auth/me error:', err.message);

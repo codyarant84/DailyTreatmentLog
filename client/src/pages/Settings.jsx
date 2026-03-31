@@ -13,6 +13,11 @@ export default function Settings() {
   const [colorSaved, setColorSaved] = useState(false);
   const [colorError, setColorError] = useState(null);
 
+  const [costPerVisit, setCostPerVisit] = useState(String(branding?.costPerVisit ?? 50));
+  const [costSaving, setCostSaving] = useState(false);
+  const [costSaved, setCostSaved] = useState(false);
+  const [costError, setCostError] = useState(null);
+
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoError, setLogoError] = useState(null);
   const [logoRemoving, setLogoRemoving] = useState(false);
@@ -33,6 +38,25 @@ export default function Settings() {
       setColorError(err.response?.data?.error ?? err.message);
     } finally {
       setColorSaving(false);
+    }
+  }
+
+  async function handleSaveCost(e) {
+    e.preventDefault();
+    const rate = Number(costPerVisit);
+    if (isNaN(rate) || rate < 0) { setCostError('Enter a valid dollar amount.'); return; }
+    setCostError(null);
+    setCostSaved(false);
+    setCostSaving(true);
+    try {
+      const { data } = await api.put('/api/school/branding', { primary_color: color, cost_per_visit: rate });
+      setBranding((prev) => ({ ...prev, costPerVisit: data.cost_per_visit }));
+      setCostSaved(true);
+      setTimeout(() => setCostSaved(false), 2500);
+    } catch (err) {
+      setCostError(err.response?.data?.error ?? err.message);
+    } finally {
+      setCostSaving(false);
     }
   }
 
@@ -132,6 +156,31 @@ export default function Settings() {
         >
           Reset to default
         </button>
+      </div>
+
+      <div className="settings-card">
+        <h2 className="settings-section-title">Insights — Cost Per Visit</h2>
+        <p className="settings-hint">
+          Used on the Insights page to estimate treatment cost savings. Default is $50/visit.
+        </p>
+        <form className="color-form" onSubmit={handleSaveCost}>
+          <div className="color-row">
+            <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>$</span>
+            <input
+              type="number"
+              className="form-input color-hex"
+              min="0"
+              step="0.01"
+              value={costPerVisit}
+              onChange={(e) => setCostPerVisit(e.target.value)}
+              style={{ width: 100 }}
+            />
+            <button type="submit" className="btn btn--primary" disabled={costSaving}>
+              {costSaving ? 'Saving...' : costSaved ? 'Saved!' : 'Save Rate'}
+            </button>
+          </div>
+          {costError && <p className="settings-error">{costError}</p>}
+        </form>
       </div>
 
       <div className="settings-card">

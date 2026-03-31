@@ -10,7 +10,7 @@ router.get('/branding', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('schools')
-      .select('id, name, primary_color, logo_url')
+      .select('id, name, primary_color, logo_url, cost_per_visit')
       .eq('id', req.schoolId)
       .single();
 
@@ -22,19 +22,26 @@ router.get('/branding', async (req, res) => {
   }
 });
 
-// PUT /api/school/branding — update primary color
+// PUT /api/school/branding — update primary color and/or cost_per_visit
 router.put('/branding', async (req, res) => {
-  const { primary_color } = req.body;
+  const { primary_color, cost_per_visit } = req.body;
   if (!primary_color || !/^#[0-9a-fA-F]{6}$/.test(primary_color)) {
     return res.status(400).json({ error: 'primary_color must be a valid hex color (e.g. #1d6fa5)' });
+  }
+
+  const updates = { primary_color };
+  if (cost_per_visit !== undefined) {
+    const rate = Number(cost_per_visit);
+    if (isNaN(rate) || rate < 0) return res.status(400).json({ error: 'cost_per_visit must be a positive number.' });
+    updates.cost_per_visit = rate;
   }
 
   try {
     const { data, error } = await supabase
       .from('schools')
-      .update({ primary_color })
+      .update(updates)
       .eq('id', req.schoolId)
-      .select('primary_color, logo_url')
+      .select('primary_color, logo_url, cost_per_visit')
       .single();
 
     if (error) throw error;
