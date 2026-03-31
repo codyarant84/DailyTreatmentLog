@@ -5,7 +5,7 @@ import AthleteCombobox from '../components/AthleteCombobox.jsx';
 import SportCombobox from '../components/SportCombobox.jsx';
 import './NewTreatment.css';
 
-const TREATMENT_TYPES = ['Ice', 'Heat', 'Ultrasound', 'E-Stim', 'Massage', 'Taping', 'Cupping', 'Exercise'];
+const TREATMENT_TYPES = ['Ice', 'Heat', 'Ultrasound', 'E-Stim', 'Massage', 'Taping', 'Cupping', 'Exercise', 'Stretching'];
 
 const BODY_PARTS = [
   'Head / Neck', 'Shoulder', 'Upper Arm', 'Elbow', 'Forearm', 'Wrist', 'Hand / Fingers',

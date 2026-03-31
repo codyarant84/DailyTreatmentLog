@@ -10,6 +10,7 @@ const TREATMENT_CPT = {
   'Massage':   { code: '97124', description: 'Massage Therapy',                   rate: 50 },
   'Cupping':   { code: '97039', description: 'Unlisted Therapeutic Procedure',    rate: 35 },
   'Exercise':  { code: '97110', description: 'Therapeutic Exercise',              rate: 55 },
+  'Stretching':{ code: '97530', description: 'Therapeutic Activities',            rate: 38 },
 };
 
 // Taping codes vary by body part (strapping codes)

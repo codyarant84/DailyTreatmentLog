@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext.jsx';
+import { calculateSavings } from '../lib/cptCodes.js';
 import './TreatmentCard.css';
 
 function formatDollars(n) {
@@ -45,9 +45,8 @@ function formatDate(dateStr) {
 }
 
 function TreatmentCard({ treatment, onDelete }) {
-  const { branding } = useAuth();
-  const costPerVisit = branding?.costPerVisit ?? 50;
   const { id, athlete_name, sport, date, treatment_type, body_part, notes, duration_minutes, exercises_performed } = treatment;
+  const { total: cptSavings } = calculateSavings(treatment_type, body_part);
 
   // treatment_type may be a comma-separated string (e.g. "Ice, Heat, Cupping")
   const types = treatment_type ? treatment_type.split(',').map((t) => t.trim()).filter(Boolean) : [];
@@ -93,9 +92,9 @@ function TreatmentCard({ treatment, onDelete }) {
           {duration_minutes && (
             <span className="tag tag--duration">{duration_minutes} min</span>
           )}
-          {costPerVisit > 0 && (
-            <span className="tag tag--savings" title="Estimated cost savings based on your configured rate">
-              {formatDollars(costPerVisit)} saved
+          {cptSavings > 0 && (
+            <span className="tag tag--savings" title="Estimated cost savings based on CPT code rates">
+              {formatDollars(cptSavings)} saved
             </span>
           )}
         </div>

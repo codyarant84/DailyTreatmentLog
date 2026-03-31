@@ -15,6 +15,7 @@ const TREATMENT_TYPES = [
   'Taping',
   'Cupping',
   'Exercise',
+  'Stretching',
 ];
 
 const BODY_PARTS = [
