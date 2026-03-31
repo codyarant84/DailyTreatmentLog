@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../lib/api.js';
 import TreatmentCard from '../components/TreatmentCard.jsx';
+import { SPORTS } from '../components/SportCombobox.jsx';
 import './Home.css';
 
 function Home() {
@@ -9,6 +10,7 @@ function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
+  const [sportFilter, setSportFilter] = useState('');
 
   useEffect(() => {
     fetchTreatments();
@@ -38,9 +40,12 @@ function Home() {
   }
 
   const filtered = treatments.filter((t) => {
+    if (sportFilter && t.sport !== sportFilter) return false;
     const q = search.toLowerCase();
+    if (!q) return true;
     return (
       t.athlete_name?.toLowerCase().includes(q) ||
+      t.sport?.toLowerCase().includes(q) ||
       t.treatment_type?.toLowerCase().includes(q) ||
       t.body_part?.toLowerCase().includes(q) ||
       t.notes?.toLowerCase().includes(q)
@@ -67,14 +72,30 @@ function Home() {
         </Link>
       </div>
 
-      <div className="search-bar">
+      <div className="filter-row">
         <input
           type="search"
-          placeholder="Search by athlete, treatment, body part, or notes..."
+          placeholder="Search by athlete, sport, treatment, body part, or notes..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="search-input"
         />
+        <select
+          className="sport-filter-select"
+          value={sportFilter}
+          onChange={(e) => setSportFilter(e.target.value)}
+          aria-label="Filter by sport"
+        >
+          <option value="">All Sports</option>
+          {SPORTS.map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
+        {sportFilter && (
+          <button className="btn btn--ghost btn--sm" onClick={() => setSportFilter('')}>
+            Clear
+          </button>
+        )}
       </div>
 
       {loading && (
@@ -95,8 +116,8 @@ function Home() {
 
       {!loading && !error && filtered.length === 0 && (
         <div className="state-msg state-msg--empty">
-          {search ? (
-            <p>No treatments match your search.</p>
+          {(search || sportFilter) ? (
+            <p>No treatments match your filters.</p>
           ) : (
             <>
               <p>No treatments logged yet.</p>

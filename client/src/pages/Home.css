@@ -24,13 +24,17 @@
   margin-top: 0.2rem;
 }
 
-/* Search */
-.search-bar {
-  width: 100%;
+/* Filter row (search + sport dropdown) */
+.filter-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .search-input {
-  width: 100%;
+  flex: 1;
+  min-width: 200px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-family: inherit;
@@ -45,6 +49,49 @@
 .search-input:focus {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(29, 111, 165, 0.15);
+}
+
+.sport-filter-select {
+  padding: 0.65rem 2rem 0.65rem 0.85rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+  white-space: nowrap;
+}
+
+.sport-filter-select:focus {
+  border-color: var(--color-primary);
+}
+
+.btn--sm {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  border-radius: var(--radius);
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+.btn--ghost:hover {
+  background: var(--color-bg);
+  color: var(--color-text);
 }
 
 /* Treatment list */

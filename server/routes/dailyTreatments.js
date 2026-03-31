@@ -38,7 +38,7 @@ router.get('/athletes', async (req, res) => {
 //   treatment_type=string → exact match
 router.get('/', async (req, res) => {
   try {
-    const { date, athlete_name, from, to, treatment_type } = req.query;
+    const { date, athlete_name, from, to, treatment_type, sport } = req.query;
 
     let query = supabase.from(TABLE).select('*').eq('school_id', req.schoolId);
 
@@ -47,6 +47,7 @@ router.get('/', async (req, res) => {
     if (from)           query = query.gte('date', from);
     if (to)             query = query.lte('date', to);
     if (treatment_type) query = query.eq('treatment_type', decodeURIComponent(treatment_type));
+    if (sport)          query = query.eq('sport', decodeURIComponent(sport));
 
     // Dashboard (single day) → chronological ASC; everything else → newest first
     const ascending = Boolean(date) && !athlete_name;
@@ -66,11 +67,11 @@ router.get('/', async (req, res) => {
 // POST /api/daily-treatments
 router.post('/', async (req, res) => {
   try {
-    const { athlete_name, date, treatment_type, body_part, duration_minutes, notes, exercises_performed } = req.body;
+    const { athlete_name, sport, date, treatment_type, body_part, duration_minutes, notes, exercises_performed } = req.body;
 
-    if (!athlete_name || !date || !treatment_type || !body_part) {
+    if (!athlete_name || !sport || !date || !treatment_type || !body_part) {
       return res.status(400).json({
-        error: 'athlete_name, date, treatment_type, and body_part are required.',
+        error: 'athlete_name, sport, date, treatment_type, and body_part are required.',
       });
     }
 
@@ -81,6 +82,7 @@ router.post('/', async (req, res) => {
       .from(TABLE)
       .insert([{
         athlete_name: athlete_name.trim(),
+        sport,
         date,
         treatment_type,
         body_part,

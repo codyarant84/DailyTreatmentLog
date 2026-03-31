@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import api from '../lib/api.js';
 import AthleteCombobox from '../components/AthleteCombobox.jsx';
+import SportCombobox from '../components/SportCombobox.jsx';
 import { calculateSavings, formatDollars } from '../lib/cptCodes.js';
 import './NewTreatment.css';
 
@@ -46,6 +47,7 @@ function NewTreatment() {
   const [searchParams] = useSearchParams();
 
   const [athleteName, setAthleteName] = useState(searchParams.get('athlete') ?? '');
+  const [sport, setSport] = useState(searchParams.get('sport') ?? '');
   const [date, setDate] = useState(today);
   const [durationMinutes, setDurationMinutes] = useState('');
   const [selectedTypes, setSelectedTypes] = useState([]);
@@ -144,13 +146,14 @@ function NewTreatment() {
     e.preventDefault();
     setError(null);
 
-    if (!athleteName.trim() || !date || selectedTypes.length === 0 || !bodyPart) {
+    if (!athleteName.trim() || !sport || !date || selectedTypes.length === 0 || !bodyPart) {
       setError('Please fill in all required fields.');
       return;
     }
 
     const payload = {
       athlete_name: athleteName.trim(),
+      sport,
       date,
       treatment_type: selectedTypes.join(', '),
       body_part: bodyPart,
@@ -232,6 +235,7 @@ function NewTreatment() {
                 setSelectedTypes([]);
                 setSelectedExercises([]);
                 setAthleteName('');
+                setSport('');
                 setBodyPart('');
                 setNotes('');
                 setDurationMinutes('');
@@ -276,6 +280,14 @@ function NewTreatment() {
               onChange={setAthleteName}
               athletes={athletes}
             />
+          </div>
+
+          {/* Sport */}
+          <div className="form-group form-group--full">
+            <label className="form-label">
+              Sport <span className="required">*</span>
+            </label>
+            <SportCombobox value={sport} onChange={setSport} />
           </div>
 
           {/* Date */}

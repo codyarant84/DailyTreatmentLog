@@ -44,7 +44,7 @@ function formatDate(dateStr) {
 }
 
 function TreatmentCard({ treatment, onDelete }) {
-  const { id, athlete_name, date, treatment_type, body_part, notes, duration_minutes, exercises_performed, estimated_savings } = treatment;
+  const { id, athlete_name, sport, date, treatment_type, body_part, notes, duration_minutes, exercises_performed, estimated_savings } = treatment;
 
   // treatment_type may be a comma-separated string (e.g. "Ice, Heat, Cupping")
   const types = treatment_type ? treatment_type.split(',').map((t) => t.trim()).filter(Boolean) : [];
@@ -62,7 +62,10 @@ function TreatmentCard({ treatment, onDelete }) {
             >
               {athlete_name}
             </Link>
-            <span className="card-date">{formatDate(date)}</span>
+            <div className="card-date-row">
+              <span className="card-date">{formatDate(date)}</span>
+              {sport && <span className="tag tag--sport">{sport}</span>}
+            </div>
           </div>
           <button
             className="delete-btn"
