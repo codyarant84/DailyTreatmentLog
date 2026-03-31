@@ -3,9 +3,13 @@ import { Link } from 'react-router-dom';
 import api from '../lib/api.js';
 import TreatmentCard from '../components/TreatmentCard.jsx';
 import { SPORTS } from '../components/SportCombobox.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import './Home.css';
 
 function Home() {
+  const { branding } = useAuth();
+  const costPerVisit = branding?.costPerVisit ?? 50;
+
   const [treatments, setTreatments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -59,12 +63,9 @@ function Home() {
           <h1 className="page-title">Treatment Log</h1>
           <p className="page-subtitle">
             {treatments.length} record{treatments.length !== 1 ? 's' : ''} on file
-            {(() => {
-              const total = treatments.reduce((n, t) => n + (t.estimated_savings ?? 0), 0);
-              return total > 0
-                ? ` · ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(total)} est. saved`
-                : null;
-            })()}
+            {costPerVisit > 0 && treatments.length > 0
+              ? ` · ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(treatments.length * costPerVisit)} est. saved`
+              : null}
           </p>
         </div>
         <Link to="/new" className="btn btn--primary">

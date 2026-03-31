@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx';
 import './TreatmentCard.css';
 
 function formatDollars(n) {
@@ -44,7 +45,9 @@ function formatDate(dateStr) {
 }
 
 function TreatmentCard({ treatment, onDelete }) {
-  const { id, athlete_name, sport, date, treatment_type, body_part, notes, duration_minutes, exercises_performed, estimated_savings } = treatment;
+  const { branding } = useAuth();
+  const costPerVisit = branding?.costPerVisit ?? 50;
+  const { id, athlete_name, sport, date, treatment_type, body_part, notes, duration_minutes, exercises_performed } = treatment;
 
   // treatment_type may be a comma-separated string (e.g. "Ice, Heat, Cupping")
   const types = treatment_type ? treatment_type.split(',').map((t) => t.trim()).filter(Boolean) : [];
@@ -90,9 +93,9 @@ function TreatmentCard({ treatment, onDelete }) {
           {duration_minutes && (
             <span className="tag tag--duration">{duration_minutes} min</span>
           )}
-          {estimated_savings > 0 && (
-            <span className="tag tag--savings" title="Estimated cost savings">
-              {formatDollars(estimated_savings)} saved
+          {costPerVisit > 0 && (
+            <span className="tag tag--savings" title="Estimated cost savings based on your configured rate">
+              {formatDollars(costPerVisit)} saved
             </span>
           )}
         </div>

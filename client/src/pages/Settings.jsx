@@ -159,25 +159,34 @@ export default function Settings() {
       </div>
 
       <div className="settings-card">
-        <h2 className="settings-section-title">Insights — Cost Per Visit</h2>
+        <h2 className="settings-section-title">Program Reporting</h2>
         <p className="settings-hint">
-          Used on the Insights page to estimate treatment cost savings. Default is $50/visit.
+          Controls how estimated cost savings are calculated and displayed throughout the app —
+          on treatment log cards, athlete profiles, and the Insights dashboard.
         </p>
-        <form className="color-form" onSubmit={handleSaveCost}>
-          <div className="color-row">
-            <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>$</span>
-            <input
-              type="number"
-              className="form-input color-hex"
-              min="0"
-              step="0.01"
-              value={costPerVisit}
-              onChange={(e) => setCostPerVisit(e.target.value)}
-              style={{ width: 100 }}
-            />
-            <button type="submit" className="btn btn--primary" disabled={costSaving}>
-              {costSaving ? 'Saving...' : costSaved ? 'Saved!' : 'Save Rate'}
-            </button>
+        <form onSubmit={handleSaveCost}>
+          <div className="cost-field">
+            <label className="cost-label" htmlFor="cost-per-visit">
+              Estimated cost per visit ($)
+            </label>
+            <div className="cost-input-row">
+              <div className="cost-input-wrap">
+                <span className="cost-prefix">$</span>
+                <input
+                  id="cost-per-visit"
+                  type="number"
+                  className="form-input cost-input"
+                  min="0"
+                  step="1"
+                  value={costPerVisit}
+                  onChange={(e) => setCostPerVisit(e.target.value)}
+                />
+              </div>
+              <button type="submit" className="btn btn--primary" disabled={costSaving}>
+                {costSaving ? 'Saving...' : costSaved ? 'Saved!' : 'Save'}
+              </button>
+            </div>
+            <p className="cost-hint">Per-visit rate used to estimate the cost of care provided. Default is $50.</p>
           </div>
           {costError && <p className="settings-error">{costError}</p>}
         </form>

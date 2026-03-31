@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../lib/api.js';
 import TreatmentCard from '../components/TreatmentCard.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import './AthleteProfile.css';
 
 const TREATMENT_TYPES = ['Ice', 'Heat', 'Ultrasound', 'E-Stim', 'Massage', 'Taping', 'Exercise'];
@@ -26,6 +27,8 @@ export default function AthleteProfile() {
   const { name } = useParams();
   const athleteName = decodeURIComponent(name);
   const navigate = useNavigate();
+  const { branding } = useAuth();
+  const costPerVisit = branding?.costPerVisit ?? 50;
 
   const [treatments, setTreatments] = useState([]);
   const [loading, setLoading]       = useState(true);
@@ -58,7 +61,7 @@ export default function AthleteProfile() {
   const uniqueDays      = new Set(filtered.map((t) => t.date)).size;
   const topBodyPart     = mostCommon(filtered.map((t) => t.body_part));
   const topType         = mostCommon(filtered.map((t) => t.treatment_type));
-  const totalSavings    = filtered.reduce((n, t) => n + (t.estimated_savings ?? 0), 0);
+  const totalSavings    = filtered.length * costPerVisit;
 
   function setFilter(key, value) {
     setFilters((prev) => ({ ...prev, [key]: value }));
