@@ -1,30 +1,25 @@
 import express from 'express';
-import { supabase } from '../lib/supabase.js';
+import { query } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 
 const router = express.Router();
-const TABLE = 'athletes';
-
 router.use(requireAuth);
 
-// GET /api/athletes — full roster for the school, sorted by name
+// GET /api/athletes
 router.get('/', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from(TABLE)
-      .select('id, name, sport, grade, date_of_birth, emergency_contact_name, emergency_contact_phone, created_at')
-      .eq('school_id', req.schoolId)
-      .order('name');
-
-    if (error) throw error;
-    res.json(data);
+    const { rows } = await query(
+      'SELECT id, name, sport, grade, date_of_birth, emergency_contact_name, emergency_contact_phone, created_at FROM athletes WHERE school_id = $1 ORDER BY name',
+      [req.schoolId]
+    );
+    res.json(rows);
   } catch (err) {
     console.error('GET /athletes error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
-// POST /api/athletes — create a single athlete
+// POST /api/athletes
 router.post('/', async (req, res) => {
   const { first_name, last_name, sport, grade, date_of_birth, emergency_contact_name, emergency_contact_phone } = req.body;
 
@@ -36,80 +31,86 @@ router.post('/', async (req, res) => {
   const name = `${first_name.trim()} ${last_name.trim()}`;
 
   try {
-    const { data, error } = await supabase
-      .from(TABLE)
-      .insert({
-        school_id:               req.schoolId,
-        name,
-        sport:                   sport.trim(),
-        grade:                   grade.trim(),
-        date_of_birth:           date_of_birth || null,
-        emergency_contact_name:  emergency_contact_name?.trim() || null,
-        emergency_contact_phone: emergency_contact_phone?.trim() || null,
-      })
-      .select('id, name, sport, grade, date_of_birth, emergency_contact_name, emergency_contact_phone, created_at')
-      .single();
-
-    if (error) {
-      if (error.code === '23505') return res.status(409).json({ error: `An athlete named "${name}" already exists.` });
-      throw error;
-    }
-
-    res.status(201).json(data);
+    const { rows } = await query(
+      `INSERT INTO athletes (school_id, name, sport, grade, date_of_birth, emergency_contact_name, emergency_contact_phone)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, name, sport, grade, date_of_birth, emergency_contact_name, emergency_contact_phone, created_at`,
+      [req.schoolId, name, sport.trim(), grade.trim(), date_of_birth || null, emergency_contact_name?.trim() || null, emergency_contact_phone?.trim() || null]
+    );
+    res.status(201).json(rows[0]);
   } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ error: `An athlete named "${name}" already exists.` });
     console.error('POST /athletes error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
 // POST /api/athletes/import
-// Body: { rows: [{ name, sport, grade, date_of_birth }] }
-// Uses upsert with ignoreDuplicates so the DB unique constraint handles dedup atomically.
-// Returns: { imported, skipped, total }
 router.post('/import', async (req, res) => {
-  const { rows } = req.body;
-
-  if (!Array.isArray(rows) || rows.length === 0) {
+  const { rows: inputRows } = req.body;
+  if (!Array.isArray(inputRows) || inputRows.length === 0) {
     return res.status(400).json({ error: 'No rows provided.' });
   }
-
-  const MAX_ROWS = 500;
-  if (rows.length > MAX_ROWS) {
-    return res.status(400).json({ error: `Maximum ${MAX_ROWS} rows per import.` });
+  if (inputRows.length > 500) {
+    return res.status(400).json({ error: 'Maximum 500 rows per import.' });
   }
 
-  // Validate — every row must have a non-empty name
-  const invalid = rows.filter((r) => !r.name?.trim());
+  const invalid = inputRows.filter((r) => !r.name?.trim());
   if (invalid.length > 0) {
-    return res.status(400).json({
-      error: `${invalid.length} row(s) are missing the athlete name field.`,
-    });
+    return res.status(400).json({ error: `${invalid.length} row(s) are missing the athlete name field.` });
   }
 
   try {
-    const records = rows.map((r) => ({
-      school_id:     req.schoolId,
-      name:          r.name.trim(),
-      sport:         r.sport?.trim()  || null,
-      grade:         r.grade?.trim()  || null,
-      date_of_birth: r.date_of_birth  || null,
-    }));
+    const placeholders = inputRows.map((_, i) => `($1, $${i * 4 + 2}, $${i * 4 + 3}, $${i * 4 + 4}, $${i * 4 + 5})`).join(', ');
+    const values = [req.schoolId, ...inputRows.flatMap((r) => [r.name.trim(), r.sport?.trim() || null, r.grade?.trim() || null, r.date_of_birth || null])];
 
-    // upsert with ignoreDuplicates: true → INSERT ... ON CONFLICT DO NOTHING
-    // Only the actually-inserted rows come back in `data`.
-    const { data, error } = await supabase
-      .from(TABLE)
-      .upsert(records, { onConflict: 'school_id,name', ignoreDuplicates: true })
-      .select('id');
+    const { rows } = await query(
+      `INSERT INTO athletes (school_id, name, sport, grade, date_of_birth)
+       VALUES ${placeholders}
+       ON CONFLICT (school_id, name) DO NOTHING
+       RETURNING id`,
+      values
+    );
 
-    if (error) throw error;
-
-    const imported = data.length;
-    const skipped  = records.length - imported;
-
-    res.json({ imported, skipped, total: records.length });
+    const imported = rows.length;
+    const skipped  = inputRows.length - imported;
+    res.json({ imported, skipped, total: inputRows.length });
   } catch (err) {
     console.error('POST /athletes/import error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/athletes/:id
+router.delete('/:id', async (req, res) => {
+  try {
+    const { rows: found } = await query(
+      'SELECT id, name FROM athletes WHERE id = $1 AND school_id = $2',
+      [req.params.id, req.schoolId]
+    );
+    if (!found[0]) return res.status(404).json({ error: 'Athlete not found.' });
+
+    const athlete = found[0];
+
+    const [treatmentsRes, injuriesRes, concussionsRes] = await Promise.all([
+      query('SELECT COUNT(*)::int AS cnt FROM daily_treatments WHERE school_id = $1 AND athlete_name = $2', [req.schoolId, athlete.name]),
+      query('SELECT COUNT(*)::int AS cnt FROM injuries WHERE school_id = $1 AND athlete_name = $2', [req.schoolId, athlete.name]),
+      query('SELECT COUNT(*)::int AS cnt FROM concussion_cases WHERE school_id = $1 AND athlete_id = $2', [req.schoolId, athlete.id]),
+    ]);
+
+    const hasRecords =
+      treatmentsRes.rows[0].cnt > 0 ||
+      injuriesRes.rows[0].cnt   > 0 ||
+      concussionsRes.rows[0].cnt > 0;
+
+    if (hasRecords) {
+      return res.status(409).json({ error: `${athlete.name} has existing treatment or injury records and cannot be deleted.` });
+    }
+
+    await query('DELETE FROM athletes WHERE id = $1 AND school_id = $2', [req.params.id, req.schoolId]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('DELETE /athletes/:id error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });

@@ -170,6 +170,8 @@ export default function Athletes() {
   const [error, setError]       = useState(null);
   const [search, setSearch]     = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
+  const [deleting, setDeleting] = useState(null); // athlete id currently being deleted
 
   useEffect(() => {
     api.get('/api/athletes')
@@ -180,6 +182,25 @@ export default function Athletes() {
 
   function handleAthleteAdded(newAthlete) {
     setAthletes((prev) => [...prev, newAthlete].sort((a, b) => a.name.localeCompare(b.name)));
+  }
+
+  async function handleDelete(athlete) {
+    setDeleteError(null);
+    if (!window.confirm(`Are you sure you want to delete ${athlete.name}? This cannot be undone.`)) return;
+    setDeleting(athlete.id);
+    try {
+      await api.delete(`/api/athletes/${athlete.id}`);
+      setAthletes((prev) => prev.filter((a) => a.id !== athlete.id));
+    } catch (err) {
+      const status = err.response?.status;
+      if (status === 409) {
+        setDeleteError(`${athlete.name} has existing treatment or injury records and cannot be deleted. Resolve or archive their records first.`);
+      } else {
+        setDeleteError(err.response?.data?.error ?? 'Failed to delete athlete.');
+      }
+    } finally {
+      setDeleting(null);
+    }
   }
 
   const filtered = athletes.filter((a) => {
@@ -223,6 +244,13 @@ export default function Athletes() {
           onClose={() => setShowModal(false)}
           onAdded={handleAthleteAdded}
         />
+      )}
+
+      {deleteError && (
+        <div className="state-msg--error" style={{ padding: '0.75rem 1rem', marginBottom: '1rem', borderRadius: 'var(--radius)', background: '#fdf0ed', color: '#c0392b', border: '1px solid rgba(192,57,43,0.3)', fontSize: '0.9rem' }}>
+          {deleteError}
+          <button onClick={() => setDeleteError(null)} style={{ marginLeft: '1rem', background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontWeight: 700 }}>✕</button>
+        </div>
       )}
 
       {!loading && !error && athletes.length > 0 && (
@@ -294,13 +322,21 @@ export default function Athletes() {
                     <td>{a.sport ?? <span className="cell-empty">—</span>}</td>
                     <td>{a.grade ?? <span className="cell-empty">—</span>}</td>
                     <td>{formatDob(a.date_of_birth)}</td>
-                    <td>
+                    <td className="athlete-row-actions">
                       <Link
                         to={`/athletes/${encodeURIComponent(a.name)}`}
                         className="view-link"
                       >
                         Treatment history →
                       </Link>
+                      <button
+                        className="btn-delete-athlete"
+                        onClick={() => handleDelete(a)}
+                        disabled={deleting === a.id}
+                        aria-label={`Delete ${a.name}`}
+                      >
+                        {deleting === a.id ? '…' : 'Delete'}
+                      </button>
                     </td>
                   </tr>
                 ))}

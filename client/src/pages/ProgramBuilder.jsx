@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../lib/api.js';
+import { useAuth } from '../context/AuthContext.jsx';
 import AthleteCombobox from '../components/AthleteCombobox.jsx';
 import './ProgramBuilder.css';
 
@@ -17,10 +18,13 @@ export default function ProgramBuilder() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isNew = !id;
+  const { role } = useAuth();
+  const isSuperAdmin = role === 'super_admin';
 
   const [name, setName] = useState('');
   const [athleteName, setAthleteName] = useState('');
   const [description, setDescription] = useState('');
+  const [isShared, setIsShared] = useState(false);
   const [rows, setRows] = useState([]); // { _id, exercise_id, name, video_url, sets, reps, duration_seconds, notes }
 
   const [exerciseLibrary, setExerciseLibrary] = useState([]);
@@ -106,6 +110,7 @@ export default function ProgramBuilder() {
       name: name.trim(),
       athlete_name: athleteName.trim() || null,
       description: description.trim() || null,
+      is_shared: isSuperAdmin ? isShared : false,
       exercises: rows.map((r) => ({
         exercise_id: r.exercise_id,
         sets: r.sets ? Number(r.sets) : null,
@@ -176,6 +181,19 @@ export default function ProgramBuilder() {
                 placeholder="Goals, notes, or instructions for this program..."
               />
             </div>
+            {isSuperAdmin && isNew && (
+              <div className="form-group form-group--full">
+                <label className="pb-share-toggle">
+                  <input
+                    type="checkbox"
+                    checked={isShared}
+                    onChange={(e) => setIsShared(e.target.checked)}
+                  />
+                  <span>Share with all schools</span>
+                </label>
+                <p className="pb-share-hint">Shared programs are visible to every school as read-only templates.</p>
+              </div>
+            )}
           </div>
         </div>
 

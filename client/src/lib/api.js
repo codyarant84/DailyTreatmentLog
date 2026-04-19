@@ -1,24 +1,28 @@
 import axios from 'axios';
-import { supabase } from './supabase.js';
 
-async function authHeaders() {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return {};
-  return { Authorization: `Bearer ${session.access_token}` };
+const TOKEN_KEY = 'fieldside_token';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+
+function authHeaders() {
+  const token = localStorage.getItem(TOKEN_KEY);
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 const api = {
   async get(url) {
-    return axios.get(url, { headers: await authHeaders() });
+    return axios.get(`${BASE_URL}${url}`, { headers: authHeaders() });
   },
   async post(url, data) {
-    return axios.post(url, data, { headers: await authHeaders() });
+    return axios.post(`${BASE_URL}${url}`, data, { headers: authHeaders() });
   },
   async put(url, data) {
-    return axios.put(url, data, { headers: await authHeaders() });
+    return axios.put(`${BASE_URL}${url}`, data, { headers: authHeaders() });
+  },
+  async patch(url, data) {
+    return axios.patch(`${BASE_URL}${url}`, data, { headers: authHeaders() });
   },
   async delete(url) {
-    return axios.delete(url, { headers: await authHeaders() });
+    return axios.delete(`${BASE_URL}${url}`, { headers: authHeaders() });
   },
 };
 

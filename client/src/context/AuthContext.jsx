@@ -1,51 +1,74 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import axios from 'axios';
-import { supabase } from '../lib/supabase.js';
+
+const TOKEN_KEY = 'fieldside_token';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   // undefined = still initializing, null = no session, object = active session
   const [session, setSession] = useState(undefined);
-  // null = unknown, true = profile exists, false = no profile yet
   const [hasProfile, setHasProfile] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [role, setRole] = useState(null);
   const [branding, setBranding] = useState({ primaryColor: null, logoUrl: null, costPerVisit: 50 });
 
+  // On mount: validate stored token via /api/auth/me
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session ?? null);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session ?? null);
-      if (!session) { setHasProfile(null); setIsAdmin(false); setBranding({ primaryColor: null, logoUrl: null }); }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (!session) return;
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) {
+      setSession(null);
+      return;
+    }
 
     axios
-      .get('/api/auth/me', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      })
+      .get('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } })
       .then(({ data }) => {
+        setSession(data);
         setHasProfile(true);
         setIsAdmin(data.is_admin ?? false);
-        setBranding({ primaryColor: data.primary_color ?? null, logoUrl: data.logo_url ?? null, costPerVisit: data.cost_per_visit ?? 50 });
+        setRole(data.role ?? 'trainer');
+        setBranding({
+          primaryColor: data.primary_color ?? null,
+          logoUrl:      data.logo_url      ?? null,
+          costPerVisit: data.cost_per_visit ?? 50,
+        });
       })
-      .catch((err) => {
-        if (err.response?.status === 403) {
-          setHasProfile(false);
-        }
+      .catch(() => {
+        localStorage.removeItem(TOKEN_KEY);
+        setSession(null);
+        setHasProfile(null);
       });
-  }, [session]);
+  }, []);
+
+  async function login(email, password) {
+    const { data } = await axios.post('/api/auth/login', { email, password });
+    localStorage.setItem(TOKEN_KEY, data.token);
+    setSession(data);
+    setHasProfile(true);
+    setIsAdmin(data.is_admin ?? false);
+    setRole(data.role ?? 'trainer');
+    setBranding({
+      primaryColor: data.primary_color ?? null,
+      logoUrl:      data.logo_url      ?? null,
+      costPerVisit: data.cost_per_visit ?? 50,
+    });
+    return data;
+  }
+
+  function signOut() {
+    localStorage.removeItem(TOKEN_KEY);
+    setSession(null);
+    setHasProfile(null);
+    setIsAdmin(false);
+    setRole(null);
+    setBranding({ primaryColor: null, logoUrl: null, costPerVisit: 50 });
+  }
 
   return (
-    <AuthContext.Provider value={{ session, hasProfile, isAdmin, branding, setBranding, loading: session === undefined }}>
+    <AuthContext.Provider
+      value={{ session, hasProfile, isAdmin, role, branding, setBranding, loading: session === undefined, login, signOut }}
+    >
       {children}
     </AuthContext.Provider>
   );

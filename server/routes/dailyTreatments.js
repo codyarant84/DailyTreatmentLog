@@ -1,28 +1,20 @@
 import express from 'express';
-import { supabase } from '../lib/supabase.js';
+import { query } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { calculateSavings } from '../lib/cptCodes.js';
 
 const router = express.Router();
-const TABLE = 'daily_treatments';
-
 router.use(requireAuth);
 
-// GET /api/daily-treatments/athletes
+// GET /api/daily-treatments/athletes — distinct athlete names for this school
 router.get('/athletes', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from(TABLE)
-      .select('athlete_name')
-      .eq('school_id', req.schoolId)
-      .order('athlete_name');
-
-    if (error) throw error;
-
-    const names = [...new Set(data.map((r) => r.athlete_name))].sort((a, b) =>
-      a.localeCompare(b)
+    const { rows } = await query(
+      `SELECT DISTINCT athlete_name FROM daily_treatments
+       WHERE school_id = $1 ORDER BY athlete_name`,
+      [req.schoolId]
     );
-    res.json(names);
+    res.json(rows.map((r) => r.athlete_name));
   } catch (err) {
     console.error('GET /athletes error:', err.message);
     res.status(500).json({ error: err.message });
@@ -30,34 +22,36 @@ router.get('/athletes', async (req, res) => {
 });
 
 // GET /api/daily-treatments
-// Supported query params:
-//   date=YYYY-MM-DD      → single day (dashboard); sorts created_at ASC
-//   athlete_name=string  → profile page; sorts date DESC, created_at DESC
-//   from=YYYY-MM-DD      → date range start (inclusive)
-//   to=YYYY-MM-DD        → date range end (inclusive)
-//   treatment_type=string → exact match
+// ?date=YYYY-MM-DD      → single day (dashboard); sorts ASC
+// ?athlete_name=string  → profile page; sorts DESC
+// ?from / ?to           → date range (inclusive)
+// ?treatment_type       → exact match
+// ?sport                → exact match
 router.get('/', async (req, res) => {
   try {
     const { date, athlete_name, from, to, treatment_type, sport } = req.query;
 
-    let query = supabase.from(TABLE).select('*').eq('school_id', req.schoolId);
+    const conditions = ['school_id = $1'];
+    const params = [req.schoolId];
+    let p = 2;
 
-    if (date)           query = query.eq('date', date);
-    if (athlete_name)   query = query.eq('athlete_name', decodeURIComponent(athlete_name));
-    if (from)           query = query.gte('date', from);
-    if (to)             query = query.lte('date', to);
-    if (treatment_type) query = query.eq('treatment_type', decodeURIComponent(treatment_type));
-    if (sport)          query = query.eq('sport', decodeURIComponent(sport));
+    if (date)           { conditions.push(`date = $${p++}`);           params.push(date); }
+    if (athlete_name)   { conditions.push(`athlete_name = $${p++}`);   params.push(decodeURIComponent(athlete_name)); }
+    if (from)           { conditions.push(`date >= $${p++}`);          params.push(from); }
+    if (to)             { conditions.push(`date <= $${p++}`);          params.push(to); }
+    if (treatment_type) { conditions.push(`treatment_type = $${p++}`); params.push(decodeURIComponent(treatment_type)); }
+    if (sport)          { conditions.push(`sport = $${p++}`);          params.push(decodeURIComponent(sport)); }
 
     // Dashboard (single day) → chronological ASC; everything else → newest first
-    const ascending = Boolean(date) && !athlete_name;
-    query = query
-      .order('date', { ascending })
-      .order('created_at', { ascending });
+    const dir = (Boolean(date) && !athlete_name) ? 'ASC' : 'DESC';
 
-    const { data, error } = await query;
-    if (error) throw error;
-    res.json(data);
+    const { rows } = await query(
+      `SELECT * FROM daily_treatments
+       WHERE ${conditions.join(' AND ')}
+       ORDER BY date ${dir}, created_at ${dir}`,
+      params
+    );
+    res.json(rows);
   } catch (err) {
     console.error('GET /daily-treatments error:', err.message);
     res.status(500).json({ error: err.message });
@@ -66,57 +60,51 @@ router.get('/', async (req, res) => {
 
 // POST /api/daily-treatments
 router.post('/', async (req, res) => {
+  const {
+    athlete_name, sport, date, treatment_type, body_part,
+    duration_minutes, notes, exercises_performed, injury_id,
+  } = req.body;
+
+  if (!athlete_name || !sport || !date || !treatment_type || !body_part) {
+    return res.status(400).json({
+      error: 'athlete_name, sport, date, treatment_type, and body_part are required.',
+    });
+  }
+
   try {
-    const { athlete_name, sport, date, treatment_type, body_part, duration_minutes, notes, exercises_performed, injury_id } = req.body;
+    const { rows: profile } = await query(`SELECT email FROM profiles WHERE id = $1`, [req.userId]);
+    const logged_by_email = profile[0]?.email ?? null;
 
-    if (!athlete_name || !sport || !date || !treatment_type || !body_part) {
-      return res.status(400).json({
-        error: 'athlete_name, sport, date, treatment_type, and body_part are required.',
-      });
-    }
-
-    const { data: { user } } = await supabase.auth.admin.getUserById(req.userId);
-    const logged_by_email = user?.email ?? null;
-
-    const { data, error } = await supabase
-      .from(TABLE)
-      .insert([{
-        athlete_name: athlete_name.trim(),
-        sport,
-        date,
-        treatment_type,
-        body_part,
-        duration_minutes: duration_minutes || null,
-        notes: notes || null,
-        exercises_performed: exercises_performed || null,
-        estimated_savings: calculateSavings(treatment_type, body_part).total || null,
-        injury_id: injury_id || null,
-        school_id: req.schoolId,
-        logged_by_email,
-      }])
-      .select()
-      .single();
-
-    if (error) throw error;
-    res.status(201).json(data);
+    const { rows } = await query(
+      `INSERT INTO daily_treatments (
+         athlete_name, sport, date, treatment_type, body_part,
+         duration_minutes, notes, exercises_performed,
+         estimated_savings, injury_id, school_id, logged_by_email
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       RETURNING *`,
+      [
+        athlete_name.trim(), sport, date, treatment_type, body_part,
+        duration_minutes || null, notes || null, exercises_performed || null,
+        calculateSavings(treatment_type, body_part).total || null,
+        injury_id || null, req.schoolId, logged_by_email,
+      ]
+    );
+    res.status(201).json(rows[0]);
   } catch (err) {
     console.error('POST /daily-treatments error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
-// GET /api/daily-treatments/:id — single record
+// GET /api/daily-treatments/:id
 router.get('/:id', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from(TABLE)
-      .select('*')
-      .eq('id', req.params.id)
-      .eq('school_id', req.schoolId)
-      .single();
-
-    if (error || !data) return res.status(404).json({ error: 'Treatment not found.' });
-    res.json(data);
+    const { rows } = await query(
+      `SELECT * FROM daily_treatments WHERE id = $1 AND school_id = $2`,
+      [req.params.id, req.schoolId]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Treatment not found.' });
+    res.json(rows[0]);
   } catch (err) {
     console.error('GET /daily-treatments/:id error:', err.message);
     res.status(500).json({ error: err.message });
@@ -125,37 +113,34 @@ router.get('/:id', async (req, res) => {
 
 // PUT /api/daily-treatments/:id
 router.put('/:id', async (req, res) => {
+  const {
+    athlete_name, sport, date, treatment_type, body_part,
+    duration_minutes, notes, exercises_performed, injury_id,
+  } = req.body;
+
+  if (!athlete_name || !sport || !date || !treatment_type || !body_part) {
+    return res.status(400).json({
+      error: 'athlete_name, sport, date, treatment_type, and body_part are required.',
+    });
+  }
+
   try {
-    const { athlete_name, sport, date, treatment_type, body_part, duration_minutes, notes, exercises_performed, injury_id } = req.body;
-
-    if (!athlete_name || !sport || !date || !treatment_type || !body_part) {
-      return res.status(400).json({
-        error: 'athlete_name, sport, date, treatment_type, and body_part are required.',
-      });
-    }
-
-    const { data, error } = await supabase
-      .from(TABLE)
-      .update({
-        athlete_name: athlete_name.trim(),
-        sport,
-        date,
-        treatment_type,
-        body_part,
-        duration_minutes: duration_minutes || null,
-        notes: notes || null,
-        exercises_performed: exercises_performed || null,
-        estimated_savings: calculateSavings(treatment_type, body_part).total || null,
-        injury_id: injury_id || null,
-      })
-      .eq('id', req.params.id)
-      .eq('school_id', req.schoolId)
-      .select()
-      .single();
-
-    if (error) throw error;
-    if (!data) return res.status(404).json({ error: 'Treatment not found.' });
-    res.json(data);
+    const { rows } = await query(
+      `UPDATE daily_treatments SET
+         athlete_name = $1, sport = $2, date = $3, treatment_type = $4, body_part = $5,
+         duration_minutes = $6, notes = $7, exercises_performed = $8,
+         estimated_savings = $9, injury_id = $10
+       WHERE id = $11 AND school_id = $12
+       RETURNING *`,
+      [
+        athlete_name.trim(), sport, date, treatment_type, body_part,
+        duration_minutes || null, notes || null, exercises_performed || null,
+        calculateSavings(treatment_type, body_part).total || null,
+        injury_id || null, req.params.id, req.schoolId,
+      ]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Treatment not found.' });
+    res.json(rows[0]);
   } catch (err) {
     console.error('PUT /daily-treatments/:id error:', err.message);
     res.status(500).json({ error: err.message });
@@ -165,13 +150,10 @@ router.put('/:id', async (req, res) => {
 // DELETE /api/daily-treatments/:id
 router.delete('/:id', async (req, res) => {
   try {
-    const { error } = await supabase
-      .from(TABLE)
-      .delete()
-      .eq('id', req.params.id)
-      .eq('school_id', req.schoolId);
-
-    if (error) throw error;
+    await query(
+      `DELETE FROM daily_treatments WHERE id = $1 AND school_id = $2`,
+      [req.params.id, req.schoolId]
+    );
     res.status(204).send();
   } catch (err) {
     console.error('DELETE /daily-treatments/:id error:', err.message);

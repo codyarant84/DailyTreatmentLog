@@ -3,15 +3,11 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import api from '../lib/api.js';
 import AthleteCombobox from '../components/AthleteCombobox.jsx';
 import SportCombobox from '../components/SportCombobox.jsx';
+import SelectWithOther from '../components/SelectWithOther.jsx';
+import { BODY_PARTS } from '../lib/constants.js';
 import './NewTreatment.css';
 
 const TREATMENT_TYPES = ['Ice', 'Heat', 'Ultrasound', 'E-Stim', 'Massage', 'Taping', 'Cupping', 'Exercise', 'Stretching'];
-
-const BODY_PARTS = [
-  'Head / Neck', 'Shoulder', 'Upper Arm', 'Elbow', 'Forearm', 'Wrist', 'Hand / Fingers',
-  'Chest', 'Upper Back', 'Lower Back', 'Hip', 'Groin', 'Quadriceps', 'Hamstring',
-  'Knee', 'Shin', 'Calf', 'Ankle', 'Foot / Toes', 'Other',
-];
 
 export default function EditTreatment() {
   const { id } = useParams();
@@ -248,10 +244,14 @@ export default function EditTreatment() {
           {/* Body Part */}
           <div className="form-group">
             <label htmlFor="et-body" className="form-label">Body Part <span className="required">*</span></label>
-            <select id="et-body" className="form-input form-select" value={bodyPart} onChange={(e) => setBodyPart(e.target.value)} required>
-              <option value="">-- Select body part --</option>
-              {BODY_PARTS.map((b) => <option key={b} value={b}>{b}</option>)}
-            </select>
+            <SelectWithOther
+              id="et-body"
+              options={BODY_PARTS}
+              value={bodyPart}
+              onChange={setBodyPart}
+              placeholder="-- Select body part --"
+              required
+            />
           </div>
 
           {/* Link to Injury */}

@@ -68,7 +68,10 @@ export default function RehabPrograms() {
           <div key={p.id} className="program-card">
             <div className="program-card-main">
               <div className="program-info">
-                <Link to={`/programs/${p.id}`} className="program-name">{p.name}</Link>
+                <div className="program-name-row">
+                  <Link to={`/programs/${p.id}`} className="program-name">{p.name}</Link>
+                  {p.is_shared && <span className="program-shared-badge">Shared</span>}
+                </div>
                 {p.athlete_name && (
                   <span className="program-athlete">{p.athlete_name}</span>
                 )}

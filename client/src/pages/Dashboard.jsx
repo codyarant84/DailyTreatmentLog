@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '../lib/supabase.js';
 import api from '../lib/api.js';
 import './Dashboard.css';
 
@@ -118,27 +117,11 @@ export default function Dashboard() {
   const [treatments, setTreatments] = useState([]);
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState(null);
-  const [schoolId, setSchoolId]     = useState(null);
   const [newIds, setNewIds]         = useState(new Set());
 
-  // Fetch school_id for realtime filter
   useEffect(() => {
-    api.get('/api/auth/me')
-      .then(({ data }) => setSchoolId(data.school_id))
-      .catch(() => setError('Could not load your profile. Try refreshing.'));
-  }, []);
-
-  // Fetch today's treatments
-  useEffect(() => {
-    api.get(`/api/daily-treatments?date=${today}`)
-      .then(({ data }) => setTreatments(data))
-      .catch((err) => setError(err.response?.data?.error ?? "Failed to load today's treatments."))
-      .finally(() => setLoading(false));
-  }, [today]);
-
-  // Realtime subscription — INSERT, UPDATE, DELETE
-  useEffect(() => {
-    if (!schoolId) return;
+    // null = initial load (don't flash); Set = subsequent polls (diff against previous)
+    let knownIds = null;
 
     function flashNew(id) {
       setNewIds((prev) => new Set(prev).add(id));
@@ -148,46 +131,36 @@ export default function Dashboard() {
       );
     }
 
-    const channel = supabase
-      .channel(`dashboard:${schoolId}`)
-      .on('postgres_changes', {
-        event: 'INSERT', schema: 'public', table: 'daily_treatments',
-        filter: `school_id=eq.${schoolId}`,
-      }, ({ new: row }) => {
-        if (row.date !== today) return;
-        setTreatments((prev) => {
-          if (prev.some((t) => t.id === row.id)) return prev;
-          return [row, ...prev];
-        });
-        flashNew(row.id);
-      })
-      .on('postgres_changes', {
-        event: 'UPDATE', schema: 'public', table: 'daily_treatments',
-        filter: `school_id=eq.${schoolId}`,
-      }, ({ new: row }) => {
-        setTreatments((prev) =>
-          row.date === today
-            ? prev.map((t) => (t.id === row.id ? row : t))
-            : prev.filter((t) => t.id !== row.id)
-        );
-      })
-      .on('postgres_changes', {
-        event: 'DELETE', schema: 'public', table: 'daily_treatments',
-        filter: `school_id=eq.${schoolId}`,
-      }, ({ old: row }) => {
-        setTreatments((prev) => prev.filter((t) => t.id !== row.id));
-      })
-      .subscribe();
+    async function fetchTreatments() {
+      try {
+        const { data } = await api.get(`/api/daily-treatments?date=${today}`);
 
-    return () => supabase.removeChannel(channel);
-  }, [schoolId, today]);
+        if (knownIds !== null) {
+          // Flash any IDs that weren't in the previous fetch
+          data
+            .filter((t) => !knownIds.has(t.id))
+            .forEach((t) => flashNew(t.id));
+        }
+
+        knownIds = new Set(data.map((t) => t.id));
+        setTreatments(data);
+      } catch (err) {
+        setError(err.response?.data?.error ?? "Failed to load today's treatments.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchTreatments();
+    const interval = setInterval(fetchTreatments, 30_000);
+    return () => clearInterval(interval);
+  }, [today]);
 
   // Sort most recent first
   const sorted = [...treatments].sort(
     (a, b) => new Date(b.created_at) - new Date(a.created_at)
   );
 
-  // Derived stats always from full treatments list
   const totalMinutes   = treatments.reduce((n, t) => n + (t.duration_minutes ?? 0), 0);
   const uniqueAthletes = new Set(treatments.map((t) => t.athlete_name)).size;
 
@@ -209,7 +182,7 @@ export default function Dashboard() {
           <h1 className="page-title">Today's Treatments</h1>
           <p className="page-subtitle">{formatFullDate(new Date())}</p>
         </div>
-        <div className="live-badge" title="Updates automatically when colleagues log entries">
+        <div className="live-badge" title="Updates every 30 seconds">
           <span className="live-dot" />
           Live
         </div>
@@ -237,7 +210,7 @@ export default function Dashboard() {
       {sorted.length === 0 ? (
         <div className="state-msg state-msg--empty">
           <p>No treatments logged yet today.</p>
-          <p className="empty-sub">This page updates automatically — no need to refresh.</p>
+          <p className="empty-sub">This page updates every 30 seconds — no need to refresh.</p>
           <Link to="/new" className="btn btn--primary">Log First Treatment</Link>
         </div>
       ) : (

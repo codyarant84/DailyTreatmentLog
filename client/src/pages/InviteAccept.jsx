@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { supabase } from '../lib/supabase.js';
+import { useAuth } from '../context/AuthContext.jsx';
 import './Login.css';
 
 export default function InviteAccept() {
   const { token } = useParams();
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const [schoolName, setSchoolName] = useState(null);
   const [loadError, setLoadError] = useState(null);
@@ -34,10 +35,8 @@ export default function InviteAccept() {
       // Create a pre-confirmed account via the invite
       await axios.post('/api/auth/accept-invite-signup', { token, email, password });
 
-      // Sign in immediately — no email confirmation needed
-      const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
-      if (signInErr) throw signInErr;
-
+      // Sign in immediately after account creation
+      await login(email, password);
       navigate('/', { replace: true });
     } catch (err) {
       setError(err.response?.data?.error ?? err.message);

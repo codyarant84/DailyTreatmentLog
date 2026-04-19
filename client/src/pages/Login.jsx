@@ -1,87 +1,118 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { supabase } from '../lib/supabase.js';
+import { useAuth } from '../context/AuthContext.jsx';
+import api from '../lib/api.js';
 import './Login.css';
 
 export default function Login() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState('login'); // 'login' | 'signup'
+  const { login } = useAuth();
+
+  // 'login' | 'forgot' | 'forgot-sent'
+  const [view, setView] = useState('login');
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [schoolName, setSchoolName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [emailSent, setEmailSent] = useState(false);
 
-  function switchMode(next) {
-    setMode(next);
-    setError(null);
-    setEmailSent(false);
-  }
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState(null);
 
-  async function handleSubmit(e) {
+  async function handleLogin(e) {
     e.preventDefault();
     setError(null);
     setLoading(true);
-
     try {
-      if (mode === 'login') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        navigate('/');
-      } else {
-        if (!schoolName.trim()) {
-          setError('School name is required.');
-          return;
-        }
-
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { emailRedirectTo: window.location.origin + '/setup' },
-        });
-        if (error) throw error;
-
-        if (!data.session) {
-          // Email confirmation is required — store school name for after verification
-          localStorage.setItem('pendingSchoolName', schoolName.trim());
-          setEmailSent(true);
-          return;
-        }
-
-        // No email confirmation needed — set up profile immediately
-        await axios.post(
-          '/api/auth/setup-profile',
-          { school_name: schoolName.trim() },
-          { headers: { Authorization: `Bearer ${data.session.access_token}` } }
-        );
-
-        navigate('/');
-      }
+      await login(email, password);
+      navigate('/');
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.error ?? err.message);
     } finally {
       setLoading(false);
     }
   }
 
-  if (emailSent) {
+  async function handleForgot(e) {
+    e.preventDefault();
+    setForgotError(null);
+    setForgotLoading(true);
+    try {
+      await api.post('/api/auth/forgot-password', { email: forgotEmail.trim().toLowerCase() });
+      setView('forgot-sent');
+    } catch (err) {
+      setForgotError(err.response?.data?.error ?? err.message);
+    } finally {
+      setForgotLoading(false);
+    }
+  }
+
+  const brand = (
+    <div className="login-brand">
+      <span className="brand-icon">+</span>
+      <span className="brand-name">Fieldside Health</span>
+    </div>
+  );
+
+  if (view === 'forgot-sent') {
     return (
       <div className="login-page">
         <div className="login-card">
-          <div className="login-brand">
-            <span className="brand-icon">+</span>
-            <span className="brand-name">Daily Treatment Log</span>
-          </div>
+          {brand}
           <div className="login-confirm">
-            <div className="confirm-icon">✉</div>
+            <div className="confirm-icon">✉️</div>
             <h2>Check your email</h2>
             <p>
-              We sent a confirmation link to <strong>{email}</strong>. Click it to
-              activate your account, then come back and sign in.
+              If an account exists with that email, you will receive a reset link
+              shortly. Please contact your administrator if you need immediate access.
             </p>
-            <button className="btn btn--outline btn--full" onClick={() => switchMode('login')}>
+            <button className="btn btn--outline btn--full" onClick={() => setView('login')}>
+              Back to Sign In
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'forgot') {
+    return (
+      <div className="login-page">
+        <div className="login-card">
+          {brand}
+          <h1 className="login-title">Reset password</h1>
+
+          <form onSubmit={handleForgot} noValidate>
+            {forgotError && (
+              <div className="form-error" role="alert">{forgotError}</div>
+            )}
+
+            <div className="form-group">
+              <label htmlFor="forgot-email" className="form-label">Email</label>
+              <input
+                id="forgot-email"
+                type="email"
+                className="form-input"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                required
+                autoComplete="email"
+                placeholder="you@school.edu"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="btn btn--primary btn--full"
+              disabled={forgotLoading}
+            >
+              {forgotLoading ? 'Sending...' : 'Send Reset Link'}
+            </button>
+          </form>
+
+          <div className="login-toggle">
+            <button className="link-btn" onClick={() => { setForgotError(null); setView('login'); }}>
               Back to Sign In
             </button>
           </div>
@@ -93,16 +124,10 @@ export default function Login() {
   return (
     <div className="login-page">
       <div className="login-card">
-        <div className="login-brand">
-          <span className="brand-icon">+</span>
-          <span className="brand-name">Daily Treatment Log</span>
-        </div>
+        {brand}
+        <h1 className="login-title">Welcome back</h1>
 
-        <h1 className="login-title">
-          {mode === 'login' ? 'Welcome back' : 'Create account'}
-        </h1>
-
-        <form onSubmit={handleSubmit} noValidate>
+        <form onSubmit={handleLogin} noValidate>
           {error && (
             <div className="form-error" role="alert">
               {error}
@@ -132,51 +157,25 @@ export default function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              autoComplete="current-password"
               placeholder="••••••••"
-              minLength={6}
             />
           </div>
-
-          {mode === 'signup' && (
-            <div className="form-group">
-              <label htmlFor="schoolName" className="form-label">School Name</label>
-              <input
-                id="schoolName"
-                type="text"
-                className="form-input"
-                value={schoolName}
-                onChange={(e) => setSchoolName(e.target.value)}
-                required
-                placeholder="e.g. Westview High School"
-              />
-              <p className="form-hint">
-                Users with the same school name share treatment records. Spelling must match exactly.
-              </p>
-            </div>
-          )}
 
           <button
             type="submit"
             className="btn btn--primary btn--full"
             disabled={loading}
           >
-            {loading
-              ? mode === 'login' ? 'Signing in...' : 'Creating account...'
-              : mode === 'login' ? 'Sign In' : 'Create Account'}
+            {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
-        <p className="login-toggle">
-          {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
-          <button
-            type="button"
-            className="link-btn"
-            onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')}
-          >
-            {mode === 'login' ? 'Sign up' : 'Sign in'}
+        <div className="login-toggle">
+          <button className="link-btn" onClick={() => { setError(null); setView('forgot'); }}>
+            Forgot password?
           </button>
-        </p>
+        </div>
       </div>
     </div>
   );

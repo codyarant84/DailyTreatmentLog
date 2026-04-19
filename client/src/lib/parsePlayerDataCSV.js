@@ -33,6 +33,12 @@ function capitalizeName(str) {
   return str.replace(/\b\w+/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
 }
 
+/** Pass through HH:MM:SS time strings; return null if blank. */
+function toTimeStr(v) {
+  if (!v || !v.trim()) return null;
+  return v.trim();
+}
+
 /** MM/DD/YYYY → YYYY-MM-DD. Passes through already-ISO dates. */
 function toIsoDate(raw) {
   if (!raw) return null;
@@ -131,13 +137,19 @@ export async function parsePlayerDataCSV(file) {
       const top_speed_mph = toFloat(raw['Top Speed (mph)']);
       const pct_max_speed = toFloat(raw['Percentage of Max Speed']);
 
+      const rawDate = raw['Start Date'] ?? raw['Start Date MM/DD/YYYY'] ?? '';
+      const parsedDate = toIsoDate(rawDate);
+      if (i < 3) {
+        console.log(`[GPS parse] row ${i + 1} session_date: raw="${rawDate}" → parsed="${parsedDate}"`);
+      }
+
       const row = {
         athlete_id: raw['Person ID'],
         name: capitalizeName(raw['Athlete Name']),
         position,
-        session_date: toIsoDate(raw['Start Date MM/DD/YYYY']),
-        start_time: toFloat(raw['Start Time (s)']),
-        end_time: toFloat(raw['End Time (s)']),
+        session_date: parsedDate,
+        start_time: toTimeStr(raw['Start Time (s)']),
+        end_time: toTimeStr(raw['End Time (s)']),
         duration_minutes: toInt(raw['Duration (minutes)']),
         week_start_date: toIsoDate(raw['Week Start Date']),
         month_start_date: toIsoDate(raw['Month Start Date']),
@@ -178,7 +190,6 @@ export async function parsePlayerDataCSV(file) {
           name: row.name,
           position: row.position,
           sport: 'Football',
-          team: 'Hewitt-Trussville',
           max_speed_mph: top_speed_mph ?? 0,
         });
       } else {
@@ -230,7 +241,7 @@ export async function parsePlayerDataCSV(file) {
  *   risk_status: 'red'|'yellow'|'green',
  * }>}
  */
-export function calculateLoadHistory(athleteId, sessions) {
+export function calculateLoadHistory(athleteId, sessions, isInSeason = true) {
   const filtered = sessions.filter(
     (s) => s.athlete_id === athleteId && s.data_recorded === true && (s.session_load ?? 0) > 0
   );
@@ -289,7 +300,9 @@ export function calculateLoadHistory(athleteId, sessions) {
     let risk_status;
     if (acwr > 1.5) {
       risk_status = 'red';
-    } else if (acwr > 1.3 || acwr < 0.8) {
+    } else if (acwr > 1.3) {
+      risk_status = 'yellow';
+    } else if (isInSeason && acwr < 0.8) {
       risk_status = 'yellow';
     } else {
       risk_status = 'green';

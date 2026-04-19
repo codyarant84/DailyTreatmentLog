@@ -3,7 +3,9 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import api from '../lib/api.js';
 import AthleteCombobox from '../components/AthleteCombobox.jsx';
 import SportCombobox from '../components/SportCombobox.jsx';
+import SelectWithOther from '../components/SelectWithOther.jsx';
 import { calculateSavings, formatDollars } from '../lib/cptCodes.js';
+import { BODY_PARTS } from '../lib/constants.js';
 import './NewTreatment.css';
 
 const TREATMENT_TYPES = [
@@ -16,29 +18,6 @@ const TREATMENT_TYPES = [
   'Cupping',
   'Exercise',
   'Stretching',
-];
-
-const BODY_PARTS = [
-  'Head / Neck',
-  'Shoulder',
-  'Upper Arm',
-  'Elbow',
-  'Forearm',
-  'Wrist',
-  'Hand / Fingers',
-  'Chest',
-  'Upper Back',
-  'Lower Back',
-  'Hip',
-  'Groin',
-  'Quadriceps',
-  'Hamstring',
-  'Knee',
-  'Shin',
-  'Calf',
-  'Ankle',
-  'Foot / Toes',
-  'Other',
 ];
 
 const today = new Date().toISOString().split('T')[0];
@@ -64,6 +43,7 @@ function NewTreatment() {
   const exerciseRef = useRef(null);
 
   const [athletes, setAthletes] = useState([]);
+  const [athleteObjects, setAthleteObjects] = useState([]);
   const [injuryId, setInjuryId] = useState('');
   const [activeInjuries, setActiveInjuries] = useState([]);
   const [submitting, setSubmitting] = useState(false);
@@ -73,10 +53,22 @@ function NewTreatment() {
   const exerciseSelected = selectedTypes.includes('Exercise');
 
   useEffect(() => {
-    api.get('/api/daily-treatments/athletes')
-      .then(({ data }) => setAthletes(data))
+    api.get('/api/athletes')
+      .then(({ data }) => {
+        setAthleteObjects(data);
+        setAthletes(data.map((a) => a.name));
+      })
       .catch(() => {});
   }, []);
+
+  // Auto-populate sport when athlete name matches a known athlete
+  useEffect(() => {
+    if (!athleteName.trim()) return;
+    const match = athleteObjects.find(
+      (a) => a.name.toLowerCase() === athleteName.trim().toLowerCase()
+    );
+    if (match?.sport) setSport(match.sport);
+  }, [athleteName, athleteObjects]);
 
   // Fetch active injuries when athlete name is filled in
   useEffect(() => {
@@ -85,6 +77,15 @@ function NewTreatment() {
       .then(({ data }) => { setActiveInjuries(data); })
       .catch(() => setActiveInjuries([]));
   }, [athleteName]);
+
+  // Auto-populate body part when an injury is selected
+  useEffect(() => {
+    if (!injuryId) return;
+    const injury = activeInjuries.find((inj) => inj.id === injuryId);
+    if (injury?.body_part) {
+      setBodyPart(injury.body_part);
+    }
+  }, [injuryId, activeInjuries]);
 
   useEffect(() => {
     if (!exerciseSelected) return;
@@ -176,6 +177,18 @@ function NewTreatment() {
 
     try {
       setSubmitting(true);
+
+      // Auto-create athlete record if this name doesn't exist yet
+      const nameLower = athleteName.trim().toLowerCase();
+      const exists = athleteObjects.some((a) => a.name.toLowerCase() === nameLower);
+      if (!exists) {
+        try {
+          await api.post('/api/athletes', { name: athleteName.trim(), sport: sport || undefined });
+        } catch (createErr) {
+          console.warn('Could not auto-create athlete record:', createErr.message);
+        }
+      }
+
       await api.post('/api/daily-treatments', payload);
       const { total, breakdown } = calculateSavings(payload.treatment_type, payload.body_part);
       setReview({
@@ -446,18 +459,14 @@ function NewTreatment() {
             <label htmlFor="body_part" className="form-label">
               Body Part <span className="required">*</span>
             </label>
-            <select
+            <SelectWithOther
               id="body_part"
-              className="form-input form-select"
+              options={BODY_PARTS}
               value={bodyPart}
-              onChange={(e) => setBodyPart(e.target.value)}
+              onChange={setBodyPart}
+              placeholder="-- Select body part --"
               required
-            >
-              <option value="">-- Select body part --</option>
-              {BODY_PARTS.map((b) => (
-                <option key={b} value={b}>{b}</option>
-              ))}
-            </select>
+            />
           </div>
 
           {/* Link to Injury */}

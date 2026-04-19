@@ -1,6 +1,7 @@
 import express from 'express';
-import { supabase } from '../lib/supabase.js';
+import { query } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
+import { uploadFile, deleteFile } from '../lib/storage.js';
 
 const router = express.Router();
 router.use(requireAuth);
@@ -8,51 +9,55 @@ router.use(requireAuth);
 // GET /api/school/branding
 router.get('/branding', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('schools')
-      .select('id, name, primary_color, logo_url, cost_per_visit')
-      .eq('id', req.schoolId)
-      .single();
-
-    if (error) throw error;
-    res.json(data);
+    const { rows } = await query(
+      `SELECT id, name, primary_color, logo_url, cost_per_visit FROM schools WHERE id = $1`,
+      [req.schoolId]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'School not found' });
+    res.json(rows[0]);
   } catch (err) {
     console.error('GET /school/branding error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
-// PUT /api/school/branding — update primary color and/or cost_per_visit
+// PUT /api/school/branding
 router.put('/branding', async (req, res) => {
   const { primary_color, cost_per_visit } = req.body;
   if (!primary_color || !/^#[0-9a-fA-F]{6}$/.test(primary_color)) {
     return res.status(400).json({ error: 'primary_color must be a valid hex color (e.g. #1d6fa5)' });
   }
 
-  const updates = { primary_color };
+  const params = [primary_color, req.schoolId];
+  let sql = `UPDATE schools SET primary_color = $1`;
+
   if (cost_per_visit !== undefined) {
     const rate = Number(cost_per_visit);
-    if (isNaN(rate) || rate < 0) return res.status(400).json({ error: 'cost_per_visit must be a positive number.' });
-    updates.cost_per_visit = rate;
+    if (isNaN(rate) || rate < 0) {
+      return res.status(400).json({ error: 'cost_per_visit must be a positive number.' });
+    }
+    sql += `, cost_per_visit = $3`;
+    params.splice(1, 0, rate); // insert before schoolId
+    // reorder: primary_color=$1, cost_per_visit=$2, school_id=$3
+    params[0] = primary_color;
+    params[1] = rate;
+    params[2] = req.schoolId;
+    sql = `UPDATE schools SET primary_color = $1, cost_per_visit = $2 WHERE id = $3 RETURNING primary_color, logo_url, cost_per_visit`;
+  } else {
+    sql = `UPDATE schools SET primary_color = $1 WHERE id = $2 RETURNING primary_color, logo_url, cost_per_visit`;
   }
 
   try {
-    const { data, error } = await supabase
-      .from('schools')
-      .update(updates)
-      .eq('id', req.schoolId)
-      .select('primary_color, logo_url, cost_per_visit')
-      .single();
-
-    if (error) throw error;
-    res.json(data);
+    const { rows } = await query(sql, params);
+    if (!rows[0]) return res.status(404).json({ error: 'School not found' });
+    res.json(rows[0]);
   } catch (err) {
     console.error('PUT /school/branding error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
-// POST /api/school/logo — accepts base64-encoded image, uploads to Supabase Storage
+// POST /api/school/logo
 router.post('/logo', async (req, res) => {
   const { base64, mime_type } = req.body;
   if (!base64 || !mime_type) {
@@ -65,27 +70,12 @@ router.post('/logo', async (req, res) => {
   }
 
   const ext = mime_type.split('/')[1].replace('jpeg', 'jpg').replace('svg+xml', 'svg');
-  const path = `${req.schoolId}/logo.${ext}`;
+  const filename = `${req.schoolId}/logo.${ext}`;
 
   try {
     const buffer = Buffer.from(base64.replace(/^data:[^;]+;base64,/, ''), 'base64');
-
-    const { error: uploadError } = await supabase.storage
-      .from('school-logos')
-      .upload(path, buffer, { contentType: mime_type, upsert: true });
-
-    if (uploadError) throw uploadError;
-
-    const { data: urlData } = supabase.storage.from('school-logos').getPublicUrl(path);
-    const logo_url = urlData.publicUrl;
-
-    const { error: updateError } = await supabase
-      .from('schools')
-      .update({ logo_url })
-      .eq('id', req.schoolId);
-
-    if (updateError) throw updateError;
-
+    const logo_url = await uploadFile(buffer, filename, mime_type);
+    await query(`UPDATE schools SET logo_url = $1 WHERE id = $2`, [logo_url, req.schoolId]);
     res.json({ logo_url });
   } catch (err) {
     console.error('POST /school/logo error:', err.message);
@@ -93,23 +83,14 @@ router.post('/logo', async (req, res) => {
   }
 });
 
-// DELETE /api/school/logo — remove logo
+// DELETE /api/school/logo
 router.delete('/logo', async (req, res) => {
   try {
-    // Try to remove any existing logo files
     const exts = ['png', 'jpg', 'webp', 'svg'];
     await Promise.allSettled(
-      exts.map((ext) =>
-        supabase.storage.from('school-logos').remove([`${req.schoolId}/logo.${ext}`])
-      )
+      exts.map((ext) => deleteFile(`${req.schoolId}/logo.${ext}`))
     );
-
-    const { error } = await supabase
-      .from('schools')
-      .update({ logo_url: null })
-      .eq('id', req.schoolId);
-
-    if (error) throw error;
+    await query(`UPDATE schools SET logo_url = NULL WHERE id = $1`, [req.schoolId]);
     res.status(204).send();
   } catch (err) {
     console.error('DELETE /school/logo error:', err.message);

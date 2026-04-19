@@ -1,0 +1,549 @@
+.gps-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Page header ─────────────────────────────────────────────────── */
+.gps-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* ── Upload zone ─────────────────────────────────────────────────── */
+.gps-upload-zone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 1.25rem 1.75rem;
+  background: var(--color-surface);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  text-align: center;
+  min-width: 280px;
+  user-select: none;
+}
+
+.gps-upload-zone:hover,
+.gps-upload-zone:focus-visible {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+  outline: none;
+}
+
+.gps-upload-zone--drag {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.gps-upload-zone--importing {
+  cursor: wait;
+  opacity: 0.8;
+}
+
+.gps-upload-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.gps-upload-icon {
+  width: 28px;
+  height: 28px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.gps-upload-text {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.gps-upload-sub {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.gps-upload-spinner {
+  width: 24px;
+  height: 24px;
+}
+
+/* ── AI Insights panel ───────────────────────────────────────────── */
+.insights-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.insights-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.insights-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  flex-shrink: 0;
+  animation: insights-pulse 2s ease-in-out infinite;
+}
+
+@keyframes insights-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+.insights-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-text);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.insights-date {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-left: auto;
+}
+
+.insights-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.insight-row {
+  padding: 0.65rem 1rem 0.65rem 1.1rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  border-left: 3px solid transparent;
+  border-bottom: 1px solid var(--color-border);
+  line-height: 1.5;
+}
+
+.insight-row:last-child { border-bottom: none; }
+
+.insight-alert { border-left-color: #ef4444; }
+.insight-warn  { border-left-color: #f59e0b; }
+.insight-good  { border-left-color: #22c55e; }
+.insight-info  { border-left-color: #94a3b8; }
+
+/* ── Summary strip ───────────────────────────────────────────────── */
+.gps-stats-strip {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.gps-stat-card {
+  flex: 1;
+  min-width: 100px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.9rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  box-shadow: var(--shadow);
+}
+
+.gps-stat-card--red   { border-color: #fca5a5; }
+.gps-stat-card--amber { border-color: #fcd34d; }
+
+.gps-stat-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+.gps-stat-card--red   .gps-stat-value { color: #b91c1c; }
+.gps-stat-card--amber .gps-stat-value { color: #92400e; }
+
+.gps-stat-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Filter bar ──────────────────────────────────────────────────── */
+.gps-filter-bar {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.gps-filter-btn {
+  padding: 0.4rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.gps-filter-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.gps-filter-btn--active {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+/* ── Athlete grid ────────────────────────────────────────────────── */
+.gps-athlete-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+.gps-athlete-card {
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-shadow: var(--shadow);
+}
+
+.gps-athlete-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 8px var(--color-primary-light);
+}
+
+.gps-athlete-card:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.gps-athlete-card--selected {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light), var(--shadow);
+}
+
+/* Card header */
+.gps-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.gps-card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.gps-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.gps-card-name-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.gps-card-name {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gps-card-position {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+/* Risk badge */
+.gps-risk-badge {
+  font-size: 0.68rem;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.gps-risk-badge--red    { background: #fee2e2; color: #b91c1c; }
+.gps-risk-badge--yellow { background: #fef3c7; color: #92400e; }
+
+/* Metrics row */
+.gps-metrics-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.gps-metric {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  background: var(--color-bg);
+  border-radius: calc(var(--radius) - 2px);
+  padding: 0.45rem 0.6rem;
+}
+
+.gps-metric-value {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--color-text);
+  line-height: 1.1;
+}
+
+.gps-metric-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ACWR bar */
+.gps-acwr-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.gps-acwr-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+  width: 38px;
+}
+
+.gps-acwr-bar-track {
+  flex: 1;
+  height: 6px;
+  background: var(--color-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.gps-acwr-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.gps-acwr-bar-fill--green  { background: #22c55e; }
+.gps-acwr-bar-fill--yellow { background: #f59e0b; }
+.gps-acwr-bar-fill--red    { background: #ef4444; }
+
+.gps-acwr-value {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-text);
+  flex-shrink: 0;
+  width: 32px;
+  text-align: right;
+}
+
+/* New top speed tag */
+.gps-new-top-speed {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 0.68rem;
+  font-weight: 700;
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  letter-spacing: 0.03em;
+}
+
+/* ── Session history ─────────────────────────────────────────────── */
+.gps-session-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.gps-session-heading {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.gps-session-table-wrap {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow-x: auto;
+}
+
+.gps-session-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.gps-session-table thead th {
+  text-align: left;
+  padding: 0.6rem 0.9rem;
+  background: var(--color-bg);
+  border-bottom: 2px solid var(--color-border);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.gps-session-table tbody tr {
+  border-bottom: 1px solid var(--color-border);
+  transition: background 0.1s;
+}
+
+.gps-session-table tbody tr:last-child { border-bottom: none; }
+.gps-session-table tbody tr:hover      { background: var(--color-bg); }
+
+.gps-session-table tbody td {
+  padding: 0.6rem 0.9rem;
+  vertical-align: middle;
+  color: var(--color-text);
+}
+
+.gps-row-zero td { color: var(--color-text-muted); }
+
+.gps-no-data {
+  font-style: italic;
+  color: var(--color-text-muted) !important;
+}
+
+.gps-table-empty {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding: 1.5rem !important;
+}
+
+/* Session type badge */
+.gps-type-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  background: var(--color-border);
+  color: var(--color-text-muted);
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  white-space: nowrap;
+}
+
+.gps-type-badge--match {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+/* ── Toast ───────────────────────────────────────────────────────── */
+.gps-toast {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 1000;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius);
+  font-size: 0.88rem;
+  font-weight: 600;
+  max-width: 420px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  animation: gps-toast-in 0.2s ease;
+}
+
+.gps-toast--success {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.gps-toast--error {
+  background: #fdf2f2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+
+@keyframes gps-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Empty state ─────────────────────────────────────────────────── */
+.gps-empty {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  padding: 2rem 0;
+  text-align: center;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .gps-page-header   { flex-direction: column; }
+  .gps-upload-zone   { min-width: unset; width: 100%; }
+  .gps-athlete-grid  { grid-template-columns: 1fr; }
+  .gps-stats-strip   { gap: 0.5rem; }
+  .gps-stat-card     { min-width: calc(50% - 0.25rem); }
+}

@@ -1,18 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../lib/api.js';
+import SelectWithOther from '../components/SelectWithOther.jsx';
+import { BODY_PARTS, INJURY_TYPES } from '../lib/constants.js';
 import './Injuries.css';
-
-export const BODY_PARTS = [
-  'Head / Neck', 'Shoulder', 'Upper Arm', 'Elbow', 'Forearm', 'Wrist', 'Hand / Fingers',
-  'Chest', 'Upper Back', 'Lower Back', 'Hip', 'Groin', 'Quadriceps', 'Hamstring',
-  'Knee', 'Shin', 'Calf', 'Ankle', 'Foot / Toes', 'Other',
-];
-
-export const INJURY_TYPES = [
-  'Sprain', 'Strain', 'Contusion', 'Fracture', 'Tendinopathy', 'Overuse',
-  'Laceration', 'Concussion', 'Other',
-];
 
 export const MECHANISMS = ['Contact', 'Non-contact', 'Overuse', 'Unknown'];
 
@@ -168,17 +159,23 @@ function InjuryFormModal({ injury, athletes, onClose, onSaved }) {
           <div className="modal-row">
             <div className="form-group">
               <label className="form-label">Body Part <span className="required">*</span></label>
-              <select className="form-input" value={form.body_part} onChange={(e) => set('body_part', e.target.value)} required>
-                <option value="">Select…</option>
-                {BODY_PARTS.map((b) => <option key={b} value={b}>{b}</option>)}
-              </select>
+              <SelectWithOther
+                options={BODY_PARTS}
+                value={form.body_part}
+                onChange={(v) => set('body_part', v)}
+                placeholder="Select…"
+                required
+              />
             </div>
             <div className="form-group">
               <label className="form-label">Injury Type <span className="required">*</span></label>
-              <select className="form-input" value={form.injury_type} onChange={(e) => set('injury_type', e.target.value)} required>
-                <option value="">Select…</option>
-                {INJURY_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
+              <SelectWithOther
+                options={INJURY_TYPES}
+                value={form.injury_type}
+                onChange={(v) => set('injury_type', v)}
+                placeholder="Select…"
+                required
+              />
             </div>
           </div>
 
@@ -293,6 +290,7 @@ function InjuryCard({ injury, onUpdate, onDelete }) {
         </div>
         <div className="inj-card-badges">
           {injury.severity && <Badge label={injury.severity} colorMap={SEVERITY_COLORS} />}
+          <Link to={`/injuries/${injury.id}`} className="inj-detail-link">View →</Link>
         </div>
       </div>
 

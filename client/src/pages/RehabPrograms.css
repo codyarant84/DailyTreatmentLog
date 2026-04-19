@@ -54,6 +54,25 @@
   min-width: 0;
 }
 
+.program-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.program-shared-badge {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: #e8f4fd;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  white-space: nowrap;
+}
+
 .program-name {
   font-size: 1rem;
   font-weight: 700;

@@ -1,13 +1,16 @@
 import express from 'express';
-import { supabase } from '../lib/supabase.js';
+import { query } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 
 const router = express.Router();
 router.use(requireAuth);
 
-function flattenAthlete({ athletes: ath, ...inj }) {
-  return { ...inj, athlete_name: ath?.name ?? null, athlete_sport: ath?.sport ?? null };
-}
+// Base SELECT used by GET / and GET /:id
+const INJURY_SELECT = `
+  SELECT i.*, a.name AS athlete_name, a.sport AS athlete_sport
+  FROM injuries i
+  LEFT JOIN athletes a ON a.id = i.athlete_id
+`;
 
 // GET /api/injuries
 // ?active=true          → only is_active injuries
@@ -16,75 +19,77 @@ router.get('/', async (req, res) => {
   try {
     const { active, athlete_name } = req.query;
 
-    let query = supabase
-      .from('injuries')
-      .select('*, athletes(name, sport)')
-      .eq('school_id', req.schoolId)
-      .order('injury_date', { ascending: false });
+    const conditions = ['i.school_id = $1'];
+    const params = [req.schoolId];
+    let p = 2;
 
-    if (active === 'true') query = query.eq('is_active', true);
-
-    if (athlete_name) {
-      const { data: ath } = await supabase
-        .from('athletes')
-        .select('id')
-        .eq('school_id', req.schoolId)
-        .eq('name', decodeURIComponent(athlete_name))
-        .single();
-
-      if (!ath) return res.json([]);
-      query = query.eq('athlete_id', ath.id);
+    if (active === 'true') {
+      conditions.push(`i.is_active = true`);
     }
 
-    const { data, error } = await query;
-    if (error) throw error;
+    if (athlete_name) {
+      conditions.push(`a.name = $${p++}`);
+      params.push(decodeURIComponent(athlete_name));
+    }
 
-    res.json(data.map(flattenAthlete));
+    const { rows } = await query(
+      `${INJURY_SELECT} WHERE ${conditions.join(' AND ')} ORDER BY i.injury_date DESC`,
+      params
+    );
+    res.json(rows);
   } catch (err) {
     console.error('GET /injuries error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
+// GET /api/injuries/:id
+router.get('/:id', async (req, res) => {
+  try {
+    const { rows } = await query(
+      `${INJURY_SELECT} WHERE i.id = $1 AND i.school_id = $2`,
+      [req.params.id, req.schoolId]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Injury not found.' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('GET /injuries/:id error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/injuries
 router.post('/', async (req, res) => {
+  const { athlete_id, injury_date, body_part, injury_type, mechanism, severity, rtp_status, notes } = req.body;
+
+  if (!athlete_id || !injury_date || !body_part || !injury_type) {
+    return res.status(400).json({ error: 'athlete_id, injury_date, body_part, and injury_type are required.' });
+  }
+
   try {
-    const { athlete_id, injury_date, body_part, injury_type, mechanism, severity, rtp_status, notes } = req.body;
-
-    if (!athlete_id || !injury_date || !body_part || !injury_type) {
-      return res.status(400).json({ error: 'athlete_id, injury_date, body_part, and injury_type are required.' });
-    }
-
     // Verify athlete belongs to this school
-    const { data: ath } = await supabase
-      .from('athletes')
-      .select('id')
-      .eq('id', athlete_id)
-      .eq('school_id', req.schoolId)
-      .single();
+    const { rows: athRows } = await query(
+      `SELECT id FROM athletes WHERE id = $1 AND school_id = $2`,
+      [athlete_id, req.schoolId]
+    );
+    if (!athRows[0]) return res.status(400).json({ error: 'Athlete not found.' });
 
-    if (!ath) return res.status(400).json({ error: 'Athlete not found.' });
+    const { rows } = await query(
+      `INSERT INTO injuries
+         (athlete_id, school_id, logged_by, injury_date, body_part, injury_type,
+          mechanism, severity, rtp_status, notes, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true)
+       RETURNING *`,
+      [athlete_id, req.schoolId, req.userId, injury_date, body_part, injury_type,
+       mechanism || null, severity || null, rtp_status || 'Out', notes || null]
+    );
 
-    const { data, error } = await supabase
-      .from('injuries')
-      .insert({
-        athlete_id,
-        school_id:   req.schoolId,
-        logged_by:   req.userId,
-        injury_date,
-        body_part,
-        injury_type,
-        mechanism:   mechanism  || null,
-        severity:    severity   || null,
-        rtp_status:  rtp_status || 'Out',
-        notes:       notes      || null,
-        is_active:   true,
-      })
-      .select('*, athletes(name, sport)')
-      .single();
-
-    if (error) throw error;
-    res.status(201).json(flattenAthlete(data));
+    // Fetch with athlete join for response shape
+    const { rows: full } = await query(
+      `${INJURY_SELECT} WHERE i.id = $1`,
+      [rows[0].id]
+    );
+    res.status(201).json(full[0]);
   } catch (err) {
     console.error('POST /injuries error:', err.message);
     res.status(500).json({ error: err.message });
@@ -93,38 +98,31 @@ router.post('/', async (req, res) => {
 
 // PUT /api/injuries/:id
 router.put('/:id', async (req, res) => {
+  const { injury_date, body_part, injury_type, mechanism, severity, rtp_status, notes, is_active } = req.body;
+
+  if (!injury_date || !body_part || !injury_type) {
+    return res.status(400).json({ error: 'injury_date, body_part, and injury_type are required.' });
+  }
+
   try {
-    const { injury_date, body_part, injury_type, mechanism, severity, rtp_status, notes, is_active } = req.body;
-
-    if (!injury_date || !body_part || !injury_type) {
-      return res.status(400).json({ error: 'injury_date, body_part, and injury_type are required.' });
-    }
-
     const wasActive = is_active ?? true;
     const isNowInactive = wasActive === false;
 
-    const { data, error } = await supabase
-      .from('injuries')
-      .update({
-        injury_date,
-        body_part,
-        injury_type,
-        mechanism:  mechanism  || null,
-        severity:   severity   || null,
-        rtp_status: rtp_status || 'Out',
-        notes:      notes      || null,
-        is_active:  wasActive,
-        ...(isNowInactive ? { cleared_at: new Date().toISOString() } : {}),
-      })
-      .eq('id', req.params.id)
-      .eq('school_id', req.schoolId)
-      .select('*, athletes(name, sport)')
-      .single();
+    const { rows } = await query(
+      `UPDATE injuries
+       SET injury_date = $1, body_part = $2, injury_type = $3, mechanism = $4,
+           severity = $5, rtp_status = $6, notes = $7, is_active = $8,
+           cleared_at = CASE WHEN $9 THEN NOW() ELSE cleared_at END
+       WHERE id = $10 AND school_id = $11
+       RETURNING *`,
+      [injury_date, body_part, injury_type, mechanism || null, severity || null,
+       rtp_status || 'Out', notes || null, wasActive, isNowInactive,
+       req.params.id, req.schoolId]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Injury not found.' });
 
-    if (error) throw error;
-    if (!data) return res.status(404).json({ error: 'Injury not found.' });
-
-    res.json(flattenAthlete(data));
+    const { rows: full } = await query(`${INJURY_SELECT} WHERE i.id = $1`, [rows[0].id]);
+    res.json(full[0]);
   } catch (err) {
     console.error('PUT /injuries/:id error:', err.message);
     res.status(500).json({ error: err.message });
@@ -134,13 +132,10 @@ router.put('/:id', async (req, res) => {
 // DELETE /api/injuries/:id
 router.delete('/:id', async (req, res) => {
   try {
-    const { error } = await supabase
-      .from('injuries')
-      .delete()
-      .eq('id', req.params.id)
-      .eq('school_id', req.schoolId);
-
-    if (error) throw error;
+    await query(
+      `DELETE FROM injuries WHERE id = $1 AND school_id = $2`,
+      [req.params.id, req.schoolId]
+    );
     res.status(204).send();
   } catch (err) {
     console.error('DELETE /injuries/:id error:', err.message);

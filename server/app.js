@@ -11,6 +11,11 @@ import adminRouter from './routes/admin.js';
 import schoolRouter from './routes/school.js';
 import rehabProgramsRouter from './routes/rehabPrograms.js';
 import injuriesRouter from './routes/injuries.js';
+import soapNotesRouter from './routes/soapNotes.js';
+import concussionsRouter, { rtpRouter } from './routes/concussions.js';
+import anthropicRouter from './routes/anthropic.js';
+import teamsRouter from './routes/teams.js';
+import gpsRouter from './routes/gps.js';
 
 const app = express();
 
@@ -33,6 +38,12 @@ app.use('/api/admin', adminRouter);
 app.use('/api/school', schoolRouter);
 app.use('/api/rehab-programs', rehabProgramsRouter);
 app.use('/api/injuries', injuriesRouter);
+app.use('/api/soap-notes', soapNotesRouter);
+app.use('/api/concussions', concussionsRouter);
+app.use('/api/rtp-protocols', rtpRouter);
+app.use('/api/anthropic', anthropicRouter);
+app.use('/api/teams', teamsRouter);
+app.use('/api/gps', gpsRouter);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

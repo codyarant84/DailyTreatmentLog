@@ -335,3 +335,32 @@
   font-weight: 600;
   margin: 0;
 }
+
+.athlete-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  white-space: nowrap;
+}
+
+.btn-delete-athlete {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #c0392b;
+  padding: 0.2rem 0.4rem;
+  border-radius: var(--radius);
+  transition: background 0.15s;
+  font-family: inherit;
+}
+
+.btn-delete-athlete:hover:not(:disabled) {
+  background: #fdf0ed;
+}
+
+.btn-delete-athlete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
