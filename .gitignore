@@ -33,3 +33,9 @@ Thumbs.db
 *.swp
 *.swo
 .vercel
+
+# Local test scripts with secrets
+server/test-docker.sh
+
+# Large installer files
+server/*.pkg
