@@ -8,7 +8,7 @@ REPO="fieldside-server"
 ECR_REGISTRY="${ACCOUNT_ID}.dkr.ecr.${ECR_REGION}.amazonaws.com"
 IMAGE="${ECR_REGISTRY}/${REPO}"
 ECS_CLUSTER="fieldside-cluster"
-ECS_SERVICE="fieldside-service"
+ECS_SERVICE="fieldside-server"
 TASK_FAMILY="fieldside-server"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
