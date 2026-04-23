@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import axios from 'axios';
+import api from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import './SetupProfile.css';
 
@@ -27,12 +27,8 @@ export default function SetupProfile() {
   useEffect(() => {
     if (!inviteToken || !session) return;
     setLoading(true);
-    axios
-      .post(
-        '/api/auth/accept-invite',
-        { token: inviteToken },
-        { headers: { Authorization: `Bearer ${session.access_token}` } }
-      )
+    api
+      .post('/api/auth/accept-invite', { token: inviteToken })
       .then(() => navigate('/', { replace: true }))
       .catch((err) => {
         setError(err.response?.data?.error ?? err.message);
@@ -50,11 +46,7 @@ export default function SetupProfile() {
     setLoading(true);
 
     try {
-      await axios.post(
-        '/api/auth/setup-profile',
-        { school_name: schoolName.trim() },
-        { headers: { Authorization: `Bearer ${session.access_token}` } }
-      );
+      await api.post('/api/auth/setup-profile', { school_name: schoolName.trim() });
       localStorage.removeItem('pendingSchoolName');
       navigate('/', { replace: true });
     } catch (err) {

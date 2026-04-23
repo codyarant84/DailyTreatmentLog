@@ -39,7 +39,7 @@ async function lookupOpenerEmails(rows) {
 async function getRtpStep(schoolId, stepNumber) {
   if (!schoolId || !stepNumber) return null;
   const { rows } = await query(
-    `SELECT step_name, description FROM rtp_protocols WHERE school_id = $1 AND step_number = $2`,
+    `SELECT name, description FROM rtp_protocols WHERE school_id = $1 AND step_number = $2`,
     [schoolId, stepNumber]
   );
   return rows[0] ?? null;
@@ -94,7 +94,7 @@ router.get('/checkin/:token', async (req, res) => {
     res.json({
       athlete_first_name:          athleteFirstName,
       current_step:                link.current_step ?? 1,
-      current_step_name:           stepInfo?.step_name ?? null,
+      current_step_name:           stepInfo?.name ?? null,
       current_step_description:    stepInfo?.description ?? null,
       days_since_injury:           days,
       already_checked_in_today:    existing.length > 0,
@@ -155,7 +155,7 @@ router.post('/checkin/:token', async (req, res) => {
     res.status(201).json({
       ...inserted[0],
       current_step:             link.current_step,
-      current_step_name:        stepInfo?.step_name ?? null,
+      current_step_name:        stepInfo?.name ?? null,
       current_step_description: stepInfo?.description ?? null,
     });
   } catch (err) {
@@ -221,7 +221,7 @@ router.get('/:id', requireAuth, async (req, res) => {
       athlete_name,
       athlete_sport,
       opened_by_email,
-      current_step_name:        stepInfo?.step_name ?? null,
+      current_step_name:        stepInfo?.name ?? null,
       current_step_description: stepInfo?.description ?? null,
     });
   } catch (err) {
@@ -464,7 +464,7 @@ rtpRouter.put('/:stepId', async (req, res) => {
     const params = [];
     let p = 1;
 
-    if (step_name   !== undefined) { setClauses.push(`step_name = $${p++}`);   params.push(step_name); }
+    if (step_name   !== undefined) { setClauses.push(`name = $${p++}`);        params.push(step_name); }
     if (description !== undefined) { setClauses.push(`description = $${p++}`); params.push(description); }
 
     if (!setClauses.length) return res.status(400).json({ error: 'No fields to update.' });

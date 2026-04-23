@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import './Login.css';
 
@@ -19,7 +19,7 @@ export default function InviteAccept() {
 
   // Load the school name for this invite token
   useEffect(() => {
-    axios
+    api
       .get(`/api/auth/invite-info/${token}`)
       .then(({ data }) => setSchoolName(data.school_name))
       .catch((err) => setLoadError(err.response?.data?.error ?? 'Invalid or expired invite link.'));
@@ -33,7 +33,7 @@ export default function InviteAccept() {
 
     try {
       // Create a pre-confirmed account via the invite
-      await axios.post('/api/auth/accept-invite-signup', { token, email, password });
+      await api.post('/api/auth/accept-invite-signup', { token, email, password });
 
       // Sign in immediately after account creation
       await login(email, password);
