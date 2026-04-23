@@ -25,12 +25,12 @@ function fmtLoad(n) {
 
 function fmtDist(yds) {
   if (yds == null) return '—';
-  return (yds / 1000).toFixed(1) + 'k';
+  return (parseFloat(yds) / 1000 || 0).toFixed(1) + 'k';
 }
 
 function fmtSpeed(n) {
   if (n == null) return '—';
-  return n.toFixed(1);
+  return (parseFloat(n) || 0).toFixed(1);
 }
 
 function fmtDate(iso) {
@@ -412,7 +412,7 @@ export default function GPSDashboard() {
                       style={{ width: `${acwrWidth}%` }}
                     />
                   </div>
-                  <span className="gps-acwr-value">{acwr.toFixed(2)}</span>
+                  <span className="gps-acwr-value">{(parseFloat(acwr) || 0).toFixed(2)}</span>
                 </div>
 
                 {/* New top speed */}

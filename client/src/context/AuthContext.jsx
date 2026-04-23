@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../lib/api.js';
 
 const TOKEN_KEY = 'fieldside_token';
 
@@ -21,8 +21,8 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    axios
-      .get('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } })
+    api
+      .get('/api/auth/me')
       .then(({ data }) => {
         setSession(data);
         setHasProfile(true);
@@ -42,7 +42,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   async function login(email, password) {
-    const { data } = await axios.post('/api/auth/login', { email, password });
+    const { data } = await api.post('/api/auth/login', { email, password });
     localStorage.setItem(TOKEN_KEY, data.token);
     setSession(data);
     setHasProfile(true);
