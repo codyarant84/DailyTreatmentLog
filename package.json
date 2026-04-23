@@ -12,9 +12,16 @@
     "install:all": "npm install && npm --prefix server install && npm --prefix client install"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1029.0",
+    "@aws-sdk/s3-request-presigner": "^3.1029.0",
     "@supabase/supabase-js": "^2.45.4",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
-    "express": "^4.19.2"
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.20.0",
+    "resend": "^6.12.0"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

@@ -46,26 +46,31 @@ router.post('/login', async (req, res) => {
   }
 
   try {
+    // Verify credentials via Supabase Auth (temporary — while on Supabase)
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+
+    if (authError || !authData.user) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Fetch profile + school for our custom JWT
     const { rows } = await query(
-      `SELECT p.id, p.email, p.password_hash, p.school_id, p.role, p.is_admin,
+      `SELECT p.id, p.email, p.school_id, p.role, p.is_admin,
               s.primary_color, s.logo_url, s.cost_per_visit
        FROM   profiles p
        JOIN   schools  s ON s.id = p.school_id
-       WHERE  p.email = $1`,
-      [email.trim().toLowerCase()]
+       WHERE  p.id = $1`,
+      [authData.user.id]
     );
 
-    const user = rows[0];
-    if (!user || !user.password_hash) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+    if (!rows[0]) {
+      return res.status(401).json({ error: 'No profile found for this user' });
     }
 
-    const valid = await verifyPassword(password, user.password_hash);
-    if (!valid) {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-
-    res.json(buildAuthResponse(user));
+    res.json(buildAuthResponse(rows[0]));
   } catch (err) {
     console.error('POST /auth/login error:', err.message);
     res.status(500).json({ error: err.message });
