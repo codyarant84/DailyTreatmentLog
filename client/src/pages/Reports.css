@@ -1,0 +1,473 @@
+/* ── Page ─────────────────────────────────────────────────────────── */
+.rp-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 700px;
+}
+
+.rp-header {
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 1rem;
+}
+
+.rp-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--color-text);
+  margin: 0 0 0.25rem;
+}
+
+.rp-subtitle {
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ── Stepper ──────────────────────────────────────────────────────── */
+.rp-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.rp-step-wrap {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.rp-step-wrap:first-child {
+  flex: 0 0 auto;
+}
+
+.rp-step-line {
+  flex: 1;
+  height: 2px;
+  background: var(--color-border);
+  margin: 0 6px;
+  transition: background 0.2s;
+}
+
+.rp-step-line.filled {
+  background: var(--color-primary);
+}
+
+.rp-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.rp-step-circle {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.rp-step.active .rp-step-circle {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(29, 111, 165, 0.15);
+}
+
+.rp-step.done .rp-step-circle {
+  background: #d1fae5;
+  border-color: #6ee7b7;
+  color: #166534;
+}
+
+.rp-step-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.rp-step.active .rp-step-label {
+  color: var(--color-primary);
+}
+
+.rp-step.done .rp-step-label {
+  color: var(--color-text-muted);
+}
+
+/* ── Card ─────────────────────────────────────────────────────────── */
+.rp-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.rp-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.rp-card-desc {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: -0.75rem 0 0;
+}
+
+/* ── Segment control ─────────────────────────────────────────────── */
+.rp-seg-control {
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.rp-seg-btn {
+  padding: 0.45rem 1.1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.rp-seg-btn + .rp-seg-btn {
+  border-left: 1px solid var(--color-border);
+}
+
+.rp-seg-btn.active {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+/* ── Form elements ───────────────────────────────────────────────── */
+.rp-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.rp-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+@media (max-width: 540px) {
+  .rp-form-row { grid-template-columns: 1fr; }
+}
+
+.rp-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.rp-label-sm {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.rp-optional {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.72rem;
+}
+
+.rp-input {
+  padding: 0.55rem 0.85rem;
+  font-size: 0.88rem;
+  font-family: inherit;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-text);
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.rp-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(29, 111, 165, 0.12);
+}
+
+.rp-textarea {
+  resize: vertical;
+  min-height: 72px;
+}
+
+/* ── Athlete search dropdown ─────────────────────────────────────── */
+.rp-dropdown {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.rp-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.55rem 0.85rem;
+  font-family: inherit;
+  font-size: 0.88rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  gap: 0.5rem;
+  transition: background 0.1s;
+}
+
+.rp-dropdown-item:hover {
+  background: var(--color-primary-light);
+}
+
+.rp-dropdown-name {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.rp-dropdown-meta {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.rp-dropdown-empty {
+  padding: 0.75rem 0.85rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* ── Selection badge ─────────────────────────────────────────────── */
+.rp-selection-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--color-primary-light);
+  border: 1px solid rgba(29, 111, 165, 0.25);
+  border-radius: var(--radius);
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.rp-badge-meta {
+  font-weight: 400;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+}
+
+.rp-clear-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  padding: 0;
+  line-height: 1;
+  margin-left: 0.25rem;
+}
+
+.rp-clear-btn:hover {
+  color: var(--color-text);
+}
+
+/* ── Date presets ────────────────────────────────────────────────── */
+.rp-preset-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.rp-preset-btn {
+  padding: 0.4rem 0.9rem;
+  font-size: 0.83rem;
+  font-weight: 600;
+  font-family: inherit;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.rp-preset-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.rp-preset-btn.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.rp-date-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.rp-date-preview {
+  font-size: 0.83rem;
+  color: var(--color-text-muted);
+  margin-top: 0.35rem;
+}
+
+/* ── Sections grid ───────────────────────────────────────────────── */
+.rp-sections-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rp-section-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  background: var(--color-bg);
+}
+
+.rp-section-card:hover {
+  border-color: var(--color-primary);
+  background: var(--color-surface);
+}
+
+.rp-section-card.checked {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.rp-checkbox {
+  margin-top: 2px;
+  flex-shrink: 0;
+  accent-color: var(--color-primary);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+.rp-section-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.rp-section-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.rp-section-desc {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+/* ── Summary block ───────────────────────────────────────────────── */
+.rp-summary {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rp-summary-row {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.rp-summary-label {
+  font-weight: 700;
+  color: var(--color-text-muted);
+  min-width: 100px;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding-top: 1px;
+}
+
+.rp-summary-val {
+  color: var(--color-text);
+  flex: 1;
+}
+
+/* ── Actions ─────────────────────────────────────────────────────── */
+.rp-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.rp-actions--split {
+  justify-content: space-between;
+}
+
+/* ── Feedback ────────────────────────────────────────────────────── */
+.rp-error {
+  background: #fdf0ed;
+  color: #c0392b;
+  border: 1px solid rgba(192, 57, 43, 0.3);
+  border-radius: var(--radius);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.85rem;
+}
+
+.rp-success {
+  background: #d1fae5;
+  color: #166534;
+  border: 1px solid #6ee7b7;
+  border-radius: var(--radius);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.rp-loading {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  padding: 0.5rem 0;
+}

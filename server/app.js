@@ -16,6 +16,7 @@ import concussionsRouter, { rtpRouter } from './routes/concussions.js';
 import anthropicRouter from './routes/anthropic.js';
 import teamsRouter from './routes/teams.js';
 import gpsRouter from './routes/gps.js';
+import reportsRouter from './routes/reports.js';
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.use('/api/rtp-protocols', rtpRouter);
 app.use('/api/anthropic', anthropicRouter);
 app.use('/api/teams', teamsRouter);
 app.use('/api/gps', gpsRouter);
+app.use('/api/reports', reportsRouter);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

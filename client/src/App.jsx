@@ -24,6 +24,7 @@ import Insights from './pages/Insights.jsx';
 import ProgramBuilder from './pages/ProgramBuilder.jsx';
 import GPSDashboard from './pages/GPSDashboard.jsx';
 import Teams from './pages/Teams.jsx';
+import Reports from './pages/Reports.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import './App.css';
@@ -148,6 +149,16 @@ const IconAdmin = () => (
   </svg>
 );
 
+const IconReports = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <line x1="16" y1="13" x2="8" y2="13"/>
+    <line x1="16" y1="17" x2="8" y2="17"/>
+    <line x1="10" y1="9" x2="8" y2="9"/>
+  </svg>
+);
+
 const IconConcussions = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M9.5 2A6.5 6.5 0 0 1 16 8.5c0 2.5-1.5 4.5-3 5.5v2a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-2c-1.5-1-3-3-3-5.5A6.5 6.5 0 0 1 9.5 2z"/>
@@ -176,6 +187,7 @@ function MoreDrawer({ onClose, role }) {
     { label: 'Insights',     icon: <IconInsights />,     path: '/insights',    show: true },
     { label: 'Library',      icon: <IconLibrary />,      path: '/exercises',   show: role !== 'coach' },
     { label: 'Programs',     icon: <IconPrograms />,     path: '/programs',    show: role !== 'coach' },
+    { label: 'Reports',      icon: <IconReports />,      path: '/reports',     show: role !== 'coach' },
     { label: 'Settings',     icon: <IconSettings />,     path: '/settings',    show: isAdmin },
     { label: 'Admin',        icon: <IconAdmin />,        path: '/admin',       show: isAdmin },
   ].filter((i) => i.show);
@@ -309,6 +321,9 @@ function App() {
                 {role !== 'coach' && (
                   <Link to="/concussions" className={`nav-link${p.startsWith('/concussions') ? ' active' : ''}`}>Concussions</Link>
                 )}
+                {role !== 'coach' && (
+                  <Link to="/reports" className={`nav-link${p.startsWith('/reports') ? ' active' : ''}`}>Reports</Link>
+                )}
 
                 <span className="nav-divider" />
 
@@ -374,6 +389,7 @@ function App() {
           <Route path="/athletes/import" element={<ProtectedRoute><ImportAthletes /></ProtectedRoute>} />
           <Route path="/athletes/:name" element={<ProtectedRoute><AthleteProfile /></ProtectedRoute>} />
           <Route path="/teams" element={<ProtectedRoute><Teams /></ProtectedRoute>} />
+          <Route path="/reports" element={<ProtectedRoute><CoachRoute><Reports /></CoachRoute></ProtectedRoute>} />
           <Route path="/new" element={<ProtectedRoute><CoachRoute><NewTreatment /></CoachRoute></ProtectedRoute>} />
           <Route path="/treatments/:id/edit" element={<ProtectedRoute><CoachRoute><EditTreatment /></CoachRoute></ProtectedRoute>} />
         </Routes>

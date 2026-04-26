@@ -234,7 +234,10 @@ function NewAssessmentForm({ concussionId, onSaved, onCancel }) {
   const [error,  setError]  = useState(null);
 
   const totalScore = SYMPTOM_FIELDS.reduce((s, { key }) => s + (Number(scat6[key]) || 0), 0);
+  const totalCount = SYMPTOM_FIELDS.filter(({ key }) => (Number(scat6[key]) || 0) > 0).length;
   const bessTotal  = BESS_FIELDS.reduce((s, { key }) => s + (Number(bess[key]) || 0), 0);
+  const scoreColor = totalScore === 0 ? '#166534' : totalScore < 30 ? '#92400e' : '#991b1b';
+  const scoreBg    = totalScore === 0 ? '#d1fae5' : totalScore < 30 ? '#fef3c7' : '#fee2e2';
 
   function setScat(key, raw) {
     setScat6(p => ({ ...p, [key]: Math.min(6, Math.max(0, Number(raw) || 0)) }));
@@ -283,7 +286,13 @@ function NewAssessmentForm({ concussionId, onSaved, onCancel }) {
       {type === 'scat6' && (
         <>
           <div className="cd-running-total">
-            Total symptom score: <strong>{totalScore}</strong> / 132
+            <div className="cd-rt-left">
+              <span className="cd-rt-label">Total Symptom Score</span>
+              <span className="cd-rt-count">{totalCount} symptom{totalCount !== 1 ? 's' : ''} reported</span>
+            </div>
+            <span className="cd-rt-score" style={{ background: scoreBg, color: scoreColor }}>
+              {totalScore} / 132
+            </span>
           </div>
           {SYMPTOM_CATEGORIES.map(cat => (
             <div key={cat} className="cd-cat-block">
