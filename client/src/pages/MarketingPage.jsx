@@ -142,7 +142,7 @@ export default function MarketingPage() {
           <div className="mp-hero-badge">Built for Athletic Trainers</div>
           <h1 className="mp-hero-headline">
             The all-in-one platform for<br />
-            <span className="mp-hero-accent">high school athletic training.</span>
+            <span className="mp-hero-accent">athletic trainers.</span>
           </h1>
           <p className="mp-hero-sub">
             Fieldside replaces paper logs, spreadsheets, and email chains with a single platform
@@ -154,21 +154,136 @@ export default function MarketingPage() {
           </div>
         </div>
         <div className="mp-hero-visual" aria-hidden="true">
-          <div className="mp-mockup">
-            <div className="mp-mockup-bar">
-              <span /><span /><span />
+          <div className="mp-browser">
+            <div className="mp-browser-bar">
+              <span className="mp-browser-dot mp-browser-dot-red" />
+              <span className="mp-browser-dot mp-browser-dot-yellow" />
+              <span className="mp-browser-dot mp-browser-dot-green" />
+              <div className="mp-browser-url">fieldsidehealth.com</div>
             </div>
-            <div className="mp-mockup-body">
-              <div className="mp-mockup-row mp-mockup-header" />
-              <div className="mp-mockup-row mp-mockup-wide" />
-              <div className="mp-mockup-row mp-mockup-med" />
-              <div className="mp-mockup-grid">
-                <div className="mp-mockup-card" />
-                <div className="mp-mockup-card" />
-                <div className="mp-mockup-card" />
+            <div className="mp-browser-viewport">
+              <div className="mp-dash">
+                {/* App nav */}
+                <div className="mp-dash-nav">
+                  <div className="mp-dash-nav-brand">
+                    <span className="mp-dash-nav-icon">+</span>
+                    <span className="mp-dash-nav-name">Fieldside</span>
+                  </div>
+                  <div className="mp-dash-nav-links">
+                    <span className="mp-dash-nav-link mp-dash-nav-link-active">Log</span>
+                    <span className="mp-dash-nav-link">Today</span>
+                    <span className="mp-dash-nav-link">Athletes</span>
+                    <span className="mp-dash-nav-link">Injuries</span>
+                  </div>
+                </div>
+
+                {/* Page body */}
+                <div className="mp-dash-body">
+                  {/* Greeting */}
+                  <div className="mp-dash-greeting-row">
+                    <div>
+                      <div className="mp-dash-greeting">Good morning</div>
+                      <div className="mp-dash-date">Monday, April 28</div>
+                    </div>
+                    <button className="mp-dash-log-btn">+ Log Treatment</button>
+                  </div>
+
+                  {/* Stat cards */}
+                  <div className="mp-dash-stats">
+                    <div className="mp-dash-stat">
+                      <span className="mp-dash-stat-val">12</span>
+                      <span className="mp-dash-stat-label">Treated Today</span>
+                    </div>
+                    <div className="mp-dash-stat mp-dash-stat-warn">
+                      <span className="mp-dash-stat-val">3</span>
+                      <span className="mp-dash-stat-label">Active Injuries</span>
+                    </div>
+                    <div className="mp-dash-stat mp-dash-stat-alert">
+                      <span className="mp-dash-stat-val">1</span>
+                      <span className="mp-dash-stat-label">Load Alert</span>
+                    </div>
+                    <div className="mp-dash-stat mp-dash-stat-good">
+                      <span className="mp-dash-stat-val">8</span>
+                      <span className="mp-dash-stat-label">Cleared to Play</span>
+                    </div>
+                    <div className="mp-dash-stat mp-dash-stat-concussion">
+                      <span className="mp-dash-stat-val">1</span>
+                      <span className="mp-dash-stat-label">Concussion</span>
+                    </div>
+                  </div>
+
+                  {/* Two-column cards */}
+                  <div className="mp-dash-cards">
+                    <div className="mp-dash-card">
+                      <div className="mp-dash-card-title">Today's Treatments</div>
+                      <div className="mp-dash-table">
+                        <div className="mp-dash-row">
+                          <div className="mp-dash-row-avatar">JM</div>
+                          <div className="mp-dash-row-info">
+                            <span className="mp-dash-row-name">Jake Mitchell</span>
+                            <span className="mp-dash-row-meta">Ice / E-Stim · Knee</span>
+                          </div>
+                          <span className="mp-dash-badge mp-dash-badge-blue">Done</span>
+                        </div>
+                        <div className="mp-dash-row">
+                          <div className="mp-dash-row-avatar">SR</div>
+                          <div className="mp-dash-row-info">
+                            <span className="mp-dash-row-name">Sofia Reyes</span>
+                            <span className="mp-dash-row-meta">Taping · Ankle</span>
+                          </div>
+                          <span className="mp-dash-badge mp-dash-badge-blue">Done</span>
+                        </div>
+                        <div className="mp-dash-row">
+                          <div className="mp-dash-row-avatar">TW</div>
+                          <div className="mp-dash-row-info">
+                            <span className="mp-dash-row-name">Tyler Walsh</span>
+                            <span className="mp-dash-row-meta">Ultrasound · Shoulder</span>
+                          </div>
+                          <span className="mp-dash-badge mp-dash-badge-green">Active</span>
+                        </div>
+                        <div className="mp-dash-row">
+                          <div className="mp-dash-row-avatar">AL</div>
+                          <div className="mp-dash-row-info">
+                            <span className="mp-dash-row-name">Aaliyah Lee</span>
+                            <span className="mp-dash-row-meta">Massage · Hamstring</span>
+                          </div>
+                          <span className="mp-dash-badge mp-dash-badge-gray">Sched.</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mp-dash-card">
+                      <div className="mp-dash-card-title">Active Injuries</div>
+                      <div className="mp-dash-table">
+                        <div className="mp-dash-row">
+                          <div className="mp-dash-row-avatar mp-dash-row-avatar-red">JM</div>
+                          <div className="mp-dash-row-info">
+                            <span className="mp-dash-row-name">Jake Mitchell</span>
+                            <span className="mp-dash-row-meta">MCL Sprain · Knee</span>
+                          </div>
+                          <span className="mp-dash-badge mp-dash-badge-yellow">RTP S3</span>
+                        </div>
+                        <div className="mp-dash-row">
+                          <div className="mp-dash-row-avatar mp-dash-row-avatar-red">SR</div>
+                          <div className="mp-dash-row-info">
+                            <span className="mp-dash-row-name">Sofia Reyes</span>
+                            <span className="mp-dash-row-meta">Lateral Sprain · Ankle</span>
+                          </div>
+                          <span className="mp-dash-badge mp-dash-badge-green">Cleared</span>
+                        </div>
+                        <div className="mp-dash-row">
+                          <div className="mp-dash-row-avatar mp-dash-row-avatar-red">CJ</div>
+                          <div className="mp-dash-row-info">
+                            <span className="mp-dash-row-name">Connor James</span>
+                            <span className="mp-dash-row-meta">Concussion · Head</span>
+                          </div>
+                          <span className="mp-dash-badge mp-dash-badge-red">RTP S1</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="mp-mockup-row mp-mockup-wide" />
-              <div className="mp-mockup-row mp-mockup-short" />
             </div>
           </div>
         </div>
@@ -335,7 +450,7 @@ export default function MarketingPage() {
                   <label className="mp-form-label">Anything else? <span className="mp-optional">(optional)</span></label>
                   <textarea
                     className="mp-form-input mp-form-textarea"
-                    placeholder="Tell us about your program, how many athletes, what you're currently using..."
+                    placeholder="Number of athletic trainers, current system you're using, anything else we should know..."
                     value={form.message}
                     onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
                     rows={3}
