@@ -1,0 +1,464 @@
+/* ── Page ─────────────────────────────────────────────────────────── */
+.ir-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 900px;
+}
+
+.ir-header {
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 1rem;
+}
+
+.ir-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--color-text);
+  margin: 0 0 0.25rem;
+}
+
+.ir-subtitle {
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ── Tabs ─────────────────────────────────────────────────────────── */
+.ir-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--color-border);
+}
+
+.ir-tab {
+  padding: 0.6rem 1.1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.ir-tab:hover { color: var(--color-text); }
+
+.ir-tab.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* ── Card ─────────────────────────────────────────────────────────── */
+.ir-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ir-col-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.ir-col-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ── Two-column layout (Recipients & Lists) ───────────────────────── */
+.ir-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 680px) {
+  .ir-two-col { grid-template-columns: 1fr; }
+}
+
+.ir-col-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+/* ── Send tab: list checkboxes ───────────────────────────────────── */
+.ir-section-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.ir-list-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.ir-list-check {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  background: var(--color-bg);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.ir-list-check:hover {
+  border-color: var(--color-primary);
+  background: var(--color-surface);
+}
+
+.ir-list-check.checked {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.ir-list-check input[type="checkbox"] {
+  accent-color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.ir-list-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text);
+  flex: 1;
+}
+
+.ir-list-count {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+/* ── Preview ─────────────────────────────────────────────────────── */
+.ir-preview {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.ir-preview-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.6rem 0.85rem;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ir-preview-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.ir-preview-meta {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.ir-preview-body {
+  font-family: monospace;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--color-text);
+  background: var(--color-surface);
+  padding: 0.85rem;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ── Send actions ────────────────────────────────────────────────── */
+.ir-send-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--color-border);
+}
+
+/* ── Feedback ────────────────────────────────────────────────────── */
+.ir-error {
+  background: #fdf0ed;
+  color: #c0392b;
+  border: 1px solid rgba(192, 57, 43, 0.3);
+  border-radius: var(--radius);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.85rem;
+}
+
+.ir-error-list {
+  margin: 0.35rem 0 0 1rem;
+  padding: 0;
+  font-size: 0.8rem;
+}
+
+.ir-result {
+  background: #d1fae5;
+  color: #166534;
+  border: 1px solid #6ee7b7;
+  border-radius: var(--radius);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.ir-result.partial {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fcd34d;
+}
+
+/* ── Form elements ───────────────────────────────────────────────── */
+.ir-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.ir-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+}
+
+@media (max-width: 540px) {
+  .ir-form-row { grid-template-columns: 1fr; }
+}
+
+.ir-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.ir-optional {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.ir-input {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.88rem;
+  font-family: inherit;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-text);
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.ir-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(29, 111, 165, 0.12);
+}
+
+.ir-textarea {
+  resize: vertical;
+  min-height: 68px;
+}
+
+.ir-hint {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+  margin: 0;
+}
+
+/* ── Inline form (add/edit) ──────────────────────────────────────── */
+.ir-inline-form {
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius);
+  padding: 0.85rem;
+  background: var(--color-primary-light);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.ir-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+/* ── Member checklist ────────────────────────────────────────────── */
+.ir-member-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  padding: 0.35rem 0;
+}
+
+.ir-check-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.3rem 0.65rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.ir-check-row:hover { background: var(--color-bg); }
+
+.ir-check-row input[type="checkbox"] {
+  accent-color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.ir-check-name {
+  flex: 1;
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.ir-check-meta {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+/* ── Toggle rows ─────────────────────────────────────────────────── */
+.ir-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.ir-toggle-row input[type="checkbox"] {
+  accent-color: var(--color-primary);
+}
+
+/* ── Item list (recipients, lists, schedules) ────────────────────── */
+.ir-item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.ir-item {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.65rem 0.85rem;
+  background: var(--color-bg);
+}
+
+.ir-item:has(.ir-inline-form) {
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.ir-item > :not(.ir-inline-form) {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.ir-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.ir-item-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.ir-item-meta {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ir-item-actions {
+  display: flex;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+/* ── Schedules ───────────────────────────────────────────────────── */
+.ir-sched-top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ir-sched-badge {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.ir-sched-badge.active {
+  background: #d1fae5;
+  color: #166534;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────── */
+.ir-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}

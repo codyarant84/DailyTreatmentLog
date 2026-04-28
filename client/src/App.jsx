@@ -25,6 +25,8 @@ import ProgramBuilder from './pages/ProgramBuilder.jsx';
 import GPSDashboard from './pages/GPSDashboard.jsx';
 import Teams from './pages/Teams.jsx';
 import Reports from './pages/Reports.jsx';
+import InjuryReports from './pages/InjuryReports.jsx';
+import MarketingPage from './pages/MarketingPage.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import './App.css';
@@ -37,7 +39,7 @@ function CoachRoute({ children }) {
 
 function AdminRoute({ children }) {
   const { role } = useAuth();
-  if (role !== 'admin' && role !== 'super_admin') return <Navigate to="/" replace />;
+  if (role !== 'admin' && role !== 'super_admin') return <Navigate to="/home" replace />;
   return children;
 }
 
@@ -149,6 +151,12 @@ const IconAdmin = () => (
   </svg>
 );
 
+const IconInjuryReports = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.63 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6.29 6.29l.95-.87a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+  </svg>
+);
+
 const IconReports = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -188,6 +196,7 @@ function MoreDrawer({ onClose, role }) {
     { label: 'Library',      icon: <IconLibrary />,      path: '/exercises',   show: role !== 'coach' },
     { label: 'Programs',     icon: <IconPrograms />,     path: '/programs',    show: role !== 'coach' },
     { label: 'Reports',      icon: <IconReports />,      path: '/reports',     show: role !== 'coach' },
+    { label: 'SMS Reports',  icon: <IconInjuryReports />, path: '/injury-reports', show: role !== 'coach' },
     { label: 'Settings',     icon: <IconSettings />,     path: '/settings',    show: isAdmin },
     { label: 'Admin',        icon: <IconAdmin />,        path: '/admin',       show: isAdmin },
   ].filter((i) => i.show);
@@ -287,6 +296,15 @@ function App() {
 
   const isAdminRole = role === 'admin' || role === 'super_admin';
   const p = location.pathname;
+  const isMarketing = p === '/' && !session;
+
+  if (isMarketing) {
+    return (
+      <Routes>
+        <Route path="/" element={<MarketingPage />} />
+      </Routes>
+    );
+  }
 
   return (
     <div className="app">
@@ -323,6 +341,9 @@ function App() {
                 )}
                 {role !== 'coach' && (
                   <Link to="/reports" className={`nav-link${p.startsWith('/reports') ? ' active' : ''}`}>Reports</Link>
+                )}
+                {role !== 'coach' && (
+                  <Link to="/injury-reports" className={`nav-link${p.startsWith('/injury-reports') ? ' active' : ''}`}>SMS</Link>
                 )}
 
                 <span className="nav-divider" />
@@ -365,7 +386,7 @@ function App() {
 
       <main className="app-main">
         <Routes>
-          <Route path="/login" element={session ? <Navigate to="/" replace /> : <Login />} />
+          <Route path="/login" element={session ? <Navigate to="/home" replace /> : <Login />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/setup" element={<SetupProfile />} />
           <Route path="/invite/:token" element={<InviteAccept />} />
@@ -382,7 +403,8 @@ function App() {
           <Route path="/programs" element={<ProtectedRoute><CoachRoute><RehabPrograms /></CoachRoute></ProtectedRoute>} />
           <Route path="/programs/new" element={<ProtectedRoute><CoachRoute><ProgramBuilder /></CoachRoute></ProtectedRoute>} />
           <Route path="/programs/:id" element={<ProtectedRoute><CoachRoute><ProgramBuilder /></CoachRoute></ProtectedRoute>} />
-          <Route path="/" element={<ProtectedRoute><CoachRoute><Landing /></CoachRoute></ProtectedRoute>} />
+          <Route path="/" element={session ? <Navigate to="/home" replace /> : <MarketingPage />} />
+          <Route path="/home" element={<ProtectedRoute><CoachRoute><Landing /></CoachRoute></ProtectedRoute>} />
           <Route path="/log" element={<ProtectedRoute><CoachRoute><Home /></CoachRoute></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><CoachRoute><Dashboard /></CoachRoute></ProtectedRoute>} />
           <Route path="/athletes" element={<ProtectedRoute><Athletes /></ProtectedRoute>} />
@@ -390,6 +412,7 @@ function App() {
           <Route path="/athletes/:name" element={<ProtectedRoute><AthleteProfile /></ProtectedRoute>} />
           <Route path="/teams" element={<ProtectedRoute><Teams /></ProtectedRoute>} />
           <Route path="/reports" element={<ProtectedRoute><CoachRoute><Reports /></CoachRoute></ProtectedRoute>} />
+          <Route path="/injury-reports" element={<ProtectedRoute><CoachRoute><InjuryReports /></CoachRoute></ProtectedRoute>} />
           <Route path="/new" element={<ProtectedRoute><CoachRoute><NewTreatment /></CoachRoute></ProtectedRoute>} />
           <Route path="/treatments/:id/edit" element={<ProtectedRoute><CoachRoute><EditTreatment /></CoachRoute></ProtectedRoute>} />
         </Routes>

@@ -17,6 +17,8 @@ import anthropicRouter from './routes/anthropic.js';
 import teamsRouter from './routes/teams.js';
 import gpsRouter from './routes/gps.js';
 import reportsRouter from './routes/reports.js';
+import injuryReportsRouter from './routes/injuryReports.js';
+import demoRouter from './routes/demo.js';
 
 const app = express();
 
@@ -41,6 +43,8 @@ app.use('/api/anthropic', anthropicRouter);
 app.use('/api/teams', teamsRouter);
 app.use('/api/gps', gpsRouter);
 app.use('/api/reports', reportsRouter);
+app.use('/api/injury-reports', injuryReportsRouter);
+app.use('/api/demo-request', demoRouter);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
