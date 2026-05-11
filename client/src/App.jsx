@@ -28,6 +28,9 @@ import Reports from './pages/Reports.jsx';
 import InjuryReports from './pages/InjuryReports.jsx';
 import MarketingPage from './pages/MarketingPage.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
+import PortalLogin from './pages/portal/PortalLogin.jsx';
+import PortalHome from './pages/portal/PortalHome.jsx';
+import { PortalAuthProvider, usePortalAuth } from './context/PortalAuthContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import './App.css';
 
@@ -297,6 +300,7 @@ function App() {
   const isAdminRole = role === 'admin' || role === 'super_admin';
   const p = location.pathname;
   const isMarketing = p === '/' && !session;
+  const isPortal = p.startsWith('/portal');
 
   if (isMarketing) {
     return (
@@ -304,6 +308,10 @@ function App() {
         <Route path="/" element={<MarketingPage />} />
       </Routes>
     );
+  }
+
+  if (isPortal) {
+    return <PortalRoutes />;
   }
 
   return (
@@ -463,4 +471,34 @@ function App() {
   );
 }
 
-export default App;
+function PortalProtectedRoute({ children }) {
+  const { portalUser, portalLoading } = usePortalAuth();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!portalLoading && !portalUser) {
+      navigate('/portal/login', { replace: true });
+    }
+  }, [portalUser, portalLoading, navigate]);
+  if (portalLoading || !portalUser) return null;
+  return children;
+}
+
+function PortalRoutes() {
+  return (
+    <Routes>
+      <Route path="/portal/login" element={<PortalLogin />} />
+      <Route path="/portal/invite" element={<PortalLogin />} />
+      <Route path="/portal/home" element={<PortalProtectedRoute><PortalHome /></PortalProtectedRoute>} />
+    </Routes>
+  );
+}
+
+function AppWithPortal() {
+  return (
+    <PortalAuthProvider>
+      <App />
+    </PortalAuthProvider>
+  );
+}
+
+export default AppWithPortal;

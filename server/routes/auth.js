@@ -126,7 +126,7 @@ router.get('/me', requireAuth, async (req, res) => {
   try {
     const { rows } = await query(
       `SELECT p.id, p.email, p.school_id, p.role, p.is_admin,
-              s.primary_color, s.logo_url, s.cost_per_visit
+              s.primary_color, s.logo_url, s.cost_per_visit, s.student_email_domain
        FROM   profiles p
        JOIN   schools  s ON s.id = p.school_id
        WHERE  p.id = $1`,
@@ -146,8 +146,9 @@ router.get('/me', requireAuth, async (req, res) => {
       role:          p.role          ?? 'trainer',
       is_admin:      p.is_admin      ?? false,
       primary_color: p.primary_color ?? null,
-      logo_url:      p.logo_url      ?? null,
-      cost_per_visit: p.cost_per_visit ?? 50,
+      logo_url:             p.logo_url             ?? null,
+      cost_per_visit:       p.cost_per_visit       ?? 50,
+      student_email_domain: p.student_email_domain ?? null,
     });
   } catch (err) {
     console.error('GET /auth/me error:', err.message);

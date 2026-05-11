@@ -191,45 +191,35 @@ export default function InjuryReports() {
 
   useEffect(() => { reload(); }, [reload]);
 
-  // ── Tab 1: Send ─────────────────────────────────────────────────
-  const [selectedListIds, setSelectedListIds] = useState([]);
-  const [sendNotes,   setSendNotes]   = useState('');
-  const [preview,     setPreview]     = useState(null);
-  const [previewing,  setPreviewing]  = useState(false);
-  const [sending,     setSending]     = useState(false);
-  const [sendResult,  setSendResult]  = useState(null);
-  const [sendError,   setSendError]   = useState(null);
+  // ── Tab 1: Generate ─────────────────────────────────────────────
+  const [genNotes,    setGenNotes]    = useState('');
+  const [reportText,  setReportText]  = useState('');
+  const [generating,  setGenerating]  = useState(false);
+  const [genError,    setGenError]    = useState(null);
+  const [copied,      setCopied]      = useState(false);
 
-  function toggleList(id) {
-    setSelectedListIds(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
-    setPreview(null);
-  }
-
-  async function handlePreview() {
-    setPreviewing(true);
-    setPreview(null);
+  async function handleGenerate() {
+    setGenerating(true);
+    setGenError(null);
+    setReportText('');
+    setCopied(false);
     try {
-      const { data } = await api.post('/api/injury-reports/preview', { listIds: selectedListIds, notes: sendNotes });
-      setPreview(data);
+      const { data } = await api.post('/api/injury-reports/preview', { listIds: [], notes: genNotes });
+      setReportText(data.message);
     } catch (err) {
-      setSendError(err.response?.data?.error ?? err.message);
+      setGenError(err.response?.data?.error ?? err.message);
     } finally {
-      setPreviewing(false);
+      setGenerating(false);
     }
   }
 
-  async function handleSend() {
-    setSending(true);
-    setSendResult(null);
-    setSendError(null);
+  async function handleCopy() {
     try {
-      const { data } = await api.post('/api/injury-reports/send', { listIds: selectedListIds, notes: sendNotes });
-      setSendResult(data);
-      setPreview(null);
-    } catch (err) {
-      setSendError(err.response?.data?.error ?? err.message);
-    } finally {
-      setSending(false);
+      await navigator.clipboard.writeText(reportText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      setGenError('Could not access clipboard. Please select and copy the text manually.');
     }
   }
 
@@ -339,13 +329,13 @@ export default function InjuryReports() {
     <div className="ir-page">
       <div className="ir-header">
         <h1 className="ir-title">Injury Reports</h1>
-        <p className="ir-subtitle">Send SMS injury status reports to coaches, physicians, and staff.</p>
+        <p className="ir-subtitle">Generate and copy injury status reports to share with coaches and staff.</p>
       </div>
 
       {/* Tab bar */}
       <div className="ir-tabs">
         {[
-          { key: 'send',       label: 'Send Report' },
+          { key: 'send',       label: 'Generate Report' },
           { key: 'recipients', label: 'Recipients & Lists' },
           { key: 'schedules',  label: 'Schedules' },
         ].map(t => (
@@ -359,84 +349,52 @@ export default function InjuryReports() {
         ))}
       </div>
 
-      {/* ── Tab 1: Send Report ── */}
+      {/* ── Tab 1: Generate Report ── */}
       {tab === 'send' && (
         <div className="ir-card">
-          {lists.length === 0 ? (
-            <div className="ir-empty-state">
-              <p>No recipient lists yet.</p>
-              <button className="btn btn--ghost btn--sm" onClick={() => setTab('recipients')}>
-                Set up recipients →
-              </button>
-            </div>
-          ) : (
-            <>
-              <div className="ir-section-label">Send to</div>
-              <div className="ir-list-checks">
-                {lists.map(l => (
-                  <label key={l.id} className={`ir-list-check${selectedListIds.includes(l.id) ? ' checked' : ''}`}>
-                    <input type="checkbox" checked={selectedListIds.includes(l.id)} onChange={() => toggleList(l.id)} />
-                    <span className="ir-list-name">{l.name}</span>
-                    <span className="ir-list-count">{l.members?.length ?? 0} recipient{l.members?.length !== 1 ? 's' : ''}</span>
-                  </label>
-                ))}
-              </div>
+          <div className="ir-form-group">
+            <label className="ir-label">Notes <span className="ir-optional">(optional)</span></label>
+            <textarea
+              className="ir-input ir-textarea"
+              rows={3}
+              placeholder="Any additional context for this report…"
+              value={genNotes}
+              onChange={e => setGenNotes(e.target.value)}
+            />
+          </div>
 
-              <div className="ir-form-group">
-                <label className="ir-label">Notes <span className="ir-optional">(optional)</span></label>
+          <div className="ir-send-actions">
+            <button
+              className="btn btn--primary"
+              onClick={handleGenerate}
+              disabled={generating}
+            >
+              {generating ? 'Generating…' : 'Generate Report'}
+            </button>
+          </div>
+
+          {genError && <div className="ir-error">{genError}</div>}
+
+          {reportText && (
+            <>
+              <div className="ir-preview">
+                <div className="ir-preview-header">
+                  <span className="ir-preview-title">Report</span>
+                  <span className="ir-preview-meta">Copy and paste into your messaging app</span>
+                </div>
                 <textarea
-                  className="ir-input ir-textarea"
-                  rows={3}
-                  placeholder="Any additional context for this report…"
-                  value={sendNotes}
-                  onChange={e => setSendNotes(e.target.value)}
+                  className="ir-preview-body ir-report-textarea"
+                  value={reportText}
+                  readOnly
+                  onFocus={e => e.target.select()}
                 />
               </div>
-
-              {preview && (
-                <div className="ir-preview">
-                  <div className="ir-preview-header">
-                    <span className="ir-preview-title">Preview</span>
-                    <span className="ir-preview-meta">
-                      Will be sent to {preview.recipients.length} recipient{preview.recipients.length !== 1 ? 's' : ''}
-                      {preview.recipients.length > 0 && (
-                        <> ({preview.recipients.map(r => r.name).join(', ')})</>
-                      )}
-                    </span>
-                  </div>
-                  <pre className="ir-preview-body">{preview.message}</pre>
-                </div>
-              )}
-
-              {sendError && <div className="ir-error">{sendError}</div>}
-
-              {sendResult && (
-                <div className={`ir-result${sendResult.failed > 0 ? ' partial' : ''}`}>
-                  {sendResult.failed === 0
-                    ? `✓ Report sent to ${sendResult.sent} recipient${sendResult.sent !== 1 ? 's' : ''}.`
-                    : `Sent to ${sendResult.sent}, failed for ${sendResult.failed}. Check phone numbers.`}
-                  {sendResult.errors?.length > 0 && (
-                    <ul className="ir-error-list">
-                      {sendResult.errors.map((e, i) => <li key={i}>{e}</li>)}
-                    </ul>
-                  )}
-                </div>
-              )}
-
               <div className="ir-send-actions">
                 <button
-                  className="btn btn--ghost"
-                  onClick={handlePreview}
-                  disabled={!selectedListIds.length || previewing || sending}
+                  className={`btn${copied ? ' btn--success' : ' btn--primary'}`}
+                  onClick={handleCopy}
                 >
-                  {previewing ? 'Loading…' : 'Preview Message'}
-                </button>
-                <button
-                  className="btn btn--primary"
-                  onClick={handleSend}
-                  disabled={!selectedListIds.length || sending || previewing}
-                >
-                  {sending ? 'Sending…' : 'Send Now'}
+                  {copied ? '✓ Copied!' : 'Copy to Clipboard'}
                 </button>
               </div>
             </>

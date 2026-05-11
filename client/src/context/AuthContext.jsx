@@ -11,7 +11,7 @@ export function AuthProvider({ children }) {
   const [hasProfile, setHasProfile] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [role, setRole] = useState(null);
-  const [branding, setBranding] = useState({ primaryColor: null, logoUrl: null, costPerVisit: 50 });
+  const [branding, setBranding] = useState({ primaryColor: null, logoUrl: null, costPerVisit: 50, studentEmailDomain: null });
 
   // On mount: validate stored token via /api/auth/me
   useEffect(() => {
@@ -29,9 +29,10 @@ export function AuthProvider({ children }) {
         setIsAdmin(data.is_admin ?? false);
         setRole(data.role ?? 'trainer');
         setBranding({
-          primaryColor: data.primary_color ?? null,
-          logoUrl:      data.logo_url      ?? null,
-          costPerVisit: data.cost_per_visit ?? 50,
+          primaryColor:       data.primary_color        ?? null,
+          logoUrl:            data.logo_url             ?? null,
+          costPerVisit:       data.cost_per_visit       ?? 50,
+          studentEmailDomain: data.student_email_domain ?? null,
         });
       })
       .catch(() => {
@@ -62,7 +63,7 @@ export function AuthProvider({ children }) {
     setHasProfile(null);
     setIsAdmin(false);
     setRole(null);
-    setBranding({ primaryColor: null, logoUrl: null, costPerVisit: 50 });
+    setBranding({ primaryColor: null, logoUrl: null, costPerVisit: 50, studentEmailDomain: null });
   }
 
   return (

@@ -1,7 +1,6 @@
 import express from 'express';
 import { query } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
-import { sendSMS } from '../lib/sms.js';
 
 const router = express.Router();
 router.use(requireAuth);
@@ -288,39 +287,6 @@ router.post('/preview', async (req, res) => {
     res.json({ message, recipients });
   } catch (err) {
     console.error('POST /injury-reports/preview error:', err.message);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ── Send ──────────────────────────────────────────────────────────────
-
-router.post('/send', async (req, res) => {
-  const { listIds = [], notes } = req.body;
-  if (!listIds.length) return res.status(400).json({ error: 'Select at least one recipient list.' });
-
-  try {
-    const [{ message }, recipients] = await Promise.all([
-      buildMessage(req.schoolId, req.userId, notes),
-      getRecipientsForLists(listIds, req.schoolId),
-    ]);
-
-    if (!recipients.length) {
-      return res.status(400).json({ error: 'Selected lists have no recipients.' });
-    }
-
-    const results = await Promise.allSettled(
-      recipients.map(r => sendSMS(r.phone, message))
-    );
-
-    const sent   = results.filter(r => r.status === 'fulfilled').length;
-    const failed = results.filter(r => r.status === 'rejected').length;
-    const errors = results
-      .map((r, i) => r.status === 'rejected' ? `${recipients[i].name}: ${r.reason?.message}` : null)
-      .filter(Boolean);
-
-    res.json({ sent, failed, errors, total: recipients.length });
-  } catch (err) {
-    console.error('POST /injury-reports/send error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });

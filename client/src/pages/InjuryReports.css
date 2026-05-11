@@ -198,6 +198,19 @@
   word-break: break-word;
 }
 
+.ir-report-textarea {
+  display: block;
+  width: 100%;
+  min-height: 220px;
+  resize: vertical;
+  border: none;
+  border-radius: 0;
+  outline: none;
+  font-family: monospace;
+  cursor: text;
+  box-sizing: border-box;
+}
+
 /* ── Send actions ────────────────────────────────────────────────── */
 .ir-send-actions {
   display: flex;
@@ -452,6 +465,9 @@
 }
 
 /* ── Empty state ─────────────────────────────────────────────────── */
+.btn--success { background: #166534; color: #fff; border-color: #166534; }
+.btn--success:hover { background: #14532d; }
+
 .ir-empty-state {
   display: flex;
   flex-direction: column;

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import api from '../lib/api.js';
 import './MarketingPage.css';
 
 const FEATURES = [
@@ -94,16 +95,10 @@ export default function MarketingPage() {
     setError('');
     setSubmitting(true);
     try {
-      const res = await fetch('/api/demo-request', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Request failed.');
+      await api.post('/api/demo-request', form);
       setSubmitted(true);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.error || err.message || 'Something went wrong. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -327,33 +322,31 @@ export default function MarketingPage() {
 
       {/* ── About ── */}
       <section className="mp-about" id="about">
-        <div className="mp-section-inner mp-about-inner">
-          <div className="mp-about-text">
-            <p className="mp-eyebrow">The story</p>
-            <h2 className="mp-section-title">Made by a certified athletic trainer who was tired of paper.</h2>
-            <p>
-              Fieldside was built by a working ATC who spent years juggling treatment binders,
-              spreadsheet injury logs, and group texts to coaches. Every feature in the app came
-              from a real frustration in the athletic training room.
-            </p>
-            <p>
-              The result is a platform that fits how athletic trainers actually work — fast to use
-              during busy treatment sessions, powerful enough to satisfy documentation requirements,
-              and simple enough that coaches and administrators can stay informed without extra effort.
-            </p>
-            <div className="mp-about-creds">
-              <div className="mp-about-cred">
-                <strong>ATC-designed</strong>
-                <span>Built by a certified athletic trainer, not a software team guessing at workflows.</span>
-              </div>
-              <div className="mp-about-cred">
-                <strong>HIPAA-conscious</strong>
-                <span>Role-based access control keeps sensitive athlete data in the right hands.</span>
-              </div>
-              <div className="mp-about-cred">
-                <strong>No training required</strong>
-                <span>If you can use a smartphone, you can use Fieldside on day one.</span>
-              </div>
+        <div className="mp-section-inner">
+          <div className="mp-section-header">
+            <p className="mp-eyebrow">Why Fieldside</p>
+            <h2 className="mp-section-title">Built on four principles.</h2>
+          </div>
+          <div className="mp-principles-grid">
+            <div className="mp-principle-card">
+              <div className="mp-principle-number">01</div>
+              <h3 className="mp-principle-title">Unique</h3>
+              <p className="mp-principle-desc">Features built specifically for athletic trainers, not adapted from generic medical software.</p>
+            </div>
+            <div className="mp-principle-card">
+              <div className="mp-principle-number">02</div>
+              <h3 className="mp-principle-title">Useable</h3>
+              <p className="mp-principle-desc">Designed to work the way you actually work — on the sideline or in the training room.</p>
+            </div>
+            <div className="mp-principle-card">
+              <div className="mp-principle-number">03</div>
+              <h3 className="mp-principle-title">Useful</h3>
+              <p className="mp-principle-desc">Every feature exists because a real AT needed it. No bloat, no unnecessary complexity.</p>
+            </div>
+            <div className="mp-principle-card">
+              <div className="mp-principle-number">04</div>
+              <h3 className="mp-principle-title">Affordable</h3>
+              <p className="mp-principle-desc">Prices that are accessible for all users, with low overhead costs and savings that get passed on directly to you so you can spend money on the things that really matter.</p>
             </div>
           </div>
         </div>

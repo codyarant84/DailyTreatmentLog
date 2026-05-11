@@ -18,11 +18,33 @@ export default function Settings() {
   const [costSaved, setCostSaved] = useState(false);
   const [costError, setCostError] = useState(null);
 
+  const [studentDomain, setStudentDomain] = useState(branding?.studentEmailDomain ?? '');
+  const [domainSaving, setDomainSaving] = useState(false);
+  const [domainSaved, setDomainSaved] = useState(false);
+  const [domainError, setDomainError] = useState(null);
+
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoError, setLogoError] = useState(null);
   const [logoRemoving, setLogoRemoving] = useState(false);
 
   const fileInputRef = useRef(null);
+
+  async function handleSaveDomain(e) {
+    e.preventDefault();
+    setDomainError(null);
+    setDomainSaved(false);
+    setDomainSaving(true);
+    try {
+      const { data } = await api.put('/api/school/portal-domain', { student_email_domain: studentDomain });
+      setBranding((prev) => ({ ...prev, studentEmailDomain: data.student_email_domain }));
+      setDomainSaved(true);
+      setTimeout(() => setDomainSaved(false), 2500);
+    } catch (err) {
+      setDomainError(err.response?.data?.error ?? err.message);
+    } finally {
+      setDomainSaving(false);
+    }
+  }
 
   async function handleSaveColor(e) {
     e.preventDefault();
@@ -244,6 +266,35 @@ export default function Settings() {
 
           {logoError && <p className="settings-error">{logoError}</p>}
         </div>
+      </div>
+      <div className="settings-card">
+        <h2 className="settings-section-title">Athlete Portal</h2>
+        <p className="settings-hint">
+          Athletes whose school email domain matches will be auto-associated with your school when
+          they sign in with Google. Leave blank to disable domain-based auto-join.
+        </p>
+        <form onSubmit={handleSaveDomain}>
+          <div className="cost-field">
+            <label className="cost-label" htmlFor="student-domain">
+              Student email domain
+            </label>
+            <div className="cost-input-row">
+              <input
+                id="student-domain"
+                type="text"
+                className="form-input"
+                placeholder="e.g. students.schoolname.edu"
+                value={studentDomain}
+                onChange={(e) => setStudentDomain(e.target.value)}
+                style={{ flex: 1 }}
+              />
+              <button type="submit" className="btn btn--primary" disabled={domainSaving}>
+                {domainSaving ? 'Saving...' : domainSaved ? 'Saved!' : 'Save'}
+              </button>
+            </div>
+          </div>
+          {domainError && <p className="settings-error">{domainError}</p>}
+        </form>
       </div>
     </div>
   );

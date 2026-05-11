@@ -19,6 +19,7 @@ import gpsRouter from './routes/gps.js';
 import reportsRouter from './routes/reports.js';
 import injuryReportsRouter from './routes/injuryReports.js';
 import demoRouter from './routes/demo.js';
+import portalRouter from './routes/portal.js';
 
 const app = express();
 
@@ -45,6 +46,7 @@ app.use('/api/gps', gpsRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api/injury-reports', injuryReportsRouter);
 app.use('/api/demo-request', demoRouter);
+app.use('/api/portal', portalRouter);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

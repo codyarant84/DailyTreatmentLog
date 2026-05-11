@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../lib/api.js';
 import SportCombobox from '../components/SportCombobox.jsx';
@@ -164,43 +164,112 @@ function AddAthleteModal({ onClose, onAdded }) {
   );
 }
 
-export default function Athletes() {
-  const [athletes, setAthletes] = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState(null);
-  const [search, setSearch]     = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [deleteError, setDeleteError] = useState(null);
-  const [deleting, setDeleting] = useState(null); // athlete id currently being deleted
+function ArchiveConfirmDialog({ athlete, onConfirm, onCancel, loading }) {
+  return (
+    <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
+      <div className="modal" role="dialog" aria-modal="true" style={{ maxWidth: 420 }}>
+        <div className="modal-header">
+          <h2 className="modal-title">Archive Athlete</h2>
+          <button className="modal-close" onClick={onCancel} aria-label="Close">✕</button>
+        </div>
+        <div style={{ padding: '1.25rem 1.5rem' }}>
+          <p style={{ margin: '0 0 1rem', fontSize: '0.95rem', lineHeight: 1.6 }}>
+            <strong>{athlete.name}</strong> has existing records and cannot be permanently deleted.
+          </p>
+          <p style={{ margin: '0 0 1.5rem', fontSize: '0.9rem', color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
+            Would you like to archive them instead? Archived athletes are hidden from active lists but their records are preserved.
+          </p>
+          <div className="modal-actions">
+            <button className="btn btn--ghost" onClick={onCancel} disabled={loading}>
+              Cancel
+            </button>
+            <button className="btn btn--primary" onClick={onConfirm} disabled={loading}>
+              {loading ? 'Archiving…' : 'Archive'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-  useEffect(() => {
-    api.get('/api/athletes')
+export default function Athletes() {
+  const [athletes, setAthletes]         = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [error, setError]               = useState(null);
+  const [search, setSearch]             = useState('');
+  const [showModal, setShowModal]       = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+  const [deleting, setDeleting]         = useState(null);
+  const [archivePending, setArchivePending] = useState(null); // athlete awaiting archive confirm
+  const [archiveLoading, setArchiveLoading] = useState(false);
+  const [successMsg, setSuccessMsg]     = useState(null);
+
+  const fetchAthletes = useCallback((includeArchived) => {
+    setLoading(true);
+    const url = includeArchived ? '/api/athletes?include_archived=true' : '/api/athletes';
+    api.get(url)
       .then(({ data }) => setAthletes(data))
       .catch((err) => setError(err.response?.data?.error ?? 'Failed to load roster.'))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    fetchAthletes(showArchived);
+  }, [showArchived, fetchAthletes]);
 
   function handleAthleteAdded(newAthlete) {
     setAthletes((prev) => [...prev, newAthlete].sort((a, b) => a.name.localeCompare(b.name)));
   }
 
   async function handleDelete(athlete) {
-    setDeleteError(null);
-    if (!window.confirm(`Are you sure you want to delete ${athlete.name}? This cannot be undone.`)) return;
+    if (!window.confirm(`Delete ${athlete.name}? If they have no records this is permanent.`)) return;
     setDeleting(athlete.id);
     try {
-      await api.delete(`/api/athletes/${athlete.id}`);
-      setAthletes((prev) => prev.filter((a) => a.id !== athlete.id));
-    } catch (err) {
-      const status = err.response?.status;
-      if (status === 409) {
-        setDeleteError(`${athlete.name} has existing treatment or injury records and cannot be deleted. Resolve or archive their records first.`);
-      } else {
-        setDeleteError(err.response?.data?.error ?? 'Failed to delete athlete.');
+      const { data } = await api.delete(`/api/athletes/${athlete.id}`);
+      if (data.archived) {
+        // Server archived instead of deleted — show the explanation dialog
+        setDeleting(null);
+        setArchivePending(athlete);
+        return;
       }
+      // Hard deleted
+      setAthletes((prev) => prev.filter((a) => a.id !== athlete.id));
+      showSuccess(`${athlete.name} deleted.`);
+    } catch (err) {
+      showError(err.response?.data?.error ?? 'Failed to delete athlete.');
     } finally {
       setDeleting(null);
     }
+  }
+
+  async function handleArchiveConfirm() {
+    const athlete = archivePending;
+    setArchiveLoading(true);
+    try {
+      // The server already archived on the DELETE call — just update local state
+      if (!showArchived) {
+        setAthletes((prev) => prev.filter((a) => a.id !== athlete.id));
+      } else {
+        setAthletes((prev) =>
+          prev.map((a) => a.id === athlete.id ? { ...a, archived: true } : a)
+        );
+      }
+      setArchivePending(null);
+      showSuccess(`${athlete.name} archived.`);
+    } finally {
+      setArchiveLoading(false);
+    }
+  }
+
+  function showSuccess(msg) {
+    setSuccessMsg(msg);
+    setTimeout(() => setSuccessMsg(null), 3500);
+  }
+
+  function showError(msg) {
+    setSuccessMsg({ error: msg });
+    setTimeout(() => setSuccessMsg(null), 5000);
   }
 
   const filtered = athletes.filter((a) => {
@@ -220,13 +289,18 @@ export default function Athletes() {
   }, {});
   const letters = Object.keys(grouped).sort();
 
+  const activeCount   = athletes.filter((a) => !a.archived).length;
+  const archivedCount = athletes.filter((a) => a.archived).length;
+
   return (
     <div className="athletes-page">
       <div className="athletes-header">
         <div>
           <h1 className="page-title">Athletes</h1>
           <p className="page-subtitle">
-            {loading ? 'Loading…' : `${athletes.length} athlete${athletes.length !== 1 ? 's' : ''} on roster`}
+            {loading
+              ? 'Loading…'
+              : `${activeCount} active${archivedCount > 0 ? ` · ${archivedCount} archived` : ''}`}
           </p>
         </div>
         <div className="athletes-header-actions">
@@ -246,15 +320,33 @@ export default function Athletes() {
         />
       )}
 
-      {deleteError && (
-        <div className="state-msg--error" style={{ padding: '0.75rem 1rem', marginBottom: '1rem', borderRadius: 'var(--radius)', background: '#fdf0ed', color: '#c0392b', border: '1px solid rgba(192,57,43,0.3)', fontSize: '0.9rem' }}>
-          {deleteError}
-          <button onClick={() => setDeleteError(null)} style={{ marginLeft: '1rem', background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontWeight: 700 }}>✕</button>
+      {archivePending && (
+        <ArchiveConfirmDialog
+          athlete={archivePending}
+          onConfirm={handleArchiveConfirm}
+          onCancel={() => setArchivePending(null)}
+          loading={archiveLoading}
+        />
+      )}
+
+      {successMsg && (
+        <div
+          style={{
+            padding: '0.65rem 1rem',
+            marginBottom: '1rem',
+            borderRadius: 'var(--radius)',
+            fontSize: '0.9rem',
+            background: typeof successMsg === 'string' ? '#d1fae5' : '#fdf0ed',
+            color: typeof successMsg === 'string' ? '#166534' : '#c0392b',
+            border: `1px solid ${typeof successMsg === 'string' ? '#6ee7b7' : 'rgba(192,57,43,0.3)'}`,
+          }}
+        >
+          {typeof successMsg === 'string' ? successMsg : successMsg.error}
         </div>
       )}
 
       {!loading && !error && athletes.length > 0 && (
-        <div className="athletes-search">
+        <div className="athletes-controls">
           <input
             type="search"
             className="search-input"
@@ -262,6 +354,14 @@ export default function Athletes() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          <label className="athletes-archived-toggle">
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(e) => setShowArchived(e.target.checked)}
+            />
+            Show archived
+          </label>
         </div>
       )}
 
@@ -276,13 +376,19 @@ export default function Athletes() {
         <div className="state-msg state-msg--error"><p>{error}</p></div>
       )}
 
-      {!loading && !error && athletes.length === 0 && (
+      {!loading && !error && athletes.length === 0 && !showArchived && (
         <div className="state-msg state-msg--empty">
           <p>No athletes on the roster yet.</p>
           <div style={{ display: 'flex', gap: '0.75rem' }}>
             <button className="btn btn--secondary" onClick={() => setShowModal(true)}>+ Add Athlete</button>
             <Link to="/athletes/import" className="btn btn--primary">Import CSV</Link>
           </div>
+        </div>
+      )}
+
+      {!loading && !error && athletes.length === 0 && showArchived && (
+        <div className="state-msg state-msg--empty">
+          <p>No archived athletes.</p>
         </div>
       )}
 
@@ -310,7 +416,7 @@ export default function Athletes() {
                   <td colSpan={5} className="letter-cell">{letter}</td>
                 </tr>
                 {grouped[letter].map((a) => (
-                  <tr key={a.id} className="athlete-row">
+                  <tr key={a.id} className={`athlete-row${a.archived ? ' athlete-row--archived' : ''}`}>
                     <td>
                       <Link
                         to={`/athletes/${encodeURIComponent(a.name)}`}
@@ -318,6 +424,7 @@ export default function Athletes() {
                       >
                         {a.name}
                       </Link>
+                      {a.archived && <span className="athlete-archived-badge">Archived</span>}
                     </td>
                     <td>{a.sport ?? <span className="cell-empty">—</span>}</td>
                     <td>{a.grade ?? <span className="cell-empty">—</span>}</td>
@@ -329,14 +436,16 @@ export default function Athletes() {
                       >
                         Treatment history →
                       </Link>
-                      <button
-                        className="btn-delete-athlete"
-                        onClick={() => handleDelete(a)}
-                        disabled={deleting === a.id}
-                        aria-label={`Delete ${a.name}`}
-                      >
-                        {deleting === a.id ? '…' : 'Delete'}
-                      </button>
+                      {!a.archived && (
+                        <button
+                          className="btn-delete-athlete"
+                          onClick={() => handleDelete(a)}
+                          disabled={deleting === a.id}
+                          aria-label={`Delete ${a.name}`}
+                        >
+                          {deleting === a.id ? '…' : 'Delete'}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

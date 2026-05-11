@@ -10,7 +10,7 @@ router.use(requireAuth);
 router.get('/branding', async (req, res) => {
   try {
     const { rows } = await query(
-      `SELECT id, name, primary_color, logo_url, cost_per_visit FROM schools WHERE id = $1`,
+      `SELECT id, name, primary_color, logo_url, cost_per_visit, student_email_domain FROM schools WHERE id = $1`,
       [req.schoolId]
     );
     if (!rows[0]) return res.status(404).json({ error: 'School not found' });
@@ -94,6 +94,24 @@ router.delete('/logo', async (req, res) => {
     res.status(204).send();
   } catch (err) {
     console.error('DELETE /school/logo error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/school/portal-domain
+router.put('/portal-domain', async (req, res) => {
+  const { student_email_domain } = req.body;
+  const domain = student_email_domain?.trim().toLowerCase() || null;
+
+  try {
+    const { rows } = await query(
+      `UPDATE schools SET student_email_domain = $1 WHERE id = $2 RETURNING student_email_domain`,
+      [domain, req.schoolId]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'School not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('PUT /school/portal-domain error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });

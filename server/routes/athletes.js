@@ -7,9 +7,13 @@ router.use(requireAuth);
 
 // GET /api/athletes
 router.get('/', async (req, res) => {
+  const includeArchived = req.query.include_archived === 'true';
   try {
     const { rows } = await query(
-      'SELECT id, name, sport, grade, date_of_birth, emergency_contact_name, emergency_contact_phone, created_at FROM athletes WHERE school_id = $1 ORDER BY name',
+      `SELECT id, name, sport, grade, date_of_birth, emergency_contact_name, emergency_contact_phone, created_at, archived
+       FROM athletes
+       WHERE school_id = $1${includeArchived ? '' : ' AND (archived = false OR archived IS NULL)'}
+       ORDER BY name`,
       [req.schoolId]
     );
     res.json(rows);
@@ -94,7 +98,7 @@ router.delete('/:id', async (req, res) => {
 
     const [treatmentsRes, injuriesRes, concussionsRes] = await Promise.all([
       query('SELECT COUNT(*)::int AS cnt FROM daily_treatments WHERE school_id = $1 AND athlete_name = $2', [req.schoolId, athlete.name]),
-      query('SELECT COUNT(*)::int AS cnt FROM injuries WHERE school_id = $1 AND athlete_name = $2', [req.schoolId, athlete.name]),
+      query('SELECT COUNT(*)::int AS cnt FROM injuries WHERE school_id = $1 AND athlete_id = $2', [req.schoolId, athlete.id]),
       query('SELECT COUNT(*)::int AS cnt FROM concussion_cases WHERE school_id = $1 AND athlete_id = $2', [req.schoolId, athlete.id]),
     ]);
 
@@ -104,7 +108,8 @@ router.delete('/:id', async (req, res) => {
       concussionsRes.rows[0].cnt > 0;
 
     if (hasRecords) {
-      return res.status(409).json({ error: `${athlete.name} has existing treatment or injury records and cannot be deleted.` });
+      await query('UPDATE athletes SET archived = true WHERE id = $1 AND school_id = $2', [req.params.id, req.schoolId]);
+      return res.json({ archived: true, message: 'Athlete archived successfully.' });
     }
 
     await query('DELETE FROM athletes WHERE id = $1 AND school_id = $2', [req.params.id, req.schoolId]);

@@ -16,6 +16,54 @@
   width: 100%;
 }
 
+.athletes-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.athletes-controls .search-input {
+  flex: 1;
+}
+
+.athletes-archived-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.athletes-archived-toggle input[type="checkbox"] {
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.athlete-archived-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--color-border);
+  color: var(--color-text-muted);
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
+.athlete-row--archived td {
+  opacity: 0.55;
+}
+
+.athlete-row--archived .athlete-name-link {
+  text-decoration: line-through;
+}
+
 /* ── Roster table ────────────────────────────────────────────────── */
 .roster-table-wrap {
   background: var(--color-surface);
