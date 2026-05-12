@@ -401,6 +401,13 @@ export default function Reports() {
   const [error, setError]                 = useState(null);
   const [done, setDone]                   = useState(false);
 
+  const [mainTab,      setMainTab]      = useState('builder');
+  const [irNotes,      setIrNotes]      = useState('');
+  const [irText,       setIrText]       = useState('');
+  const [irGenerating, setIrGenerating] = useState(false);
+  const [irError,      setIrError]      = useState(null);
+  const [irCopied,     setIrCopied]     = useState(false);
+
   // Load athletes + teams
   useEffect(() => {
     Promise.all([api.get('/api/athletes'), api.get('/api/teams')])
@@ -463,6 +470,31 @@ export default function Reports() {
     }
   }
 
+  async function handleIrGenerate() {
+    setIrGenerating(true);
+    setIrError(null);
+    setIrText('');
+    setIrCopied(false);
+    try {
+      const { data } = await api.post('/api/injury-reports/preview', { listIds: [], notes: irNotes });
+      setIrText(data.message);
+    } catch (err) {
+      setIrError(err.response?.data?.error ?? err.message);
+    } finally {
+      setIrGenerating(false);
+    }
+  }
+
+  async function handleIrCopy() {
+    try {
+      await navigator.clipboard.writeText(irText);
+      setIrCopied(true);
+      setTimeout(() => setIrCopied(false), 2500);
+    } catch {
+      setIrError('Could not access clipboard. Please select and copy the text manually.');
+    }
+  }
+
   // Selected athlete label
   const selectedAthlete = athletes.find(a => a.id === selectedAthleteId);
   const selectedTeam    = teams.find(t => t.id === selectedTeamId);
@@ -470,10 +502,72 @@ export default function Reports() {
   return (
     <div className="rp-page">
       <div className="rp-header">
-        <h1 className="rp-title">Report Builder</h1>
-        <p className="rp-subtitle">Generate a customizable PDF report for athletes or teams.</p>
+        <h1 className="rp-title">Reports</h1>
+        <p className="rp-subtitle">Generate PDF reports and injury status summaries.</p>
       </div>
 
+      <div className="rp-main-tabs">
+        <button className={`rp-main-tab${mainTab === 'builder' ? ' active' : ''}`} onClick={() => setMainTab('builder')}>
+          Report Builder
+        </button>
+        <button className={`rp-main-tab${mainTab === 'injury' ? ' active' : ''}`} onClick={() => setMainTab('injury')}>
+          Injury Report
+        </button>
+      </div>
+
+      {mainTab === 'injury' && (
+        <div className="rp-card">
+          <h2 className="rp-card-title">Injury Report</h2>
+          <p className="rp-card-desc">Text summary of all active injuries — copy and paste into a group chat or email.</p>
+
+          <div className="rp-form-group">
+            <label className="rp-label">Notes <span className="rp-optional">(optional)</span></label>
+            <textarea
+              className="rp-input rp-textarea"
+              rows={3}
+              placeholder="Any additional context for this report…"
+              value={irNotes}
+              onChange={e => setIrNotes(e.target.value)}
+            />
+          </div>
+
+          <div className="rp-actions">
+            <button className="btn btn--primary" onClick={handleIrGenerate} disabled={irGenerating}>
+              {irGenerating ? 'Generating…' : 'Generate Injury Report'}
+            </button>
+          </div>
+
+          {irError && <div className="rp-error" role="alert">{irError}</div>}
+
+          {irText && (
+            <>
+              <div className="rp-report-preview">
+                <div className="rp-report-preview-header">
+                  <span className="rp-label">Report</span>
+                  <span className="rp-report-preview-hint">Copy and paste into your messaging app</span>
+                </div>
+                <textarea
+                  className="rp-report-preview-body"
+                  value={irText}
+                  readOnly
+                  onFocus={e => e.target.select()}
+                />
+              </div>
+              <div className="rp-actions">
+                <button
+                  className={`btn${irCopied ? ' btn--success' : ' btn--primary'}`}
+                  onClick={handleIrCopy}
+                >
+                  {irCopied ? '✓ Copied!' : 'Copy to Clipboard'}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {mainTab === 'builder' && (
+        <>
       {/* Stepper */}
       <div className="rp-stepper">
         {['Select Athletes', 'Report Sections', 'Generate'].map((label, i) => {
@@ -736,6 +830,8 @@ export default function Reports() {
             </button>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

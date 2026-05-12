@@ -24,6 +24,74 @@
   margin: 0;
 }
 
+/* ── Main tabs ────────────────────────────────────────────────────── */
+.rp-main-tabs {
+  display: flex;
+  border-bottom: 2px solid var(--color-border);
+}
+
+.rp-main-tab {
+  padding: 0.6rem 1.1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.rp-main-tab:hover { color: var(--color-text); }
+
+.rp-main-tab.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* ── Injury report preview ────────────────────────────────────────── */
+.rp-report-preview {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.rp-report-preview-header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.85rem;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.rp-report-preview-hint {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.rp-report-preview-body {
+  display: block;
+  width: 100%;
+  min-height: 200px;
+  resize: vertical;
+  border: none;
+  outline: none;
+  font-family: monospace;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--color-text);
+  background: var(--color-surface);
+  padding: 0.85rem;
+  box-sizing: border-box;
+  cursor: text;
+}
+
+.btn--success { background: #166534; color: #fff; border-color: #166534; }
+.btn--success:hover { background: #14532d; }
+
 /* ── Stepper ──────────────────────────────────────────────────────── */
 .rp-stepper {
   display: flex;

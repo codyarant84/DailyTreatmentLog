@@ -25,11 +25,12 @@ import ProgramBuilder from './pages/ProgramBuilder.jsx';
 import GPSDashboard from './pages/GPSDashboard.jsx';
 import Teams from './pages/Teams.jsx';
 import Reports from './pages/Reports.jsx';
-import InjuryReports from './pages/InjuryReports.jsx';
 import MarketingPage from './pages/MarketingPage.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import PortalLogin from './pages/portal/PortalLogin.jsx';
 import PortalHome from './pages/portal/PortalHome.jsx';
+import PortalFormComplete from './pages/portal/PortalFormComplete.jsx';
+import Forms from './pages/Forms.jsx';
 import { PortalAuthProvider, usePortalAuth } from './context/PortalAuthContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import './App.css';
@@ -148,6 +149,16 @@ const IconSettings = () => (
   </svg>
 );
 
+const IconForms = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <line x1="9" y1="13" x2="15" y2="13"/>
+    <line x1="9" y1="17" x2="13" y2="17"/>
+    <polyline points="9 9 10 9 11 9"/>
+  </svg>
+);
+
 const IconAdmin = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -199,7 +210,7 @@ function MoreDrawer({ onClose, role }) {
     { label: 'Library',      icon: <IconLibrary />,      path: '/exercises',   show: role !== 'coach' },
     { label: 'Programs',     icon: <IconPrograms />,     path: '/programs',    show: role !== 'coach' },
     { label: 'Reports',      icon: <IconReports />,      path: '/reports',     show: role !== 'coach' },
-    { label: 'SMS Reports',  icon: <IconInjuryReports />, path: '/injury-reports', show: role !== 'coach' },
+    { label: 'Forms',        icon: <IconForms />,         path: '/forms',          show: role !== 'coach' },
     { label: 'Settings',     icon: <IconSettings />,     path: '/settings',    show: isAdmin },
     { label: 'Admin',        icon: <IconAdmin />,        path: '/admin',       show: isAdmin },
   ].filter((i) => i.show);
@@ -351,7 +362,7 @@ function App() {
                   <Link to="/reports" className={`nav-link${p.startsWith('/reports') ? ' active' : ''}`}>Reports</Link>
                 )}
                 {role !== 'coach' && (
-                  <Link to="/injury-reports" className={`nav-link${p.startsWith('/injury-reports') ? ' active' : ''}`}>SMS</Link>
+                  <Link to="/forms" className={`nav-link${p.startsWith('/forms') ? ' active' : ''}`}>Forms</Link>
                 )}
 
                 <span className="nav-divider" />
@@ -420,7 +431,7 @@ function App() {
           <Route path="/athletes/:name" element={<ProtectedRoute><AthleteProfile /></ProtectedRoute>} />
           <Route path="/teams" element={<ProtectedRoute><Teams /></ProtectedRoute>} />
           <Route path="/reports" element={<ProtectedRoute><CoachRoute><Reports /></CoachRoute></ProtectedRoute>} />
-          <Route path="/injury-reports" element={<ProtectedRoute><CoachRoute><InjuryReports /></CoachRoute></ProtectedRoute>} />
+          <Route path="/forms" element={<ProtectedRoute><CoachRoute><Forms /></CoachRoute></ProtectedRoute>} />
           <Route path="/new" element={<ProtectedRoute><CoachRoute><NewTreatment /></CoachRoute></ProtectedRoute>} />
           <Route path="/treatments/:id/edit" element={<ProtectedRoute><CoachRoute><EditTreatment /></CoachRoute></ProtectedRoute>} />
         </Routes>
@@ -489,6 +500,7 @@ function PortalRoutes() {
       <Route path="/portal/login" element={<PortalLogin />} />
       <Route path="/portal/invite" element={<PortalLogin />} />
       <Route path="/portal/home" element={<PortalProtectedRoute><PortalHome /></PortalProtectedRoute>} />
+      <Route path="/portal/forms/:assignmentId" element={<PortalProtectedRoute><PortalFormComplete /></PortalProtectedRoute>} />
     </Routes>
   );
 }

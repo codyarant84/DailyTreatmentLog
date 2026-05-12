@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { Resend } from 'resend';
 import { query } from '../lib/db.js';
 import { hashPassword, verifyPassword } from '../lib/auth.js';
+import { uploadFile } from '../lib/storage.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { requirePortalAuth } from '../middleware/requirePortalAuth.js';
 
@@ -345,6 +346,357 @@ router.get('/users', requireAuth, async (req, res) => {
     res.json(rows);
   } catch (err) {
     console.error('GET /portal/users error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Form Management (requireAuth = AT) ─────────────────────────────
+
+// GET /api/portal/forms
+router.get('/forms', requireAuth, async (req, res) => {
+  try {
+    const { rows } = await query(
+      `SELECT pf.*,
+              COUNT(DISTINCT pff.id)::int AS field_count,
+              COUNT(DISTINCT pfa.id)::int AS assignment_count
+       FROM portal_forms pf
+       LEFT JOIN portal_form_fields      pff ON pff.form_id = pf.id
+       LEFT JOIN portal_form_assignments pfa ON pfa.form_id = pf.id
+       WHERE pf.school_id = $1
+       GROUP BY pf.id
+       ORDER BY pf.created_at DESC`,
+      [req.schoolId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('GET /portal/forms error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/portal/forms
+router.post('/forms', requireAuth, async (req, res) => {
+  const { title, description, requires_signature = true, requires_parent = false, requires_athlete = false } = req.body;
+  if (!title?.trim()) return res.status(400).json({ error: 'title is required' });
+  try {
+    const { rows } = await query(
+      `INSERT INTO portal_forms (school_id, title, description, requires_signature, requires_parent, requires_athlete, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [req.schoolId, title.trim(), description ?? null, requires_signature, requires_parent, requires_athlete, req.userId]
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('POST /portal/forms error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/portal/forms/:id
+router.get('/forms/:id', requireAuth, async (req, res) => {
+  try {
+    const { rows: formRows } = await query(
+      `SELECT * FROM portal_forms WHERE id = $1 AND school_id = $2`,
+      [req.params.id, req.schoolId]
+    );
+    if (!formRows[0]) return res.status(404).json({ error: 'Form not found' });
+    const { rows: fields } = await query(
+      `SELECT * FROM portal_form_fields WHERE form_id = $1 ORDER BY sort_order ASC, created_at ASC`,
+      [req.params.id]
+    );
+    res.json({ ...formRows[0], fields });
+  } catch (err) {
+    console.error('GET /portal/forms/:id error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/portal/forms/:id
+router.put('/forms/:id', requireAuth, async (req, res) => {
+  const { title, description, requires_signature, requires_parent, requires_athlete } = req.body;
+  if (!title?.trim()) return res.status(400).json({ error: 'title is required' });
+  try {
+    const { rows } = await query(
+      `UPDATE portal_forms
+       SET title = $1, description = $2,
+           requires_signature = $3, requires_parent = $4, requires_athlete = $5,
+           updated_at = now()
+       WHERE id = $6 AND school_id = $7 RETURNING *`,
+      [title.trim(), description ?? null, requires_signature ?? true, requires_parent ?? false, requires_athlete ?? false, req.params.id, req.schoolId]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Form not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('PUT /portal/forms/:id error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/portal/forms/:id
+router.delete('/forms/:id', requireAuth, async (req, res) => {
+  try {
+    const { rows } = await query(
+      `DELETE FROM portal_forms WHERE id = $1 AND school_id = $2 RETURNING id`,
+      [req.params.id, req.schoolId]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Form not found' });
+    res.status(204).send();
+  } catch (err) {
+    console.error('DELETE /portal/forms/:id error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/portal/forms/:id/fields
+router.post('/forms/:id/fields', requireAuth, async (req, res) => {
+  const { field_type, label, placeholder, options, required = false, sort_order = 0 } = req.body;
+  const validTypes = ['text', 'textarea', 'checkbox', 'date', 'select', 'heading', 'paragraph'];
+  if (!validTypes.includes(field_type)) return res.status(400).json({ error: 'Invalid field_type' });
+  if (!label?.trim()) return res.status(400).json({ error: 'label is required' });
+  try {
+    const { rows: fc } = await query('SELECT id FROM portal_forms WHERE id = $1 AND school_id = $2', [req.params.id, req.schoolId]);
+    if (!fc[0]) return res.status(404).json({ error: 'Form not found' });
+    const { rows } = await query(
+      `INSERT INTO portal_form_fields (form_id, field_type, label, placeholder, options, required, sort_order)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [req.params.id, field_type, label.trim(), placeholder ?? null, options ? JSON.stringify(options) : null, required, sort_order]
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('POST /portal/forms/:id/fields error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/portal/forms/:id/fields/reorder  — must be before /:fieldId
+router.put('/forms/:id/fields/reorder', requireAuth, async (req, res) => {
+  const { order } = req.body; // [{ id, sort_order }]
+  if (!Array.isArray(order)) return res.status(400).json({ error: 'order must be an array' });
+  try {
+    await Promise.all(
+      order.map(({ id, sort_order }) =>
+        query('UPDATE portal_form_fields SET sort_order = $1 WHERE id = $2 AND form_id = $3', [sort_order, id, req.params.id])
+      )
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('PUT /portal/forms/:id/fields/reorder error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/portal/forms/:id/fields/:fieldId
+router.put('/forms/:id/fields/:fieldId', requireAuth, async (req, res) => {
+  const { label, placeholder, options, required, sort_order } = req.body;
+  try {
+    const { rows } = await query(
+      `UPDATE portal_form_fields
+       SET label = $1, placeholder = $2, options = $3, required = $4, sort_order = $5
+       WHERE id = $6 AND form_id = $7 RETURNING *`,
+      [label, placeholder ?? null, options ? JSON.stringify(options) : null, required ?? false, sort_order ?? 0, req.params.fieldId, req.params.id]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Field not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('PUT /portal/forms/:id/fields/:fieldId error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/portal/forms/:id/fields/:fieldId
+router.delete('/forms/:id/fields/:fieldId', requireAuth, async (req, res) => {
+  try {
+    const { rows } = await query(
+      `DELETE FROM portal_form_fields WHERE id = $1 AND form_id = $2 RETURNING id`,
+      [req.params.fieldId, req.params.id]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Field not found' });
+    res.status(204).send();
+  } catch (err) {
+    console.error('DELETE /portal/forms/:id/fields/:fieldId error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/portal/forms/:id/assign
+router.post('/forms/:id/assign', requireAuth, async (req, res) => {
+  const { athleteIds, assignedTo, dueDate } = req.body;
+  if (!Array.isArray(athleteIds) || !athleteIds.length) return res.status(400).json({ error: 'athleteIds must be a non-empty array' });
+  if (!['athlete', 'parent', 'both'].includes(assignedTo)) return res.status(400).json({ error: 'assignedTo must be athlete, parent, or both' });
+  try {
+    const { rows: fc } = await query('SELECT id FROM portal_forms WHERE id = $1 AND school_id = $2', [req.params.id, req.schoolId]);
+    if (!fc[0]) return res.status(404).json({ error: 'Form not found' });
+    const created = await Promise.all(
+      athleteIds.map((athleteId) =>
+        query(
+          `INSERT INTO portal_form_assignments (form_id, school_id, athlete_id, assigned_to, due_date)
+           VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+          [req.params.id, req.schoolId, athleteId, assignedTo, dueDate ?? null]
+        ).then((r) => r.rows[0])
+      )
+    );
+    res.status(201).json(created);
+  } catch (err) {
+    console.error('POST /portal/forms/:id/assign error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/portal/forms/:id/assignments
+router.get('/forms/:id/assignments', requireAuth, async (req, res) => {
+  try {
+    const { rows } = await query(
+      `SELECT pfa.*,
+              a.name AS athlete_name,
+              (COUNT(pfs.id) > 0)    AS completed,
+              MAX(pfs.submitted_at)  AS submitted_at
+       FROM portal_form_assignments pfa
+       LEFT JOIN athletes                a   ON a.id   = pfa.athlete_id
+       LEFT JOIN portal_form_submissions pfs ON pfs.assignment_id = pfa.id
+       WHERE pfa.form_id = $1 AND pfa.school_id = $2
+       GROUP BY pfa.id, a.name
+       ORDER BY pfa.created_at DESC`,
+      [req.params.id, req.schoolId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('GET /portal/forms/:id/assignments error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/portal/assignments
+router.get('/assignments', requireAuth, async (req, res) => {
+  try {
+    const { rows } = await query(
+      `SELECT pfa.*,
+              pf.title              AS form_title,
+              a.name                AS athlete_name,
+              (COUNT(pfs.id) > 0)   AS completed,
+              MAX(pfs.submitted_at) AS submitted_at
+       FROM portal_form_assignments pfa
+       JOIN  portal_forms           pf  ON pf.id  = pfa.form_id
+       LEFT JOIN athletes           a   ON a.id   = pfa.athlete_id
+       LEFT JOIN portal_form_submissions pfs ON pfs.assignment_id = pfa.id
+       WHERE pfa.school_id = $1
+       GROUP BY pfa.id, pf.title, a.name
+       ORDER BY pfa.created_at DESC`,
+      [req.schoolId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('GET /portal/assignments error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Portal User Form Routes ─────────────────────────────────────────
+
+// GET /api/portal/my-forms
+router.get('/my-forms', requirePortalAuth, async (req, res) => {
+  const { portalUserId, athleteId, role } = req.portalUser;
+  if (!athleteId) return res.json([]);
+  const roleFilter = role === 'athlete'
+    ? `pfa.assigned_to IN ('athlete', 'both')`
+    : `pfa.assigned_to IN ('parent', 'both')`;
+  try {
+    const { rows } = await query(
+      `SELECT pfa.*,
+              pf.title             AS form_title,
+              pf.description       AS form_description,
+              pf.requires_signature,
+              a.name               AS athlete_name,
+              EXISTS (
+                SELECT 1 FROM portal_form_submissions pfs
+                WHERE pfs.assignment_id = pfa.id
+                  AND (pfs.portal_user_id = $1 OR pfs.submitted_by_role = $2)
+              ) AS completed
+       FROM portal_form_assignments pfa
+       JOIN  portal_forms pf ON pf.id = pfa.form_id
+       LEFT JOIN athletes  a  ON a.id = pfa.athlete_id
+       WHERE pfa.athlete_id = $3 AND ${roleFilter}
+       ORDER BY pfa.due_date ASC NULLS LAST, pfa.created_at DESC`,
+      [portalUserId, role, athleteId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('GET /portal/my-forms error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/portal/my-forms/:assignmentId
+router.get('/my-forms/:assignmentId', requirePortalAuth, async (req, res) => {
+  const { portalUserId, athleteId } = req.portalUser;
+  try {
+    const { rows: aRows } = await query(
+      `SELECT pfa.*, pf.title AS form_title, pf.description AS form_description,
+              pf.requires_signature, pf.id AS form_id
+       FROM portal_form_assignments pfa
+       JOIN portal_forms pf ON pf.id = pfa.form_id
+       WHERE pfa.id = $1 AND pfa.athlete_id = $2`,
+      [req.params.assignmentId, athleteId]
+    );
+    if (!aRows[0]) return res.status(404).json({ error: 'Assignment not found' });
+    const { rows: fields } = await query(
+      `SELECT * FROM portal_form_fields WHERE form_id = $1 ORDER BY sort_order ASC, created_at ASC`,
+      [aRows[0].form_id]
+    );
+    const { rows: subs } = await query(
+      `SELECT * FROM portal_form_submissions WHERE assignment_id = $1 ORDER BY submitted_at DESC LIMIT 1`,
+      [req.params.assignmentId]
+    );
+    res.json({ assignment: aRows[0], fields, submission: subs[0] ?? null });
+  } catch (err) {
+    console.error('GET /portal/my-forms/:assignmentId error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/portal/my-forms/:assignmentId/submit
+router.post('/my-forms/:assignmentId/submit', requirePortalAuth, async (req, res) => {
+  const { portalUserId, athleteId, role } = req.portalUser;
+  const { responses, signature_data } = req.body;
+  try {
+    const { rows: aRows } = await query(
+      `SELECT id FROM portal_form_assignments WHERE id = $1 AND athlete_id = $2`,
+      [req.params.assignmentId, athleteId]
+    );
+    if (!aRows[0]) return res.status(404).json({ error: 'Assignment not found' });
+    const { rows } = await query(
+      `INSERT INTO portal_form_submissions (assignment_id, portal_user_id, submitted_by_role, responses, signature_data)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [req.params.assignmentId, portalUserId, role, JSON.stringify(responses ?? {}), signature_data ?? null]
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('POST /portal/my-forms/:assignmentId/submit error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/portal/my-forms/:assignmentId/upload-pdf
+router.post('/my-forms/:assignmentId/upload-pdf', requirePortalAuth, async (req, res) => {
+  const { portalUserId, athleteId, role } = req.portalUser;
+  const { base64, mime_type } = req.body;
+  if (!base64 || mime_type !== 'application/pdf') {
+    return res.status(400).json({ error: 'base64 PDF is required' });
+  }
+  try {
+    const { rows: aRows } = await query(
+      `SELECT id, school_id FROM portal_form_assignments WHERE id = $1 AND athlete_id = $2`,
+      [req.params.assignmentId, athleteId]
+    );
+    if (!aRows[0]) return res.status(404).json({ error: 'Assignment not found' });
+    const buffer = Buffer.from(base64.replace(/^data:[^;]+;base64,/, ''), 'base64');
+    const pdfUrl = await uploadFile(buffer, `portal-forms/${aRows[0].school_id}/${req.params.assignmentId}.pdf`, 'application/pdf');
+    const { rows } = await query(
+      `INSERT INTO portal_form_submissions (assignment_id, portal_user_id, submitted_by_role, responses, pdf_upload_url)
+       VALUES ($1, $2, $3, '{}', $4) RETURNING *`,
+      [req.params.assignmentId, portalUserId, role, pdfUrl]
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('POST /portal/my-forms/:assignmentId/upload-pdf error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
