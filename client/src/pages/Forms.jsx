@@ -373,6 +373,96 @@ function AssignModal({ forms, athletes, onClose, onAssigned }) {
   );
 }
 
+// ── Submission modal ───────────────────────────────────────────────
+function SubmissionModal({ assignment, fields, onClose }) {
+  const responses    = assignment.submission_responses ?? {};
+  const signature    = assignment.submission_signature;
+  const pdfUrl       = assignment.submission_pdf_url;
+  const submittedAt  = assignment.submitted_at;
+  const submittedBy  = assignment.submitted_by_role;
+
+  const inputFields = fields.filter(f => !['heading', 'paragraph'].includes(f.field_type));
+
+  function formatValue(field) {
+    const val = responses[field.id];
+    if (val === undefined || val === null || val === '') return <em className="sub-empty">—</em>;
+    if (field.field_type === 'checkbox') return val ? 'Yes' : 'No';
+    return String(val);
+  }
+
+  return (
+    <>
+      <div className="modal-overlay" onClick={onClose} />
+      <div className="modal-box modal-box--wide">
+        <div className="modal-header">
+          <div>
+            <h2 className="modal-title">{assignment.form_title}</h2>
+            <p className="sub-modal-athlete">{assignment.athlete_name ?? '—'}</p>
+          </div>
+          <button className="fe-icon-btn" onClick={onClose}>×</button>
+        </div>
+
+        <div className="modal-body">
+          <div className="sub-meta-bar">
+            <span className="sub-meta-item">
+              <span className="sub-meta-label">Submitted</span>
+              {submittedAt ? new Date(submittedAt).toLocaleString() : '—'}
+            </span>
+            <span className="sub-meta-item">
+              <span className="sub-meta-label">By</span>
+              {submittedBy ? submittedBy.charAt(0).toUpperCase() + submittedBy.slice(1) : '—'}
+            </span>
+          </div>
+
+          {pdfUrl ? (
+            <div className="sub-section">
+              <p className="sub-section-label">Submitted PDF</p>
+              <a
+                href={pdfUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn--outline btn--sm"
+              >
+                View / Download PDF
+              </a>
+            </div>
+          ) : (
+            <>
+              <div className="sub-section">
+                <p className="sub-section-label">Responses</p>
+                {inputFields.length === 0 ? (
+                  <p className="sub-no-fields">This form has no input fields.</p>
+                ) : (
+                  <div className="sub-response-list">
+                    {inputFields.map(field => (
+                      <div key={field.id} className="sub-response-row">
+                        <span className="sub-response-label">
+                          {field.label}
+                          {field.required && <span className="sub-required"> *</span>}
+                        </span>
+                        <span className="sub-response-val">{formatValue(field)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {signature && (
+                <div className="sub-section">
+                  <p className="sub-section-label">Signature</p>
+                  <div className="sub-signature-wrap">
+                    <img src={signature} alt="Athlete signature" className="sub-signature-img" />
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ── Status badge ───────────────────────────────────────────────────
 function statusBadge(a) {
   if (a.completed) return <span className="forms-badge forms-badge--complete">Complete</span>;
@@ -393,6 +483,9 @@ export default function Forms() {
   const [assignmentsLoading, setAssignmentsLoading] = useState(false);
   const [athletes, setAthletes] = useState([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
+
+  const [viewingSubmission, setViewingSubmission] = useState(null); // { assignment, fields }
+  const [loadingSubId, setLoadingSubId] = useState(null);
 
   const fetchForms = useCallback(async () => {
     setFormsLoading(true);
@@ -496,6 +589,19 @@ export default function Forms() {
     }
   }
 
+  async function openSubmission(assignment) {
+    if (!assignment.completed) return;
+    setLoadingSubId(assignment.id);
+    try {
+      const { data: formData } = await api.get(`/api/portal/forms/${assignment.form_id}`);
+      setViewingSubmission({ assignment, fields: formData.fields });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingSubId(null);
+    }
+  }
+
   async function handleDeleteForm(id) {
     if (!confirm('Delete this form? This cannot be undone.')) return;
     try {
@@ -588,12 +694,22 @@ export default function Forms() {
               </thead>
               <tbody>
                 {assignments.map(a => (
-                  <tr key={a.id}>
+                  <tr
+                    key={a.id}
+                    className={a.completed ? 'forms-row--clickable' : ''}
+                    onClick={() => openSubmission(a)}
+                    title={a.completed ? 'Click to view submission' : undefined}
+                  >
                     <td>{a.form_title}</td>
                     <td>{a.athlete_name ?? '—'}</td>
                     <td className="forms-assigned-to">{a.assigned_to}</td>
                     <td>{a.due_date ? new Date(a.due_date).toLocaleDateString() : '—'}</td>
-                    <td>{statusBadge(a)}</td>
+                    <td>
+                      {loadingSubId === a.id
+                        ? <span className="forms-badge forms-badge--pending">Loading…</span>
+                        : statusBadge(a)
+                      }
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -608,6 +724,14 @@ export default function Forms() {
           athletes={athletes}
           onClose={() => setShowAssignModal(false)}
           onAssigned={fetchAssignments}
+        />
+      )}
+
+      {viewingSubmission && (
+        <SubmissionModal
+          assignment={viewingSubmission.assignment}
+          fields={viewingSubmission.fields}
+          onClose={() => setViewingSubmission(null)}
         />
       )}
     </div>

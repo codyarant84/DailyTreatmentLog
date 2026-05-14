@@ -1,0 +1,372 @@
+/* ── Page ─────────────────────────────────────────────────────────── */
+.po-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+}
+
+/* ── Header ───────────────────────────────────────────────────────── */
+.po-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  height: 56px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.po-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.po-brand-icon {
+  width: 28px;
+  height: 28px;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.po-brand-name {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.po-signout {
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.35rem 0.85rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.po-signout:hover {
+  border-color: var(--color-text-muted);
+  color: var(--color-text);
+}
+
+/* ── Main ─────────────────────────────────────────────────────────── */
+.po-main {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2rem 1.25rem 4rem;
+}
+
+/* ── Card ─────────────────────────────────────────────────────────── */
+.po-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 2rem;
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.po-card-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.po-card-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.po-card-subtitle {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ── Progress ─────────────────────────────────────────────────────── */
+.po-progress-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.po-step-dots {
+  display: flex;
+  align-items: center;
+}
+
+.po-dot-wrap {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.po-dot-wrap:last-child {
+  flex: 0 0 auto;
+}
+
+.po-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-border);
+  border: 2px solid var(--color-border);
+  flex-shrink: 0;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.po-dot.current {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(29, 111, 165, 0.2);
+}
+
+.po-dot.done {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.po-dot-line {
+  flex: 1;
+  height: 2px;
+  background: var(--color-border);
+  margin: 0 4px;
+  transition: background 0.2s;
+}
+
+.po-dot-line.filled {
+  background: var(--color-primary);
+}
+
+.po-progress {
+  height: 3px;
+  background: var(--color-border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.po-progress-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 2px;
+  transition: width 0.35s ease;
+}
+
+/* ── Step body ────────────────────────────────────────────────────── */
+.po-step-body {
+  min-height: 200px;
+}
+
+.po-step-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+}
+
+@media (max-width: 480px) {
+  .po-step-grid { grid-template-columns: 1fr; }
+}
+
+.po-step-cols {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.po-step-hint {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ── Form fields ──────────────────────────────────────────────────── */
+.po-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.po-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.po-required {
+  color: var(--color-danger);
+}
+
+.po-input {
+  padding: 0.55rem 0.75rem;
+  font-size: 0.88rem;
+  font-family: inherit;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-text);
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  appearance: none;
+}
+
+.po-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(29, 111, 165, 0.12);
+}
+
+.po-field-error {
+  font-size: 0.75rem;
+  color: var(--color-danger);
+  margin: 0;
+}
+
+/* ── Sport chip grid ──────────────────────────────────────────────── */
+.po-sport-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.po-sport-chip {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+  border: 1.5px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.po-sport-chip:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.po-sport-chip.selected {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+/* ── Review ───────────────────────────────────────────────────────── */
+.po-review {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.po-review-section {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+}
+
+.po-review-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+
+.po-review-section-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.po-edit-btn {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+  padding: 0;
+}
+
+.po-edit-btn:hover { text-decoration: underline; }
+
+.po-review-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.po-review-row {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.po-review-label {
+  font-weight: 600;
+  color: var(--color-text-muted);
+  min-width: 110px;
+  font-size: 0.8rem;
+}
+
+.po-review-val {
+  color: var(--color-text);
+  flex: 1;
+}
+
+.po-review-skip {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+  margin: 0;
+}
+
+/* ── Actions ──────────────────────────────────────────────────────── */
+.po-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border);
+  gap: 0.75rem;
+}
+
+.po-actions--split {
+  justify-content: space-between;
+}
+
+/* ── Error ────────────────────────────────────────────────────────── */
+.po-submit-error {
+  background: #fdf0ed;
+  color: #c0392b;
+  border: 1px solid rgba(192, 57, 43, 0.3);
+  border-radius: var(--radius);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.85rem;
+  margin: 0;
+}

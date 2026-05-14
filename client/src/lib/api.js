@@ -8,21 +8,25 @@ function authHeaders() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+function mergeHeaders(opts = {}) {
+  return { ...authHeaders(), ...(opts.headers ?? {}) };
+}
+
 const api = {
-  async get(url) {
-    return axios.get(`${BASE_URL}${url}`, { headers: authHeaders() });
+  async get(url, opts = {}) {
+    return axios.get(`${BASE_URL}${url}`, { headers: mergeHeaders(opts) });
   },
-  async post(url, data) {
-    return axios.post(`${BASE_URL}${url}`, data, { headers: authHeaders() });
+  async post(url, data, opts = {}) {
+    return axios.post(`${BASE_URL}${url}`, data, { headers: mergeHeaders(opts) });
   },
-  async put(url, data) {
-    return axios.put(`${BASE_URL}${url}`, data, { headers: authHeaders() });
+  async put(url, data, opts = {}) {
+    return axios.put(`${BASE_URL}${url}`, data, { headers: mergeHeaders(opts) });
   },
-  async patch(url, data) {
-    return axios.patch(`${BASE_URL}${url}`, data, { headers: authHeaders() });
+  async patch(url, data, opts = {}) {
+    return axios.patch(`${BASE_URL}${url}`, data, { headers: mergeHeaders(opts) });
   },
-  async delete(url) {
-    return axios.delete(`${BASE_URL}${url}`, { headers: authHeaders() });
+  async delete(url, opts = {}) {
+    return axios.delete(`${BASE_URL}${url}`, { headers: mergeHeaders(opts) });
   },
 };
 

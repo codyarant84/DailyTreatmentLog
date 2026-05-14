@@ -318,6 +318,94 @@
   margin-top: 0.35rem;
 }
 
+/* ── Portal Users section ───────────────────────────────────────────── */
+.portal-users-section {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.portal-users-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.portal-users-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.portal-users-group-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.portal-users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.portal-user-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 0.85rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.portal-user-row--approved {
+  opacity: 0.75;
+}
+
+.portal-user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.portal-user-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.portal-user-email {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.ph-done-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #166534;
+  background: #d1fae5;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
 /* Button variants */
 .btn--sm {
   padding: 0.35rem 0.75rem;

@@ -29,6 +29,7 @@ import MarketingPage from './pages/MarketingPage.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import PortalLogin from './pages/portal/PortalLogin.jsx';
 import PortalHome from './pages/portal/PortalHome.jsx';
+import PortalOnboarding from './pages/portal/PortalOnboarding.jsx';
 import PortalFormComplete from './pages/portal/PortalFormComplete.jsx';
 import Forms from './pages/Forms.jsx';
 import { PortalAuthProvider, usePortalAuth } from './context/PortalAuthContext.jsx';
@@ -500,6 +501,7 @@ function PortalRoutes() {
       <Route path="/portal/login" element={<PortalLogin />} />
       <Route path="/portal/invite" element={<PortalLogin />} />
       <Route path="/portal/home" element={<PortalProtectedRoute><PortalHome /></PortalProtectedRoute>} />
+      <Route path="/portal/onboarding" element={<PortalProtectedRoute><PortalOnboarding /></PortalProtectedRoute>} />
       <Route path="/portal/forms/:assignmentId" element={<PortalProtectedRoute><PortalFormComplete /></PortalProtectedRoute>} />
     </Routes>
   );

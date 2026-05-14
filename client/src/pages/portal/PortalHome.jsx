@@ -5,8 +5,15 @@ import { usePortalAuth } from '../../context/PortalAuthContext.jsx';
 import './PortalHome.css';
 
 export default function PortalHome() {
-  const { portalUser, isApproved, portalSignOut, getToken } = usePortalAuth();
+  const { portalUser, isApproved, onboardingComplete, portalSignOut, getToken } = usePortalAuth();
   const navigate = useNavigate();
+
+  // Redirect athletes to onboarding if they haven't completed it yet
+  useEffect(() => {
+    if (portalUser && portalUser.role === 'athlete' && !onboardingComplete) {
+      navigate('/portal/onboarding', { replace: true });
+    }
+  }, [portalUser, onboardingComplete, navigate]);
 
   const [forms, setForms] = useState([]);
   const [formsLoading, setFormsLoading] = useState(true);

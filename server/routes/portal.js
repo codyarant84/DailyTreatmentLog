@@ -26,15 +26,16 @@ function signPortalToken(payload) {
 
 function sanitizeUser(u) {
   return {
-    id:          u.id,
-    email:       u.email,
-    name:        u.name,
-    role:        u.role,
-    approved:    u.approved,
-    avatar_url:  u.avatar_url ?? null,
-    school_id:   u.school_id ?? null,
-    athlete_id:  u.athlete_id ?? null,
-    school_name: u.school_name ?? null,
+    id:                  u.id,
+    email:               u.email,
+    name:                u.name,
+    role:                u.role,
+    approved:            u.approved,
+    onboarding_complete: u.onboarding_complete ?? false,
+    avatar_url:          u.avatar_url ?? null,
+    school_id:           u.school_id ?? null,
+    athlete_id:          u.athlete_id ?? null,
+    school_name:         u.school_name ?? null,
   };
 }
 
@@ -59,7 +60,10 @@ router.post('/auth/google', async (req, res) => {
     }
 
     // Verify the token was issued for this app
+    console.log('[portal/auth/google] token aud:', gsiData.aud);
+    console.log('[portal/auth/google] env GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID);
     if (gsiData.aud !== process.env.GOOGLE_CLIENT_ID) {
+      console.error('[portal/auth/google] audience mismatch — token aud:', gsiData.aud, '| env:', process.env.GOOGLE_CLIENT_ID);
       return res.status(401).json({ error: 'Google token audience mismatch' });
     }
 
@@ -93,11 +97,32 @@ router.post('/auth/google', async (req, res) => {
       );
       portalUser = updated[0];
     } else {
+      // Resolve athlete_id for new athlete-role users before inserting portal_user
+      let newAthleteId = null;
+      if (matchedSchool) {
+        const athleteName = name ?? normalEmail;
+        const { rows: existingAthletes } = await query(
+          `SELECT id FROM athletes WHERE school_id = $1 AND name = $2 LIMIT 1`,
+          [matchedSchool.id, athleteName]
+        );
+        if (existingAthletes[0]) {
+          newAthleteId = existingAthletes[0].id;
+        } else {
+          const { rows: createdAthlete } = await query(
+            `INSERT INTO athletes (school_id, name, archived)
+             VALUES ($1, $2, false) RETURNING id`,
+            [matchedSchool.id, athleteName]
+          );
+          newAthleteId = createdAthlete[0].id;
+        }
+      }
+
       const { rows: created } = await query(
-        `INSERT INTO portal_users (school_id, email, name, role, google_id, avatar_url, approved)
-         VALUES ($1, $2, $3, $4, $5, $6, false) RETURNING *`,
+        `INSERT INTO portal_users (school_id, athlete_id, email, name, role, google_id, avatar_url, approved)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, false) RETURNING *`,
         [
           matchedSchool?.id ?? null,
+          newAthleteId,
           normalEmail,
           name ?? normalEmail,
           matchedSchool ? 'athlete' : 'parent',
@@ -190,10 +215,29 @@ router.post('/auth/register', async (req, res) => {
 
     const password_hash = await hashPassword(password);
 
+    // Auto-create or link athlete record for athlete-role invites
+    let resolvedAthleteId = invite.athlete_id ?? null;
+    if (invite.role === 'athlete' && !resolvedAthleteId) {
+      const { rows: existingAthletes } = await query(
+        `SELECT id FROM athletes WHERE school_id = $1 AND name = $2 LIMIT 1`,
+        [invite.school_id, name]
+      );
+      if (existingAthletes[0]) {
+        resolvedAthleteId = existingAthletes[0].id;
+      } else {
+        const { rows: createdAthlete } = await query(
+          `INSERT INTO athletes (school_id, name, archived)
+           VALUES ($1, $2, false) RETURNING id`,
+          [invite.school_id, name]
+        );
+        resolvedAthleteId = createdAthlete[0].id;
+      }
+    }
+
     const { rows } = await query(
       `INSERT INTO portal_users (school_id, athlete_id, email, name, role, password_hash, approved)
        VALUES ($1, $2, $3, $4, $5, $6, true) RETURNING *`,
-      [invite.school_id, invite.athlete_id ?? null, email.trim().toLowerCase(), name, invite.role, password_hash]
+      [invite.school_id, resolvedAthleteId, email.trim().toLowerCase(), name, invite.role, password_hash]
     );
 
     await query('UPDATE portal_invites SET used = true WHERE id = $1', [invite.id]);
@@ -546,14 +590,23 @@ router.get('/forms/:id/assignments', requireAuth, async (req, res) => {
   try {
     const { rows } = await query(
       `SELECT pfa.*,
-              a.name AS athlete_name,
-              (COUNT(pfs.id) > 0)    AS completed,
-              MAX(pfs.submitted_at)  AS submitted_at
+              a.name                AS athlete_name,
+              (pfs.id IS NOT NULL)  AS completed,
+              pfs.responses         AS submission_responses,
+              pfs.signature_data    AS submission_signature,
+              pfs.pdf_upload_url    AS submission_pdf_url,
+              pfs.submitted_by_role,
+              pfs.submitted_at
        FROM portal_form_assignments pfa
-       LEFT JOIN athletes                a   ON a.id   = pfa.athlete_id
-       LEFT JOIN portal_form_submissions pfs ON pfs.assignment_id = pfa.id
+       LEFT JOIN athletes a ON a.id = pfa.athlete_id
+       LEFT JOIN LATERAL (
+         SELECT id, responses, signature_data, pdf_upload_url, submitted_by_role, submitted_at
+         FROM portal_form_submissions
+         WHERE assignment_id = pfa.id
+         ORDER BY submitted_at DESC
+         LIMIT 1
+       ) pfs ON true
        WHERE pfa.form_id = $1 AND pfa.school_id = $2
-       GROUP BY pfa.id, a.name
        ORDER BY pfa.created_at DESC`,
       [req.params.id, req.schoolId]
     );
@@ -571,20 +624,116 @@ router.get('/assignments', requireAuth, async (req, res) => {
       `SELECT pfa.*,
               pf.title              AS form_title,
               a.name                AS athlete_name,
-              (COUNT(pfs.id) > 0)   AS completed,
-              MAX(pfs.submitted_at) AS submitted_at
+              (pfs.id IS NOT NULL)  AS completed,
+              pfs.responses         AS submission_responses,
+              pfs.signature_data    AS submission_signature,
+              pfs.pdf_upload_url    AS submission_pdf_url,
+              pfs.submitted_by_role,
+              pfs.submitted_at
        FROM portal_form_assignments pfa
-       JOIN  portal_forms           pf  ON pf.id  = pfa.form_id
-       LEFT JOIN athletes           a   ON a.id   = pfa.athlete_id
-       LEFT JOIN portal_form_submissions pfs ON pfs.assignment_id = pfa.id
+       JOIN  portal_forms pf ON pf.id = pfa.form_id
+       LEFT JOIN athletes  a  ON a.id = pfa.athlete_id
+       LEFT JOIN LATERAL (
+         SELECT id, responses, signature_data, pdf_upload_url, submitted_by_role, submitted_at
+         FROM portal_form_submissions
+         WHERE assignment_id = pfa.id
+         ORDER BY submitted_at DESC
+         LIMIT 1
+       ) pfs ON true
        WHERE pfa.school_id = $1
-       GROUP BY pfa.id, pf.title, a.name
        ORDER BY pfa.created_at DESC`,
       [req.schoolId]
     );
     res.json(rows);
   } catch (err) {
     console.error('GET /portal/assignments error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Athlete Onboarding ──────────────────────────────────────────────
+
+// GET /api/portal/onboarding-status
+router.get('/onboarding-status', requirePortalAuth, async (req, res) => {
+  try {
+    const { rows } = await query(
+      'SELECT onboarding_complete FROM portal_users WHERE id = $1',
+      [req.portalUser.portalUserId]
+    );
+    res.json({ onboarding_complete: rows[0]?.onboarding_complete ?? false });
+  } catch (err) {
+    console.error('GET /portal/onboarding-status error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/portal/onboarding
+router.post('/onboarding', requirePortalAuth, async (req, res) => {
+  const { portalUserId, athleteId } = req.portalUser;
+  const { personalInfo, sportInfo, emergencyContact, insurance } = req.body;
+
+  if (!athleteId) return res.status(400).json({ error: 'No athlete linked to this account' });
+
+  try {
+    const fullName = `${(personalInfo.firstName ?? '').trim()} ${(personalInfo.lastName ?? '').trim()}`.trim();
+
+    await query(
+      `UPDATE athletes
+       SET name = $1, date_of_birth = $2, grade = $3, sport = $4,
+           jersey_number = $5, gender = $6
+       WHERE id = $7`,
+      [
+        fullName || null,
+        personalInfo.dob || null,
+        personalInfo.grade || null,
+        (sportInfo.sports ?? []).join(', ') || null,
+        sportInfo.jerseyNumber || null,
+        personalInfo.gender || null,
+        athleteId,
+      ]
+    );
+
+    if (emergencyContact?.name?.trim()) {
+      await query(
+        `INSERT INTO athlete_emergency_contacts (athlete_id, name, relationship, phone, email)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (athlete_id) DO UPDATE
+           SET name = $2, relationship = $3, phone = $4, email = $5, updated_at = now()`,
+        [
+          athleteId,
+          emergencyContact.name.trim(),
+          emergencyContact.relationship || null,
+          emergencyContact.phone || null,
+          emergencyContact.email || null,
+        ]
+      );
+    }
+
+    if (insurance?.provider?.trim()) {
+      await query(
+        `INSERT INTO athlete_insurance (athlete_id, provider, policy_number, group_number, subscriber_name)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (athlete_id) DO UPDATE
+           SET provider = $2, policy_number = $3, group_number = $4,
+               subscriber_name = $5, updated_at = now()`,
+        [
+          athleteId,
+          insurance.provider.trim(),
+          insurance.policyNumber || null,
+          insurance.groupNumber || null,
+          insurance.subscriberName || null,
+        ]
+      );
+    }
+
+    await query(
+      'UPDATE portal_users SET onboarding_complete = true WHERE id = $1',
+      [portalUserId]
+    );
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('POST /portal/onboarding error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });

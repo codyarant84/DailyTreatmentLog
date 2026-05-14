@@ -44,10 +44,16 @@ export function PortalAuthProvider({ children }) {
     return localStorage.getItem(TOKEN_KEY);
   }
 
+  async function refreshUser() {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (token) await fetchMe(token);
+  }
+
   const isApproved = portalUser?.approved === true;
+  const onboardingComplete = portalUser?.onboarding_complete ?? true;
 
   return (
-    <PortalAuthContext.Provider value={{ portalUser, portalLoading, isApproved, portalLogin, portalSignOut, getToken }}>
+    <PortalAuthContext.Provider value={{ portalUser, portalLoading, isApproved, onboardingComplete, portalLogin, portalSignOut, getToken, refreshUser }}>
       {children}
     </PortalAuthContext.Provider>
   );

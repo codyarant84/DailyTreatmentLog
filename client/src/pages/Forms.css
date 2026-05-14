@@ -577,3 +577,129 @@
 .fe-check-row:hover { background: var(--color-bg); }
 
 .fe-check-row input[type="checkbox"] { accent-color: var(--color-primary); }
+
+/* ── Clickable table row ──────────────────────────────────────────── */
+.forms-row--clickable {
+  cursor: pointer;
+}
+
+.forms-row--clickable:hover td {
+  background: var(--color-primary-light);
+}
+
+/* ── Submission modal ─────────────────────────────────────────────── */
+.modal-box--wide {
+  width: min(580px, calc(100vw - 2rem));
+}
+
+.sub-modal-athlete {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  margin: 0.1rem 0 0;
+}
+
+.sub-meta-bar {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.65rem 0.85rem;
+}
+
+.sub-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  font-size: 0.85rem;
+  color: var(--color-text);
+}
+
+.sub-meta-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.sub-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sub-section-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.sub-response-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.sub-response-row {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.85rem;
+}
+
+.sub-response-row:last-child {
+  border-bottom: none;
+}
+
+.sub-response-label {
+  font-weight: 600;
+  color: var(--color-text-muted);
+  min-width: 140px;
+  flex-shrink: 0;
+  font-size: 0.82rem;
+}
+
+.sub-required {
+  color: var(--color-danger);
+}
+
+.sub-response-val {
+  color: var(--color-text);
+  flex: 1;
+  word-break: break-word;
+}
+
+.sub-empty {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.sub-no-fields {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.sub-signature-wrap {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  display: inline-block;
+}
+
+.sub-signature-img {
+  display: block;
+  max-width: 100%;
+  max-height: 160px;
+  object-fit: contain;
+}

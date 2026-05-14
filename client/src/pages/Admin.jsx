@@ -13,6 +13,12 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Portal users
+  const [portalUsers, setPortalUsers] = useState([]);
+  const [portalLoading, setPortalLoading] = useState(true);
+  const [portalError, setPortalError] = useState(null);
+  const [approvingId, setApprovingId] = useState(null);
+
   // Track generated invite links: schoolId → url string
   const [inviteLinks, setInviteLinks] = useState({});
   const [inviteGenerating, setInviteGenerating] = useState({});
@@ -36,7 +42,31 @@ export default function Admin() {
   const [editingLogo, setEditingLogo] = useState({});
   const logoRefs = useRef({});
 
-  useEffect(() => { loadSchools(); }, []);
+  useEffect(() => { loadSchools(); loadPortalUsers(); }, []);
+
+  async function loadPortalUsers() {
+    setPortalLoading(true);
+    try {
+      const { data } = await api.get('/api/portal/users');
+      setPortalUsers(data);
+    } catch (err) {
+      setPortalError(err.response?.data?.error ?? err.message);
+    } finally {
+      setPortalLoading(false);
+    }
+  }
+
+  async function handleApprovePortalUser(id) {
+    setApprovingId(id);
+    try {
+      await api.post(`/api/portal/approve/${id}`);
+      await loadPortalUsers();
+    } catch (err) {
+      setActionError(err.response?.data?.error ?? err.message);
+    } finally {
+      setApprovingId(null);
+    }
+  }
 
   async function loadSchools() {
     setLoading(true);
@@ -315,6 +345,73 @@ export default function Admin() {
       {schools.length === 0 && (
         <p className="admin-empty">No schools yet.</p>
       )}
+
+      {/* ── Portal Users ── */}
+      <div className="portal-users-section">
+        <h2 className="portal-users-title">Portal Users</h2>
+
+        {portalLoading && <p className="admin-empty">Loading portal users…</p>}
+        {portalError  && <p className="admin-error">{portalError}</p>}
+
+        {!portalLoading && !portalError && (() => {
+          const pending  = portalUsers.filter((u) => !u.approved);
+          const approved = portalUsers.filter((u) =>  u.approved);
+          return (
+            <>
+              <div className="portal-users-group">
+                <p className="portal-users-group-label">
+                  Pending Approval
+                  {pending.length > 0 && (
+                    <span className="invite-badge" style={{ marginLeft: '0.5rem' }}>{pending.length}</span>
+                  )}
+                </p>
+                {pending.length === 0 ? (
+                  <p className="admin-empty">No pending approvals.</p>
+                ) : (
+                  <div className="portal-users-list">
+                    {pending.map((u) => (
+                      <div key={u.id} className="portal-user-row">
+                        <div className="portal-user-info">
+                          <span className="portal-user-name">{u.name}</span>
+                          <span className="portal-user-email">{u.email}</span>
+                          <span className="role-badge">{u.role}</span>
+                        </div>
+                        <button
+                          className="btn btn--sm btn--primary"
+                          onClick={() => handleApprovePortalUser(u.id)}
+                          disabled={approvingId === u.id}
+                        >
+                          {approvingId === u.id ? 'Approving…' : 'Approve'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="portal-users-group">
+                <p className="portal-users-group-label">Approved Users</p>
+                {approved.length === 0 ? (
+                  <p className="admin-empty">No approved portal users yet.</p>
+                ) : (
+                  <div className="portal-users-list">
+                    {approved.map((u) => (
+                      <div key={u.id} className="portal-user-row portal-user-row--approved">
+                        <div className="portal-user-info">
+                          <span className="portal-user-name">{u.name}</span>
+                          <span className="portal-user-email">{u.email}</span>
+                          <span className="role-badge">{u.role}</span>
+                        </div>
+                        <span className="ph-done-badge">Approved</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          );
+        })()}
+      </div>
 
       <div className="admin-schools">
         {schools.map((school) => {
