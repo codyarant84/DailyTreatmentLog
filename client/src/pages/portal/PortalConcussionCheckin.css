@@ -1,0 +1,327 @@
+.cc-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+}
+
+/* ── Header ───────────────────────────────────────────────────────── */
+.cc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  height: 56px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cc-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.cc-back-btn {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+  padding: 0.3rem 0.5rem 0.3rem 0;
+}
+
+.cc-back-btn:hover { text-decoration: underline; }
+
+.cc-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cc-brand-icon {
+  width: 28px;
+  height: 28px;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.cc-brand-name {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.cc-signout {
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.35rem 0.85rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.cc-signout:hover {
+  border-color: var(--color-text-muted);
+  color: var(--color-text);
+}
+
+/* ── Main ─────────────────────────────────────────────────────────── */
+.cc-main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1.25rem 4rem;
+}
+
+/* ── Card ─────────────────────────────────────────────────────────── */
+.cc-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 2rem;
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.cc-card-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.cc-card-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.cc-card-subtitle {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ── Score bar ────────────────────────────────────────────────────── */
+.cc-score-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.65rem 0.85rem;
+}
+
+.cc-score-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.cc-score-value {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--color-text-muted);
+  transition: color 0.2s;
+}
+
+.cc-score-value--active {
+  color: var(--color-primary);
+}
+
+/* ── Category ─────────────────────────────────────────────────────── */
+.cc-category {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.cc-category-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin: 0;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* ── Symptom row ──────────────────────────────────────────────────── */
+.cc-symptom-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cc-symptom-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.cc-symptom-label {
+  font-size: 0.85rem;
+  color: var(--color-text);
+  flex: 1;
+  min-width: 0;
+}
+
+.cc-symptom-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.cc-slider {
+  width: 120px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+@media (max-width: 400px) {
+  .cc-slider { width: 80px; }
+}
+
+.cc-symptom-score {
+  width: 20px;
+  text-align: right;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  transition: color 0.15s;
+  font-variant-numeric: tabular-nums;
+}
+
+.cc-symptom-score.active {
+  color: var(--color-primary);
+}
+
+/* ── Extra fields ─────────────────────────────────────────────────── */
+.cc-extra {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.cc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.cc-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.cc-optional {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.72rem;
+}
+
+.cc-input {
+  padding: 0.55rem 0.75rem;
+  font-size: 0.88rem;
+  font-family: inherit;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-text);
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.cc-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(29, 111, 165, 0.12);
+}
+
+.cc-input--sm { max-width: 100px; }
+
+.cc-textarea { resize: vertical; min-height: 72px; }
+
+/* ── Actions ──────────────────────────────────────────────────────── */
+.cc-actions {
+  padding-top: 0.25rem;
+}
+
+.cc-submit-btn {
+  width: 100%;
+}
+
+/* ── Error ────────────────────────────────────────────────────────── */
+.cc-error {
+  background: #fdf0ed;
+  color: #c0392b;
+  border: 1px solid rgba(192, 57, 43, 0.3);
+  border-radius: var(--radius);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+/* ── Success card ─────────────────────────────────────────────────── */
+.cc-success-card {
+  align-items: center;
+  text-align: center;
+  gap: 1rem;
+  max-width: 400px;
+}
+
+.cc-success-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #d1fae5;
+  color: #166534;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.cc-success-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.cc-success-text {
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.55;
+}

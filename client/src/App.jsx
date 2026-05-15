@@ -31,6 +31,8 @@ import PortalLogin from './pages/portal/PortalLogin.jsx';
 import PortalHome from './pages/portal/PortalHome.jsx';
 import PortalOnboarding from './pages/portal/PortalOnboarding.jsx';
 import PortalFormComplete from './pages/portal/PortalFormComplete.jsx';
+import PortalRehabView from './pages/portal/PortalRehabView.jsx';
+import PortalConcussionCheckin from './pages/portal/PortalConcussionCheckin.jsx';
 import Forms from './pages/Forms.jsx';
 import { PortalAuthProvider, usePortalAuth } from './context/PortalAuthContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
@@ -503,6 +505,8 @@ function PortalRoutes() {
       <Route path="/portal/home" element={<PortalProtectedRoute><PortalHome /></PortalProtectedRoute>} />
       <Route path="/portal/onboarding" element={<PortalProtectedRoute><PortalOnboarding /></PortalProtectedRoute>} />
       <Route path="/portal/forms/:assignmentId" element={<PortalProtectedRoute><PortalFormComplete /></PortalProtectedRoute>} />
+      <Route path="/portal/rehab/:programId" element={<PortalProtectedRoute><PortalRehabView /></PortalProtectedRoute>} />
+      <Route path="/portal/concussion-checkin" element={<PortalProtectedRoute><PortalConcussionCheckin /></PortalProtectedRoute>} />
     </Routes>
   );
 }

@@ -4,36 +4,66 @@ import api from '../../lib/api.js';
 import { usePortalAuth } from '../../context/PortalAuthContext.jsx';
 import './PortalHome.css';
 
+function statusVariant(status) {
+  if (status === 'Out') return 'out';
+  if (status === 'Limited') return 'limited';
+  if (status === 'Full Participation') return 'full';
+  return 'none';
+}
+
 export default function PortalHome() {
   const { portalUser, isApproved, onboardingComplete, portalSignOut, getToken } = usePortalAuth();
   const navigate = useNavigate();
+  const isAthlete = portalUser?.role === 'athlete';
 
-  // Redirect athletes to onboarding if they haven't completed it yet
   useEffect(() => {
-    if (portalUser && portalUser.role === 'athlete' && !onboardingComplete) {
+    if (portalUser && isAthlete && !onboardingComplete) {
       navigate('/portal/onboarding', { replace: true });
     }
-  }, [portalUser, onboardingComplete, navigate]);
+  }, [portalUser, isAthlete, onboardingComplete, navigate]);
 
+  // Forms
   const [forms, setForms] = useState([]);
   const [formsLoading, setFormsLoading] = useState(true);
 
+  // Athlete-only dashboard data
+  const [athleteStatus, setAthleteStatus]       = useState(null);
+  const [rehabPrograms, setRehabPrograms]       = useState([]);
+  const [concussionStatus, setConcussionStatus] = useState(null);
+  const [dashLoading, setDashLoading]           = useState(false);
+
+  const headers = useCallback(() => ({ Authorization: `Bearer ${getToken()}` }), [getToken]);
+
   const fetchForms = useCallback(async () => {
     try {
-      const { data } = await api.get('/api/portal/my-forms', {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
+      const { data } = await api.get('/api/portal/my-forms', { headers: headers() });
       setForms(data);
     } catch (err) {
       console.error(err);
     } finally {
       setFormsLoading(false);
     }
-  }, [getToken]);
+  }, [headers]);
+
+  const fetchDashboard = useCallback(async () => {
+    setDashLoading(true);
+    const h = { headers: headers() };
+    const [statusRes, rehabRes, concussionRes] = await Promise.allSettled([
+      api.get('/api/portal/athlete-status', h),
+      api.get('/api/portal/my-rehab', h),
+      api.get('/api/portal/concussion-status', h),
+    ]);
+    if (statusRes.status    === 'fulfilled') setAthleteStatus(statusRes.value.data);
+    if (rehabRes.status     === 'fulfilled') setRehabPrograms(rehabRes.value.data);
+    if (concussionRes.status === 'fulfilled') setConcussionStatus(concussionRes.value.data);
+    setDashLoading(false);
+  }, [headers]);
 
   useEffect(() => {
-    if (isApproved) fetchForms();
-  }, [isApproved, fetchForms]);
+    if (!isApproved) return;
+    fetchForms();
+    if (isAthlete) fetchDashboard();
+  }, [isApproved, isAthlete, fetchForms, fetchDashboard]);
 
   function handleSignOut() {
     portalSignOut();
@@ -65,6 +95,7 @@ export default function PortalHome() {
           </div>
         ) : (
           <div className="ph-content">
+            {/* Welcome card */}
             <div className="ph-card">
               <div className="ph-welcome">
                 {portalUser?.avatar_url ? (
@@ -77,19 +108,70 @@ export default function PortalHome() {
                 <div>
                   <h1 className="ph-title">Welcome, {portalUser?.name}</h1>
                   <p className="ph-meta">
-                    {portalUser?.role === 'athlete' ? 'Athlete' : 'Parent'} &middot;{' '}
+                    {isAthlete ? 'Athlete' : 'Parent'} &middot;{' '}
                     {portalUser?.school_name ?? 'Your School'}
                   </p>
                 </div>
               </div>
             </div>
 
+            {/* Status card — athlete only */}
+            {isAthlete && (
+              <div className="ph-card ph-status-card">
+                <h2 className="ph-section-title" style={{ marginBottom: '0.65rem' }}>Current Status</h2>
+                {dashLoading && !athleteStatus ? (
+                  <p className="ph-empty">Loading...</p>
+                ) : (
+                  <div className="ph-status-row">
+                    <span className={`ph-status-badge ph-status-badge--${statusVariant(athleteStatus?.status ?? 'No Active Injuries')}`}>
+                      {athleteStatus?.status ?? 'No Active Injuries'}
+                    </span>
+                    {athleteStatus?.injuries?.length > 0 && (
+                      <span className="ph-status-parts">
+                        {athleteStatus.injuries.map(i => i.body_part).join(', ')}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Concussion check-in — athlete only */}
+            {isAthlete && concussionStatus?.active && (
+              <section className="ph-section">
+                <h2 className="ph-section-title ph-section-title--alert">
+                  Concussion Protocol
+                  <span className="ph-badge ph-badge--warning">Active</span>
+                </h2>
+                <div className="ph-concussion-card">
+                  <div className="ph-concussion-info">
+                    <p className="ph-concussion-step">
+                      Step {concussionStatus.current_step} &mdash; {concussionStatus.step_name}
+                    </p>
+                    {concussionStatus.last_checkin ? (
+                      <p className="ph-concussion-meta">
+                        Last check-in: {new Date(concussionStatus.last_checkin).toLocaleDateString()}
+                      </p>
+                    ) : (
+                      <p className="ph-concussion-meta ph-concussion-meta--alert">No check-ins submitted yet</p>
+                    )}
+                  </div>
+                  <button
+                    className="ph-form-btn"
+                    onClick={() => navigate('/portal/concussion-checkin')}
+                  >
+                    Today's Check-in
+                  </button>
+                </div>
+              </section>
+            )}
+
+            {/* Forms to complete */}
             <section className="ph-section">
               <h2 className="ph-section-title">
                 Forms to Complete
                 {pending.length > 0 && <span className="ph-badge">{pending.length}</span>}
               </h2>
-
               {formsLoading ? (
                 <p className="ph-empty">Loading...</p>
               ) : pending.length === 0 ? (
@@ -118,9 +200,36 @@ export default function PortalHome() {
               )}
             </section>
 
+            {/* Active rehab programs — athlete only */}
+            {isAthlete && rehabPrograms.length > 0 && (
+              <section className="ph-section">
+                <h2 className="ph-section-title">Active Rehab Programs</h2>
+                <div className="ph-form-list">
+                  {rehabPrograms.map(p => (
+                    <div key={p.id} className="ph-form-card">
+                      <div className="ph-form-info">
+                        <p className="ph-form-title">{p.name}</p>
+                        <p className="ph-form-due">
+                          {p.exercise_count} exercise{p.exercise_count !== 1 ? 's' : ''}
+                          {p.description && ` · ${p.description}`}
+                        </p>
+                      </div>
+                      <button
+                        className="ph-form-btn"
+                        onClick={() => navigate(`/portal/rehab/${p.id}`)}
+                      >
+                        View Program
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Completed forms */}
             {completed.length > 0 && (
               <section className="ph-section">
-                <h2 className="ph-section-title">Completed</h2>
+                <h2 className="ph-section-title">Completed Forms</h2>
                 <div className="ph-form-list">
                   {completed.map(f => (
                     <div key={f.id} className="ph-form-card ph-form-card--done">

@@ -738,6 +738,167 @@ router.post('/onboarding', requirePortalAuth, async (req, res) => {
   }
 });
 
+// ── Athlete Dashboard ────────────────────────────────────────────────
+
+const SYMPTOM_FIELDS = [
+  'headache', 'pressure_in_head', 'neck_pain', 'nausea_or_vomiting', 'dizziness',
+  'blurred_vision', 'balance_problems', 'sensitivity_to_light', 'sensitivity_to_noise',
+  'feeling_slowed_down', 'feeling_in_fog', 'dont_feel_right', 'difficulty_concentrating',
+  'difficulty_remembering', 'fatigue_or_low_energy', 'confusion', 'drowsiness',
+  'more_emotional', 'irritability', 'sadness', 'nervous_or_anxious', 'visual_problems',
+];
+
+const RTP_PRIORITY = { 'Out': 3, 'Limited Participation': 2, 'Full Participation': 1 };
+const RTP_LABEL    = { 'Out': 'Out', 'Limited Participation': 'Limited', 'Full Participation': 'Full Participation' };
+
+// GET /api/portal/athlete-status
+router.get('/athlete-status', requirePortalAuth, async (req, res) => {
+  const { athleteId } = req.portalUser;
+  if (!athleteId) return res.json({ status: 'No Active Injuries' });
+  try {
+    const { rows } = await query(
+      `SELECT rtp_status, body_part FROM injuries
+       WHERE athlete_id = $1 AND is_active = true AND rtp_status != 'Cleared'
+       ORDER BY injury_date DESC`,
+      [athleteId]
+    );
+    if (!rows.length) return res.json({ status: 'No Active Injuries' });
+    rows.sort((a, b) => (RTP_PRIORITY[b.rtp_status] ?? 0) - (RTP_PRIORITY[a.rtp_status] ?? 0));
+    res.json({
+      status:        RTP_LABEL[rows[0].rtp_status] ?? rows[0].rtp_status,
+      injury_count:  rows.length,
+      injuries:      rows.map(r => ({ body_part: r.body_part, status: RTP_LABEL[r.rtp_status] ?? r.rtp_status })),
+    });
+  } catch (err) {
+    console.error('GET /portal/athlete-status error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/portal/my-rehab
+router.get('/my-rehab', requirePortalAuth, async (req, res) => {
+  const { athleteId, schoolId } = req.portalUser;
+  if (!athleteId) return res.json([]);
+  try {
+    const { rows: aRows } = await query('SELECT name FROM athletes WHERE id = $1', [athleteId]);
+    if (!aRows[0]) return res.json([]);
+    const { rows } = await query(
+      `SELECT rp.id, rp.name, rp.description, rp.created_at,
+              COUNT(pe.id)::int AS exercise_count
+       FROM rehab_programs rp
+       LEFT JOIN program_exercises pe ON pe.program_id = rp.id
+       WHERE rp.school_id = $1 AND rp.athlete_name = $2
+       GROUP BY rp.id
+       ORDER BY rp.created_at DESC`,
+      [schoolId, aRows[0].name]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('GET /portal/my-rehab error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/portal/concussion-status
+router.get('/concussion-status', requirePortalAuth, async (req, res) => {
+  const { athleteId, schoolId } = req.portalUser;
+  if (!athleteId) return res.json({ active: false });
+  try {
+    const { rows: caseRows } = await query(
+      `SELECT id, current_step, injury_date FROM concussion_cases
+       WHERE athlete_id = $1 AND status = 'active'
+       ORDER BY opened_at DESC LIMIT 1`,
+      [athleteId]
+    );
+    if (!caseRows[0]) return res.json({ active: false });
+    const cc = caseRows[0];
+    const [{ rows: stepRows }, { rows: checkinRows }] = await Promise.all([
+      query('SELECT step_name FROM rtp_protocols WHERE school_id = $1 AND step_number = $2', [schoolId, cc.current_step]),
+      query('SELECT MAX(checkin_date) AS last_checkin FROM concussion_checkins WHERE case_id = $1', [cc.id]),
+    ]);
+    res.json({
+      active:       true,
+      case_id:      cc.id,
+      current_step: cc.current_step,
+      step_name:    stepRows[0]?.step_name ?? `Step ${cc.current_step}`,
+      last_checkin: checkinRows[0]?.last_checkin ?? null,
+      injury_date:  cc.injury_date,
+    });
+  } catch (err) {
+    console.error('GET /portal/concussion-status error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/portal/rehab/:programId
+router.get('/rehab/:programId', requirePortalAuth, async (req, res) => {
+  const { athleteId, schoolId } = req.portalUser;
+  if (!athleteId) return res.status(404).json({ error: 'Not found' });
+  try {
+    const { rows: aRows } = await query('SELECT name FROM athletes WHERE id = $1', [athleteId]);
+    if (!aRows[0]) return res.status(404).json({ error: 'Not found' });
+    const { rows: progRows } = await query(
+      `SELECT id, name, description FROM rehab_programs
+       WHERE id = $1 AND school_id = $2 AND athlete_name = $3`,
+      [req.params.programId, schoolId, aRows[0].name]
+    );
+    if (!progRows[0]) return res.status(404).json({ error: 'Program not found' });
+    const { rows: exercises } = await query(
+      `SELECT pe.sets, pe.reps, pe.duration_seconds, pe.notes AS program_notes,
+              pe.sort_order, e.name AS exercise_name, e.description AS exercise_description
+       FROM program_exercises pe
+       JOIN exercises e ON e.id = pe.exercise_id
+       WHERE pe.program_id = $1
+       ORDER BY pe.sort_order ASC, pe.id ASC`,
+      [req.params.programId]
+    );
+    res.json({ ...progRows[0], exercises });
+  } catch (err) {
+    console.error('GET /portal/rehab/:programId error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/portal/concussion-checkin
+router.post('/concussion-checkin', requirePortalAuth, async (req, res) => {
+  const { athleteId } = req.portalUser;
+  if (!athleteId) return res.status(400).json({ error: 'No athlete linked' });
+  const { symptoms = {}, sleep_quality, notes } = req.body;
+  try {
+    const { rows: caseRows } = await query(
+      `SELECT id, school_id FROM concussion_cases
+       WHERE athlete_id = $1 AND status = 'active'
+       ORDER BY opened_at DESC LIMIT 1`,
+      [athleteId]
+    );
+    if (!caseRows[0]) return res.status(404).json({ error: 'No active concussion case' });
+    const { rows: aRows } = await query('SELECT name FROM athletes WHERE id = $1', [athleteId]);
+    const today = new Date().toISOString().split('T')[0];
+    const validSymptoms = {};
+    for (const field of SYMPTOM_FIELDS) {
+      const val = parseInt(symptoms[field], 10);
+      if (!isNaN(val) && val >= 0 && val <= 6) validSymptoms[field] = val;
+    }
+    const baseFields = ['case_id', 'school_id', 'checkin_date', 'submitted_by', 'sleep_quality', 'notes'];
+    const baseValues = [
+      caseRows[0].id, caseRows[0].school_id, today,
+      aRows[0]?.name ?? 'athlete', sleep_quality ?? null, notes ?? null,
+    ];
+    const symKeys = Object.keys(validSymptoms);
+    const allFields = [...baseFields, ...symKeys];
+    const allValues = [...baseValues, ...Object.values(validSymptoms)];
+    const placeholders = allValues.map((_, i) => `$${i + 1}`).join(', ');
+    const { rows } = await query(
+      `INSERT INTO concussion_checkins (${allFields.join(', ')}) VALUES (${placeholders}) RETURNING id, checkin_date`,
+      allValues
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('POST /portal/concussion-checkin error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Portal User Form Routes ─────────────────────────────────────────
 
 // GET /api/portal/my-forms
