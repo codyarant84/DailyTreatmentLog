@@ -73,12 +73,26 @@ router.post('/auth/google', async (req, res) => {
     const normalEmail = email.trim().toLowerCase();
     const domain = normalEmail.split('@')[1];
 
-    // Check if email domain matches any school
-    const { rows: schoolRows } = await query(
-      'SELECT id, name FROM schools WHERE student_email_domain = $1',
-      [domain]
-    );
-    const matchedSchool = schoolRows[0] ?? null;
+    // If caller already picked a school, use it directly
+    const { school_id: chosenSchoolId } = req.body;
+
+    let matchedSchool = null;
+    if (chosenSchoolId) {
+      const { rows: direct } = await query(
+        'SELECT id, name FROM schools WHERE id = $1',
+        [chosenSchoolId]
+      );
+      matchedSchool = direct[0] ?? null;
+    } else {
+      const { rows: schoolRows } = await query(
+        'SELECT id, name FROM schools WHERE student_email_domain = $1',
+        [domain]
+      );
+      if (schoolRows.length > 1) {
+        return res.json({ school_choice_required: true, schools: schoolRows });
+      }
+      matchedSchool = schoolRows[0] ?? null;
+    }
 
     // Find existing portal_user by email or google_id
     const { rows: existing } = await query(

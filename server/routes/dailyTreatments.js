@@ -41,6 +41,10 @@ router.get('/', async (req, res) => {
     if (to)             { conditions.push(`date <= $${p++}`);          params.push(to); }
     if (treatment_type) { conditions.push(`treatment_type = $${p++}`); params.push(decodeURIComponent(treatment_type)); }
     if (sport)          { conditions.push(`sport = $${p++}`);          params.push(decodeURIComponent(sport)); }
+    else if (req.role === 'coach' && req.coachSport) {
+      conditions.push(`sport = $${p++}`);
+      params.push(req.coachSport);
+    }
 
     // Dashboard (single day) → chronological ASC; everything else → newest first
     const dir = (Boolean(date) && !athlete_name) ? 'ASC' : 'DESC';

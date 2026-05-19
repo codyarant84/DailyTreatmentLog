@@ -628,3 +628,65 @@
     align-items: flex-start;
   }
 }
+
+/* ── Attachments ───────────────────────────────────────────────────── */
+.attach-section {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.attach-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.attach-empty {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.attach-error {
+  font-size: 0.85rem;
+  color: var(--color-danger);
+  margin: 0;
+}
+
+.attach-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.attach-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.attach-name {
+  flex: 1;
+  font-size: 0.88rem;
+  color: var(--color-primary);
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.attach-name:hover { text-decoration: underline; }
+
+.attach-meta {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}

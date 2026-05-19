@@ -8,17 +8,51 @@ router.use(requireAuth);
 // GET /api/athletes
 router.get('/', async (req, res) => {
   const includeArchived = req.query.include_archived === 'true';
+  const conditions = ['a.school_id = $1'];
+  const params = [req.schoolId];
+  let p = 2;
+
+  if (!includeArchived) conditions.push('(a.archived = false OR a.archived IS NULL)');
+  if (req.role === 'coach' && req.coachSport) {
+    conditions.push(`a.sport = $${p++}`);
+    params.push(req.coachSport);
+  }
+
   try {
     const { rows } = await query(
-      `SELECT id, name, sport, grade, date_of_birth, emergency_contact_name, emergency_contact_phone, created_at, archived
-       FROM athletes
-       WHERE school_id = $1${includeArchived ? '' : ' AND (archived = false OR archived IS NULL)'}
-       ORDER BY name`,
-      [req.schoolId]
+      `SELECT a.id, a.name, a.sport, a.grade, a.date_of_birth,
+              a.emergency_contact_name, a.emergency_contact_phone,
+              a.created_at, a.archived,
+              (SELECT COUNT(*)::int FROM athlete_flags WHERE athlete_id = a.id) AS flag_count,
+              (SELECT severity FROM athlete_flags WHERE athlete_id = a.id
+               ORDER BY CASE severity WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 END LIMIT 1
+              ) AS top_flag_severity
+       FROM athletes a
+       WHERE ${conditions.join(' AND ')}
+       ORDER BY a.name`,
+      params
     );
     res.json(rows);
   } catch (err) {
     console.error('GET /athletes error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/athletes/by-name/:name
+router.get('/by-name/:name', async (req, res) => {
+  try {
+    const { rows } = await query(
+      `SELECT a.id, a.name, a.sport, a.grade, a.date_of_birth,
+              a.emergency_contact_name, a.emergency_contact_phone, a.archived
+       FROM athletes a
+       WHERE a.school_id = $1 AND a.name = $2 LIMIT 1`,
+      [req.schoolId, decodeURIComponent(req.params.name)]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Athlete not found.' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('GET /athletes/by-name/:name error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -116,6 +150,81 @@ router.delete('/:id', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('DELETE /athletes/:id error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Flags ──────────────────────────────────────────────────────────
+
+// GET /api/athletes/:id/flags
+router.get('/:id/flags', async (req, res) => {
+  try {
+    const { rows } = await query(
+      `SELECT * FROM athlete_flags
+       WHERE athlete_id = $1 AND school_id = $2
+       ORDER BY CASE severity WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END, created_at DESC`,
+      [req.params.id, req.schoolId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('GET /athletes/:id/flags error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/athletes/:id/flags
+router.post('/:id/flags', async (req, res) => {
+  const { flag_type, description, severity } = req.body;
+  if (!flag_type || !description?.trim()) {
+    return res.status(400).json({ error: 'flag_type and description are required.' });
+  }
+
+  try {
+    const { rows } = await query(
+      `INSERT INTO athlete_flags (athlete_id, school_id, flag_type, description, severity)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [req.params.id, req.schoolId, flag_type, description.trim(), severity || null]
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('POST /athletes/:id/flags error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/athletes/:id/flags/:flagId
+router.put('/:id/flags/:flagId', async (req, res) => {
+  const { flag_type, description, severity } = req.body;
+  if (!flag_type || !description?.trim()) {
+    return res.status(400).json({ error: 'flag_type and description are required.' });
+  }
+
+  try {
+    const { rows } = await query(
+      `UPDATE athlete_flags
+       SET flag_type = $1, description = $2, severity = $3
+       WHERE id = $4 AND athlete_id = $5 AND school_id = $6
+       RETURNING *`,
+      [flag_type, description.trim(), severity || null, req.params.flagId, req.params.id, req.schoolId]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Flag not found.' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('PUT /athletes/:id/flags/:flagId error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/athletes/:id/flags/:flagId
+router.delete('/:id/flags/:flagId', async (req, res) => {
+  try {
+    await query(
+      `DELETE FROM athlete_flags WHERE id = $1 AND athlete_id = $2 AND school_id = $3`,
+      [req.params.flagId, req.params.id, req.schoolId]
+    );
+    res.status(204).send();
+  } catch (err) {
+    console.error('DELETE /athletes/:id/flags/:flagId error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });

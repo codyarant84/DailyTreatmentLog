@@ -173,8 +173,13 @@ router.get('/', requireAuth, async (req, res) => {
     const params = [req.schoolId];
 
     if (req.query.status) {
-      conditions.push(`cc.status = $2`);
+      conditions.push(`cc.status = $${params.length + 1}`);
       params.push(req.query.status);
+    }
+
+    if (req.role === 'coach' && req.coachSport) {
+      conditions.push(`a.sport = $${params.length + 1}`);
+      params.push(req.coachSport);
     }
 
     const { rows } = await query(

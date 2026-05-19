@@ -19,6 +19,8 @@ export default function PortalLogin() {
   const [invitePassword, setInvitePassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [pendingCredential, setPendingCredential] = useState(null);
+  const [schoolChoices, setSchoolChoices] = useState([]);
 
   // Read invite token from URL query param
   useEffect(() => {
@@ -71,6 +73,28 @@ export default function PortalLogin() {
     setLoading(true);
     try {
       const { data } = await api.post('/api/portal/auth/google', { credential: response.credential });
+      if (data.school_choice_required) {
+        setPendingCredential(response.credential);
+        setSchoolChoices(data.schools);
+        return;
+      }
+      portalLogin(data.token, data.portalUser);
+      navigate('/portal/home', { replace: true });
+    } catch (err) {
+      setError(err.response?.data?.error ?? err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSchoolChoice(schoolId) {
+    setError(null);
+    setLoading(true);
+    try {
+      const { data } = await api.post('/api/portal/auth/google', {
+        credential: pendingCredential,
+        school_id: schoolId,
+      });
       portalLogin(data.token, data.portalUser);
       navigate('/portal/home', { replace: true });
     } catch (err) {
@@ -116,6 +140,40 @@ export default function PortalLogin() {
   }
 
   if (portalLoading) return null;
+
+  if (schoolChoices.length > 0) {
+    return (
+      <div className="pl-page">
+        <div className="pl-card">
+          <div className="pl-logo">
+            <span className="pl-logo-icon">+</span>
+            <span className="pl-logo-name">Fieldside</span>
+          </div>
+          <h1 className="pl-title">Which school do you attend?</h1>
+          <p className="pl-subtitle">Your email domain matches multiple schools. Select yours to continue.</p>
+          {error && <p className="pl-error">{error}</p>}
+          <div className="pl-school-list">
+            {schoolChoices.map((school) => (
+              <button
+                key={school.id}
+                className="pl-school-btn"
+                onClick={() => handleSchoolChoice(school.id)}
+                disabled={loading}
+              >
+                {school.name}
+              </button>
+            ))}
+          </div>
+          <button
+            className="pl-back-link"
+            onClick={() => { setSchoolChoices([]); setPendingCredential(null); setError(null); }}
+          >
+            ← Back
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pl-page">

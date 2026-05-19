@@ -412,3 +412,23 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Flag badges */
+.flag-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+  cursor: default;
+}
+
+.flag-badge--high   { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+.flag-badge--medium { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+.flag-badge--low    { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }

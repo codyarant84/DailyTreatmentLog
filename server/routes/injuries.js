@@ -1,6 +1,7 @@
 import express from 'express';
 import { query } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
+import { uploadToPath } from '../lib/storage.js';
 
 const router = express.Router();
 router.use(requireAuth);
@@ -30,6 +31,11 @@ router.get('/', async (req, res) => {
     if (athlete_name) {
       conditions.push(`a.name = $${p++}`);
       params.push(decodeURIComponent(athlete_name));
+    }
+
+    if (req.role === 'coach' && req.coachSport) {
+      conditions.push(`a.sport = $${p++}`);
+      params.push(req.coachSport);
     }
 
     const { rows } = await query(
@@ -139,6 +145,71 @@ router.delete('/:id', async (req, res) => {
     res.status(204).send();
   } catch (err) {
     console.error('DELETE /injuries/:id error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Attachments ────────────────────────────────────────────────────
+
+// GET /api/injuries/:id/attachments
+router.get('/:id/attachments', async (req, res) => {
+  try {
+    const { rows } = await query(
+      `SELECT ia.*, p.email AS uploaded_by_email
+       FROM injury_attachments ia
+       LEFT JOIN profiles p ON p.id = ia.uploaded_by
+       WHERE ia.injury_id = $1 AND ia.school_id = $2
+       ORDER BY ia.uploaded_at DESC`,
+      [req.params.id, req.schoolId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('GET /injuries/:id/attachments error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/injuries/:id/attachments
+router.post('/:id/attachments', async (req, res) => {
+  const { base64, file_name, file_type } = req.body;
+  if (!base64 || !file_name?.trim()) {
+    return res.status(400).json({ error: 'base64 and file_name are required.' });
+  }
+
+  try {
+    const { rows: found } = await query(
+      'SELECT id FROM injuries WHERE id = $1 AND school_id = $2',
+      [req.params.id, req.schoolId]
+    );
+    if (!found[0]) return res.status(404).json({ error: 'Injury not found.' });
+
+    const buffer  = Buffer.from(base64.replace(/^data:[^;]+;base64,/, ''), 'base64');
+    const safeName = file_name.trim().replace(/[^a-zA-Z0-9._-]/g, '_');
+    const key     = `injury-attachments/${req.schoolId}/${req.params.id}/${Date.now()}-${safeName}`;
+    const file_url = await uploadToPath(buffer, key, file_type || 'application/octet-stream');
+
+    const { rows } = await query(
+      `INSERT INTO injury_attachments (injury_id, school_id, file_name, file_url, file_type, uploaded_by)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [req.params.id, req.schoolId, file_name.trim(), file_url, file_type || null, req.userId]
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('POST /injuries/:id/attachments error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/injuries/:id/attachments/:attachmentId
+router.delete('/:id/attachments/:attachmentId', async (req, res) => {
+  try {
+    await query(
+      'DELETE FROM injury_attachments WHERE id = $1 AND injury_id = $2 AND school_id = $3',
+      [req.params.attachmentId, req.params.id, req.schoolId]
+    );
+    res.status(204).send();
+  } catch (err) {
+    console.error('DELETE /injuries/:id/attachments/:attachmentId error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });

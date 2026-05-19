@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import api from '../lib/api.js';
 import SelectWithOther from '../components/SelectWithOther.jsx';
@@ -715,15 +715,22 @@ export default function InjuryDetail() {
   const [showForm, setShowForm]   = useState(false);
   const [editingNote, setEditingNote] = useState(null);
 
+  const [attachments, setAttachments]       = useState([]);
+  const [attachUploading, setAttachUploading] = useState(false);
+  const [attachError, setAttachError]       = useState(null);
+  const attachInputRef = useRef(null);
+
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [injRes, notesRes] = await Promise.all([
+      const [injRes, notesRes, attachRes] = await Promise.all([
         api.get(`/api/injuries/${id}`),
         api.get(`/api/soap-notes/injury/${id}`),
+        api.get(`/api/injuries/${id}/attachments`),
       ]);
       setInjury(injRes.data);
       setSoapNotes(notesRes.data ?? []);
+      setAttachments(attachRes.data ?? []);
     } catch (err) {
       setError(err.response?.data?.error ?? err.message);
     } finally {
@@ -760,6 +767,41 @@ export default function InjuryDetail() {
   function handleCancelForm() {
     setShowForm(false);
     setEditingNote(null);
+  }
+
+  function handleAttachFileChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { setAttachError('File must be under 10 MB.'); return; }
+    setAttachError(null);
+    setAttachUploading(true);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const { data } = await api.post(`/api/injuries/${id}/attachments`, {
+          base64: reader.result,
+          file_name: file.name,
+          file_type: file.type,
+        });
+        setAttachments((prev) => [data, ...prev]);
+      } catch (err) {
+        setAttachError(err.response?.data?.error ?? err.message);
+      } finally {
+        setAttachUploading(false);
+        if (attachInputRef.current) attachInputRef.current.value = '';
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function handleDeleteAttachment(attachId) {
+    if (!confirm('Remove this attachment?')) return;
+    try {
+      await api.delete(`/api/injuries/${id}/attachments/${attachId}`);
+      setAttachments((prev) => prev.filter((a) => a.id !== attachId));
+    } catch (err) {
+      alert(err.response?.data?.error ?? err.message);
+    }
   }
 
   function handlePrint() {
@@ -840,6 +882,50 @@ export default function InjuryDetail() {
             ))}
           </div>
         )}
+
+        {/* Attachments section */}
+        <div className="attach-section no-print">
+          <div className="attach-header">
+            <h2 className="soap-notes-title">Attachments</h2>
+            <button
+              className="btn btn--outline btn--sm"
+              onClick={() => attachInputRef.current?.click()}
+              disabled={attachUploading}
+            >
+              {attachUploading ? 'Uploading…' : '+ Upload File'}
+            </button>
+          </div>
+          <input
+            ref={attachInputRef}
+            type="file"
+            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.heic"
+            style={{ display: 'none' }}
+            onChange={handleAttachFileChange}
+          />
+          {attachError && <p className="attach-error">{attachError}</p>}
+          {attachments.length === 0 && !attachUploading ? (
+            <p className="attach-empty">No attachments yet. Upload a doctor's note, imaging report, or other document.</p>
+          ) : (
+            <div className="attach-list">
+              {attachments.map((att) => (
+                <div key={att.id} className="attach-row">
+                  <a href={att.file_url} target="_blank" rel="noopener noreferrer" className="attach-name">
+                    {att.file_name}
+                  </a>
+                  {att.uploaded_by_email && (
+                    <span className="attach-meta">by {att.uploaded_by_email}</span>
+                  )}
+                  <button
+                    className="btn btn--sm btn--danger-ghost"
+                    onClick={() => handleDeleteAttachment(att.id)}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Print-only SOAP notes (all notes, always expanded) */}
         <div className="print-soap-notes">

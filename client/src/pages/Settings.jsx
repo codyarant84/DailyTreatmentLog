@@ -1,12 +1,20 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import api from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import './Settings.css';
 
 const DEFAULT_COLOR = '#1d6fa5';
 
+const SPORTS = [
+  'Football', 'Basketball', 'Baseball', 'Softball', 'Soccer',
+  'Volleyball', 'Tennis', 'Track & Field', 'Cross Country', 'Swimming & Diving',
+  'Wrestling', 'Golf', 'Lacrosse', 'Ice Hockey', 'Gymnastics',
+  'Cheerleading', 'Dance', 'Bowling', 'Rugby', 'Water Polo',
+  'Field Hockey', 'Skiing / Snowboarding', 'Other',
+];
+
 export default function Settings() {
-  const { branding, setBranding } = useAuth();
+  const { branding, setBranding, isAdmin } = useAuth();
 
   const [color, setColor] = useState(branding?.primaryColor ?? DEFAULT_COLOR);
   const [colorSaving, setColorSaving] = useState(false);
@@ -28,6 +36,83 @@ export default function Settings() {
   const [logoRemoving, setLogoRemoving] = useState(false);
 
   const fileInputRef = useRef(null);
+
+  // ── Coaches ────────────────────────────────────────────────────────
+  const [coaches, setCoaches] = useState([]);
+  const [coachSportSaving, setCoachSportSaving] = useState({});
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    api.get('/api/school/coaches').then(({ data }) => setCoaches(data)).catch(() => {});
+  }, [isAdmin]);
+
+  async function handleCoachSportChange(coachId, sport) {
+    setCoaches((prev) => prev.map((c) => c.id === coachId ? { ...c, sport } : c));
+    setCoachSportSaving((prev) => ({ ...prev, [coachId]: true }));
+    try {
+      await api.put(`/api/school/coaches/${coachId}/sport`, { sport });
+    } catch {
+      // revert on error is a nice-to-have; skip for now
+    } finally {
+      setCoachSportSaving((prev) => ({ ...prev, [coachId]: false }));
+    }
+  }
+
+  // ── Auto Report ────────────────────────────────────────────────────
+  const [reportEnabled, setReportEnabled] = useState(false);
+  const [reportTime, setReportTime] = useState('17:00');
+  const [reportRecipients, setReportRecipients] = useState(['', '', '', '', '']);
+  const [reportSaving, setReportSaving] = useState(false);
+  const [reportSaved, setReportSaved] = useState(false);
+  const [reportError, setReportError] = useState(null);
+  const [reportSending, setReportSending] = useState(false);
+  const [reportSendMsg, setReportSendMsg] = useState(null);
+
+  useEffect(() => {
+    api.get('/api/reports/auto-settings')
+      .then(({ data }) => {
+        setReportEnabled(data.enabled ?? false);
+        setReportTime(data.send_time ?? '17:00');
+        const filled = [...(data.recipients ?? [])];
+        while (filled.length < 5) filled.push('');
+        setReportRecipients(filled);
+      })
+      .catch(() => {});
+  }, []);
+
+  async function handleSaveReport(e) {
+    e.preventDefault();
+    setReportError(null);
+    setReportSaved(false);
+    setReportSaving(true);
+    try {
+      const recipients = reportRecipients.map((r) => r.trim()).filter(Boolean);
+      await api.put('/api/reports/auto-settings', { enabled: reportEnabled, send_time: reportTime, recipients });
+      setReportSaved(true);
+      setTimeout(() => setReportSaved(false), 2500);
+    } catch (err) {
+      setReportError(err.response?.data?.error ?? err.message);
+    } finally {
+      setReportSaving(false);
+    }
+  }
+
+  async function handleSendNow() {
+    setReportSendMsg(null);
+    setReportSending(true);
+    try {
+      const recipients = reportRecipients.map((r) => r.trim()).filter(Boolean);
+      const { data } = await api.post('/api/reports/send-daily', { recipients });
+      setReportSendMsg(data.sent
+        ? `Sent to ${data.recipients} recipient${data.recipients !== 1 ? 's' : ''} (${data.injuries} active injur${data.injuries !== 1 ? 'ies' : 'y'}).`
+        : data.message);
+      setTimeout(() => setReportSendMsg(null), 5000);
+    } catch (err) {
+      setReportSendMsg(err.response?.data?.error ?? err.message);
+    } finally {
+      setReportSending(false);
+    }
+  }
 
   async function handleSaveDomain(e) {
     e.preventDefault();
@@ -294,6 +379,110 @@ export default function Settings() {
             </div>
           </div>
           {domainError && <p className="settings-error">{domainError}</p>}
+        </form>
+      </div>
+
+      {isAdmin && (
+        <div className="settings-card">
+          <h2 className="settings-section-title">Coach Sport Assignment</h2>
+          <p className="settings-hint">
+            Assign a sport to each coach account so they only see athletes, injuries, and treatments
+            for their sport when they log in.
+          </p>
+          {coaches.length === 0 ? (
+            <p className="settings-hint" style={{ fontStyle: 'italic' }}>No coach accounts at this school yet.</p>
+          ) : (
+            <div className="coach-list">
+              {coaches.map((coach) => (
+                <div key={coach.id} className="coach-row">
+                  <span className="coach-email">{coach.email}</span>
+                  <select
+                    className="form-input coach-sport-select"
+                    value={coach.sport ?? ''}
+                    onChange={(e) => handleCoachSportChange(coach.id, e.target.value || null)}
+                    disabled={coachSportSaving[coach.id]}
+                  >
+                    <option value="">No sport assigned</option>
+                    {SPORTS.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  {coachSportSaving[coach.id] && <span className="coach-saving">Saving…</span>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="settings-card">
+        <h2 className="settings-section-title">Auto Daily Report</h2>
+        <p className="settings-hint">
+          Automatically email a daily injury summary at a set time. Up to 5 recipient addresses.
+          Use <strong>Send Now</strong> to test the report immediately.
+        </p>
+        <form onSubmit={handleSaveReport}>
+          <div className="report-toggle-row">
+            <label className="coach-email" htmlFor="report-enabled" style={{ cursor: 'pointer' }}>
+              Enable auto report
+            </label>
+            <input
+              id="report-enabled"
+              type="checkbox"
+              checked={reportEnabled}
+              onChange={(e) => setReportEnabled(e.target.checked)}
+            />
+          </div>
+
+          <div className="cost-field" style={{ marginTop: '0.75rem' }}>
+            <label className="cost-label" htmlFor="report-time">Send time</label>
+            <input
+              id="report-time"
+              type="time"
+              className="form-input"
+              value={reportTime}
+              onChange={(e) => setReportTime(e.target.value)}
+              style={{ width: 140 }}
+            />
+          </div>
+
+          <div className="cost-field" style={{ marginTop: '0.75rem' }}>
+            <label className="cost-label">Recipient email addresses</label>
+            {reportRecipients.map((r, i) => (
+              <input
+                key={i}
+                type="email"
+                className="form-input"
+                style={{ marginBottom: '0.4rem' }}
+                placeholder={`Recipient ${i + 1}`}
+                value={r}
+                onChange={(e) => {
+                  const next = [...reportRecipients];
+                  next[i] = e.target.value;
+                  setReportRecipients(next);
+                }}
+              />
+            ))}
+          </div>
+
+          {reportError && <p className="settings-error">{reportError}</p>}
+          {reportSendMsg && (
+            <p className="settings-hint" style={{ color: reportSendMsg.includes('error') || reportSendMsg.includes('No ') ? 'var(--color-danger)' : '#166534' }}>
+              {reportSendMsg}
+            </p>
+          )}
+
+          <div className="cost-input-row" style={{ marginTop: '0.5rem' }}>
+            <button type="submit" className="btn btn--primary" disabled={reportSaving}>
+              {reportSaving ? 'Saving...' : reportSaved ? 'Saved!' : 'Save Settings'}
+            </button>
+            <button
+              type="button"
+              className="btn btn--outline"
+              onClick={handleSendNow}
+              disabled={reportSending}
+            >
+              {reportSending ? 'Sending…' : 'Send Now'}
+            </button>
+          </div>
         </form>
       </div>
     </div>

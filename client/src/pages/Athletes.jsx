@@ -425,6 +425,14 @@ export default function Athletes() {
                         {a.name}
                       </Link>
                       {a.archived && <span className="athlete-archived-badge">Archived</span>}
+                      {a.top_flag_severity && (
+                        <span
+                          className={`flag-badge flag-badge--${a.top_flag_severity}`}
+                          title={`${a.flag_count} flag${a.flag_count !== 1 ? 's' : ''} · highest: ${a.top_flag_severity}`}
+                        >
+                          {a.flag_count}
+                        </span>
+                      )}
                     </td>
                     <td>{a.sport ?? <span className="cell-empty">—</span>}</td>
                     <td>{a.grade ?? <span className="cell-empty">—</span>}</td>

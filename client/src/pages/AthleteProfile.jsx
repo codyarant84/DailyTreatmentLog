@@ -35,14 +35,82 @@ export default function AthleteProfile() {
   const [error, setError]           = useState(null);
   const [filters, setFilters]       = useState(EMPTY_FILTERS);
 
+  const [athlete, setAthlete]       = useState(null);
+  const [flags, setFlags]           = useState([]);
+  const [showFlagForm, setShowFlagForm] = useState(false);
+  const [editingFlag, setEditingFlag]   = useState(null);
+  const EMPTY_FLAG = { flag_type: 'allergy', description: '', severity: 'medium' };
+  const [flagForm, setFlagForm]     = useState(EMPTY_FLAG);
+  const [flagSaving, setFlagSaving] = useState(false);
+  const [flagError, setFlagError]   = useState(null);
+
   useEffect(() => {
     setLoading(true);
     setError(null);
-    api.get(`/api/daily-treatments?athlete_name=${encodeURIComponent(athleteName)}`)
-      .then(({ data }) => setTreatments(data))
-      .catch((err) => setError(err.response?.data?.error ?? 'Failed to load treatment history.'))
+    Promise.all([
+      api.get(`/api/daily-treatments?athlete_name=${encodeURIComponent(athleteName)}`),
+      api.get(`/api/athletes/by-name/${encodeURIComponent(athleteName)}`),
+    ])
+      .then(([treatRes, athRes]) => {
+        setTreatments(treatRes.data);
+        setAthlete(athRes.data);
+      })
+      .catch((err) => setError(err.response?.data?.error ?? 'Failed to load athlete data.'))
       .finally(() => setLoading(false));
   }, [athleteName]);
+
+  useEffect(() => {
+    if (!athlete?.id) return;
+    api.get(`/api/athletes/${athlete.id}/flags`)
+      .then(({ data }) => setFlags(data))
+      .catch(() => {});
+  }, [athlete?.id]);
+
+  function startAddFlag() {
+    setEditingFlag(null);
+    setFlagForm(EMPTY_FLAG);
+    setFlagError(null);
+    setShowFlagForm(true);
+  }
+
+  function startEditFlag(flag) {
+    setEditingFlag(flag);
+    setFlagForm({ flag_type: flag.flag_type, description: flag.description, severity: flag.severity ?? 'medium' });
+    setFlagError(null);
+    setShowFlagForm(true);
+  }
+
+  async function handleFlagSubmit(e) {
+    e.preventDefault();
+    if (!flagForm.description.trim()) { setFlagError('Description is required.'); return; }
+    setFlagSaving(true);
+    setFlagError(null);
+    try {
+      if (editingFlag) {
+        const { data } = await api.put(`/api/athletes/${athlete.id}/flags/${editingFlag.id}`, flagForm);
+        setFlags((prev) => prev.map((f) => f.id === data.id ? data : f));
+      } else {
+        const { data } = await api.post(`/api/athletes/${athlete.id}/flags`, flagForm);
+        setFlags((prev) => [data, ...prev]);
+      }
+      setShowFlagForm(false);
+      setEditingFlag(null);
+    } catch (err) {
+      setFlagError(err.response?.data?.error ?? err.message);
+    } finally {
+      setFlagSaving(false);
+    }
+  }
+
+  async function handleDeleteFlag(flagId) {
+    if (!window.confirm('Delete this flag?')) return;
+    try {
+      await api.delete(`/api/athletes/${athlete.id}/flags/${flagId}`);
+      setFlags((prev) => prev.filter((f) => f.id !== flagId));
+    } catch (err) {
+      alert(err.response?.data?.error ?? 'Failed to delete flag.');
+    }
+  }
 
   // Client-side filtering for instant response
   const filtered = useMemo(() => {
@@ -117,6 +185,78 @@ export default function AthleteProfile() {
       </div>
 
       {error && <div className="state-msg state-msg--error"><p>{error}</p></div>}
+
+      {/* Flags */}
+      <div className="flags-section">
+        <div className="flags-header">
+          <h2 className="flags-title">
+            Flags
+            {flags.length > 0 && <span className={`flag-badge flag-badge--${flags[0].severity ?? 'low'}`} style={{ marginLeft: '0.5rem' }}>{flags.length}</span>}
+          </h2>
+          <button className="btn btn--sm btn--outline" onClick={startAddFlag}>+ Add Flag</button>
+        </div>
+
+        {showFlagForm && (
+          <form className="flag-form" onSubmit={handleFlagSubmit} noValidate>
+            {flagError && <div className="form-error">{flagError}</div>}
+            <div className="flag-form-row">
+              <div className="form-group">
+                <label className="form-label">Type</label>
+                <select className="form-input" value={flagForm.flag_type} onChange={(e) => setFlagForm((p) => ({ ...p, flag_type: e.target.value }))}>
+                  <option value="allergy">Allergy</option>
+                  <option value="medical_condition">Medical Condition</option>
+                  <option value="injury_history">Injury History</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Severity</label>
+                <select className="form-input" value={flagForm.severity ?? ''} onChange={(e) => setFlagForm((p) => ({ ...p, severity: e.target.value || null }))}>
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Description</label>
+              <textarea
+                className="form-input form-textarea"
+                rows={2}
+                value={flagForm.description}
+                onChange={(e) => setFlagForm((p) => ({ ...p, description: e.target.value }))}
+                placeholder="Describe the flag…"
+              />
+            </div>
+            <div className="flag-form-actions">
+              <button type="button" className="btn btn--sm btn--ghost" onClick={() => { setShowFlagForm(false); setEditingFlag(null); }} disabled={flagSaving}>Cancel</button>
+              <button type="submit" className="btn btn--sm btn--primary" disabled={flagSaving}>{flagSaving ? 'Saving…' : editingFlag ? 'Save' : 'Add Flag'}</button>
+            </div>
+          </form>
+        )}
+
+        {flags.length === 0 && !showFlagForm ? (
+          <p className="flags-empty">No flags on file for this athlete.</p>
+        ) : (
+          <div className="flag-list">
+            {flags.map((flag) => (
+              <div key={flag.id} className={`flag-card flag-card--${flag.severity ?? 'low'}`}>
+                <div className="flag-card-left">
+                  <span className={`flag-severity-dot flag-dot--${flag.severity ?? 'low'}`} />
+                  <div className="flag-card-body">
+                    <span className="flag-type-label">{flag.flag_type.replace('_', ' ')}</span>
+                    <p className="flag-description">{flag.description}</p>
+                  </div>
+                </div>
+                <div className="flag-card-actions">
+                  <button className="btn btn--sm btn--ghost" onClick={() => startEditFlag(flag)}>Edit</button>
+                  <button className="btn btn--sm btn--danger-ghost" onClick={() => handleDeleteFlag(flag.id)}>Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Stats */}
       <div className="stats-row">

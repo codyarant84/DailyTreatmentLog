@@ -116,4 +116,38 @@ router.put('/portal-domain', async (req, res) => {
   }
 });
 
+// GET /api/school/coaches
+router.get('/coaches', async (req, res) => {
+  try {
+    const { rows } = await query(
+      `SELECT id, email, role, sport FROM profiles
+       WHERE school_id = $1 AND role = 'coach'
+       ORDER BY email`,
+      [req.schoolId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('GET /school/coaches error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/school/coaches/:id/sport
+router.put('/coaches/:id/sport', async (req, res) => {
+  const { sport } = req.body;
+  try {
+    const { rows } = await query(
+      `UPDATE profiles SET sport = $1
+       WHERE id = $2 AND school_id = $3 AND role = 'coach'
+       RETURNING id, email, role, sport`,
+      [sport || null, req.params.id, req.schoolId]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Coach not found.' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('PUT /school/coaches/:id/sport error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

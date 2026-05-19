@@ -23,9 +23,10 @@ export function requireAuth(req, res, next) {
 
   try {
     const payload = verifyToken(authHeader.slice(7));
-    req.userId   = payload.userId;
-    req.schoolId = payload.schoolId;
-    req.role     = payload.role;
+    req.userId     = payload.userId;
+    req.schoolId   = payload.schoolId;
+    req.role       = payload.role;
+    req.coachSport = payload.sport ?? null;
     next();
   } catch {
     return res.status(401).json({ error: 'Invalid or expired token' });
