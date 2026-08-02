@@ -365,3 +365,7 @@
   margin: 0;
   line-height: 1.55;
 }
+
+.ph-athlete-card { cursor: default; }
+.ph-injury-dot   { color: #dc2626; font-weight: 500; }
+.ph-form-dot     { color: #d97706; font-weight: 500; }

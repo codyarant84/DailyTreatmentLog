@@ -2,6 +2,7 @@ import express from 'express';
 import crypto from 'crypto';
 import { query } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
+import { logActivity } from '../middleware/logActivity.js';
 
 const router = express.Router();
 
@@ -270,6 +271,7 @@ router.post('/', requireAuth, async (req, res) => {
       [rows[0].id]
     );
     const { athlete_name, athlete_sport, ...c } = full[0];
+    logActivity({ schoolId: req.schoolId, profileId: req.userId, action: 'concussion.assessment', entityType: 'concussion', entityId: rows[0].id });
     res.status(201).json({ ...c, athlete_name, athlete_sport });
   } catch (err) {
     console.error('POST /concussions error:', err.message);

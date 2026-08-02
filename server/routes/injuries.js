@@ -1,7 +1,11 @@
 import express from 'express';
+import { Resend } from 'resend';
 import { query } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { uploadToPath } from '../lib/storage.js';
+import { logActivity } from '../middleware/logActivity.js';
+
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 const router = express.Router();
 router.use(requireAuth);
@@ -95,6 +99,7 @@ router.post('/', async (req, res) => {
       `${INJURY_SELECT} WHERE i.id = $1`,
       [rows[0].id]
     );
+    logActivity({ schoolId: req.schoolId, profileId: req.userId, action: 'injury.created', entityType: 'injury', entityId: rows[0].id });
     res.status(201).json(full[0]);
   } catch (err) {
     console.error('POST /injuries error:', err.message);
@@ -114,6 +119,12 @@ router.put('/:id', async (req, res) => {
     const wasActive = is_active ?? true;
     const isNowInactive = wasActive === false;
 
+    // Capture old rtp_status before update for notification comparison
+    const { rows: before } = await query(
+      'SELECT rtp_status, athlete_id FROM injuries WHERE id = $1 AND school_id = $2',
+      [req.params.id, req.schoolId]
+    );
+
     const { rows } = await query(
       `UPDATE injuries
        SET injury_date = $1, body_part = $2, injury_type = $3, mechanism = $4,
@@ -128,12 +139,59 @@ router.put('/:id', async (req, res) => {
     if (!rows[0]) return res.status(404).json({ error: 'Injury not found.' });
 
     const { rows: full } = await query(`${INJURY_SELECT} WHERE i.id = $1`, [rows[0].id]);
+
+    // Notify linked parents when RTP status changes
+    if (resend && before[0] && before[0].rtp_status !== rtp_status && before[0].athlete_id) {
+      sendRtpChangeNotification(before[0].athlete_id, body_part, rtp_status).catch(() => {});
+    }
+
     res.json(full[0]);
   } catch (err) {
     console.error('PUT /injuries/:id error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
+
+// PUT /api/injuries/:id/visibility
+router.put('/:id/visibility', async (req, res) => {
+  const { parent_visibility } = req.body;
+  if (!parent_visibility || typeof parent_visibility !== 'object') {
+    return res.status(400).json({ error: 'parent_visibility object is required' });
+  }
+  try {
+    const { rows } = await query(
+      'UPDATE injuries SET parent_visibility = $1 WHERE id = $2 AND school_id = $3 RETURNING id, parent_visibility',
+      [JSON.stringify(parent_visibility), req.params.id, req.schoolId]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Injury not found.' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('PUT /injuries/:id/visibility error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+async function sendRtpChangeNotification(athleteId, bodyPart, newStatus) {
+  const { rows: parents } = await query(
+    `SELECT pu.email, pu.name, a.name AS athlete_name
+     FROM portal_parent_athlete ppa
+     JOIN portal_users pu ON pu.id = ppa.parent_id
+     JOIN athletes a ON a.id = ppa.athlete_id
+     WHERE ppa.athlete_id = $1`,
+    [athleteId]
+  );
+  if (!parents.length) return;
+  await Promise.all(parents.map((p) =>
+    resend.emails.send({
+      from:    'Fieldside <noreply@fieldsidehealth.com>',
+      to:      p.email,
+      subject: `Status update for ${p.athlete_name}`,
+      html:    `<p>Hi ${p.name},</p>
+                <p>${p.athlete_name}'s return-to-play status for <strong>${bodyPart}</strong> has been updated to <strong>${newStatus}</strong>.</p>
+                <p>Log in to the Fieldside parent portal for more details.</p>`,
+    })
+  ));
+}
 
 // DELETE /api/injuries/:id
 router.delete('/:id', async (req, res) => {

@@ -2,6 +2,7 @@ import express from 'express';
 import { query } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { calculateSavings } from '../lib/cptCodes.js';
+import { logActivity } from '../middleware/logActivity.js';
 
 const router = express.Router();
 router.use(requireAuth);
@@ -93,6 +94,7 @@ router.post('/', async (req, res) => {
         injury_id || null, req.schoolId, logged_by_email,
       ]
     );
+    logActivity({ schoolId: req.schoolId, profileId: req.userId, action: 'treatment.created', entityType: 'treatment', entityId: rows[0].id });
     res.status(201).json(rows[0]);
   } catch (err) {
     console.error('POST /daily-treatments error:', err.message);

@@ -192,4 +192,56 @@ router.delete('/invites/:id', async (req, res) => {
   }
 });
 
+// ── Activity Log Routes (super_admin only) ─────────────────────────
+
+// GET /api/admin/activity — per-school engagement summary for all schools
+router.get('/activity', async (req, res) => {
+  if (req.role !== 'super_admin') return res.status(403).json({ error: 'Super admin only' });
+  try {
+    const { rows } = await query(
+      `SELECT
+         s.id,
+         s.name,
+         MAX(al.created_at)                                                    AS last_activity_at,
+         MAX(CASE WHEN al.action = 'login' THEN al.created_at END)             AS last_login_at,
+         COUNT(CASE WHEN al.action = 'login'
+                     AND al.created_at > now() - interval '30 days' THEN 1 END)::int AS logins_30d,
+         COUNT(CASE WHEN al.action = 'treatment.created'
+                     AND al.created_at > now() - interval '30 days' THEN 1 END)::int AS treatments_30d,
+         COUNT(CASE WHEN al.created_at > now() - interval '30 days'  THEN 1 END)::int AS total_30d,
+         COUNT(CASE WHEN al.created_at > now() - interval '7 days'   THEN 1 END)::int AS total_7d
+       FROM schools s
+       LEFT JOIN activity_log al ON al.school_id = s.id
+       GROUP BY s.id, s.name
+       ORDER BY total_30d DESC, s.name ASC`
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('GET /admin/activity error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/admin/activity/:schoolId — detailed activity log for one school
+router.get('/activity/:schoolId', async (req, res) => {
+  if (req.role !== 'super_admin') return res.status(403).json({ error: 'Super admin only' });
+  try {
+    const { rows } = await query(
+      `SELECT
+         al.id, al.action, al.entity_type, al.entity_id, al.metadata, al.created_at,
+         p.email AS profile_email
+       FROM activity_log al
+       LEFT JOIN profiles p ON p.id = al.profile_id
+       WHERE al.school_id = $1
+       ORDER BY al.created_at DESC
+       LIMIT 200`,
+      [req.params.schoolId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('GET /admin/activity/:schoolId error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

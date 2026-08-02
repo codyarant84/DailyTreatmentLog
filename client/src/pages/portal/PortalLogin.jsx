@@ -72,7 +72,9 @@ export default function PortalLogin() {
     setError(null);
     setLoading(true);
     try {
-      const { data } = await api.post('/api/portal/auth/google', { credential: response.credential });
+      const body = { credential: response.credential };
+      if (inviteToken) body.invite_token = inviteToken;
+      const { data } = await api.post('/api/portal/auth/google', body);
       if (data.school_choice_required) {
         setPendingCredential(response.credential);
         setSchoolChoices(data.schools);

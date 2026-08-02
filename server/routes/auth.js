@@ -5,6 +5,7 @@ import { query } from '../lib/db.js';
 import { hashPassword, verifyPassword, signToken } from '../lib/auth.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { requireJwt } from '../middleware/requireJwt.js';
+import { logActivity } from '../middleware/logActivity.js';
 
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
@@ -46,34 +47,37 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ error: 'email and password are required' });
   }
 
+  const normalEmail = email.trim().toLowerCase();
+  console.log('[auth/login] looking up email:', normalEmail, '| table: RDS.profiles');
+
   try {
-    // Verify credentials via Supabase Auth (temporary — while on Supabase)
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
-    });
-
-    if (authError || !authData.user) {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-
-    // Fetch profile + school for our custom JWT
     const { rows } = await query(
-      `SELECT p.id, p.email, p.school_id, p.role, p.is_admin, p.sport,
+      `SELECT p.id, p.email, p.password_hash, p.school_id, p.role, p.is_admin, p.sport,
               s.primary_color, s.logo_url, s.cost_per_visit
        FROM   profiles p
        JOIN   schools  s ON s.id = p.school_id
-       WHERE  p.id = $1`,
-      [authData.user.id]
+       WHERE  p.email = $1`,
+      [normalEmail]
     );
 
-    if (!rows[0]) {
-      return res.status(401).json({ error: 'No profile found for this user' });
+    const profile = rows[0] ?? null;
+    console.log('[auth/login] profile found:', !!profile, '| has_password_hash:', !!profile?.password_hash);
+
+    if (!profile || !profile.password_hash) {
+      return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    res.json(buildAuthResponse(rows[0]));
+    const valid = await verifyPassword(password, profile.password_hash);
+    console.log('[auth/login] password valid:', valid);
+
+    if (!valid) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    logActivity({ schoolId: profile.school_id, profileId: profile.id, action: 'login' });
+    res.json(buildAuthResponse(profile));
   } catch (err) {
-    console.error('POST /auth/login error:', err.message);
+    console.error('[auth/login] error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -89,8 +93,8 @@ router.post('/register', async (req, res) => {
     const password_hash = await hashPassword(password);
 
     const { rows: profileRows } = await query(
-      `INSERT INTO profiles (email, password_hash, school_id, role)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO profiles (id, email, password_hash, school_id, role)
+       VALUES (gen_random_uuid(), $1, $2, $3, $4)
        RETURNING id, email, school_id, role, is_admin`,
       [email.trim().toLowerCase(), password_hash, school_id, role ?? 'trainer']
     );
@@ -260,26 +264,30 @@ router.post('/reset-password', async (req, res) => {
 });
 
 // ── GET /api/auth/invite-info/:token ──────────────────────────────
-// INTENTIONAL: invite-info, accept-invite-signup, setup-profile, and accept-invite
-// still use Supabase because the `invites` table has not yet been migrated to RDS.
-// Once the invites table is moved to RDS, replace these with pg queries and
-// remove this import and server/lib/supabase.js entirely.
+// NOTE: setup-profile and accept-invite still use Supabase (legacy flows).
+// invite-info and accept-invite-signup have been migrated to RDS.
 import { supabase } from '../lib/supabase.js';
 
 router.get('/invite-info/:token', async (req, res) => {
+  const { token } = req.params;
+  console.log('[auth/invite-info] looking up token:', token, '| table: RDS.invites');
   try {
-    const { data: invite, error } = await supabase
-      .from('invites')
-      .select('id, used, schools(name)')
-      .eq('token', req.params.token)
-      .single();
+    const { rows } = await query(
+      `SELECT i.id, i.used, s.name AS school_name
+       FROM invites i
+       JOIN schools s ON s.id = i.school_id
+       WHERE i.token = $1`,
+      [token]
+    );
+    const invite = rows[0] ?? null;
+    console.log('[auth/invite-info] result:', { found: !!invite, used: invite?.used ?? null });
 
-    if (error || !invite) return res.status(404).json({ error: 'Invite not found or expired' });
-    if (invite.used)       return res.status(409).json({ error: 'This invite link has already been used' });
+    if (!invite)      return res.status(404).json({ error: 'Invite not found or expired' });
+    if (invite.used)  return res.status(409).json({ error: 'This invite link has already been used' });
 
-    res.json({ school_name: invite.schools.name });
+    res.json({ school_name: invite.school_name });
   } catch (err) {
-    console.error('GET /auth/invite-info error:', err.message);
+    console.error('[auth/invite-info] exception:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -302,27 +310,29 @@ router.post('/accept-invite-signup', async (req, res) => {
   }
 
   try {
-    // Invite lookup still uses Supabase DB until invites table is on RDS
-    const { data: invite, error: inviteErr } = await supabase
-      .from('invites')
-      .select('id, school_id, used, role')
-      .eq('token', token)
-      .single();
+    console.log('[auth/accept-invite-signup] looking up token:', token, '| table: RDS.invites');
+    const { rows: inviteRows } = await query(
+      `SELECT id, school_id, used, role FROM invites WHERE token = $1`,
+      [token]
+    );
+    const invite = inviteRows[0] ?? null;
+    console.log('[auth/accept-invite-signup] result:', { found: !!invite, used: invite?.used ?? null, school_id: invite?.school_id ?? null });
 
-    if (inviteErr || !invite) return res.status(404).json({ error: 'Invite not found or expired' });
-    if (invite.used)          return res.status(409).json({ error: 'This invite link has already been used' });
+    if (!invite)      return res.status(404).json({ error: 'Invite not found or expired' });
+    if (invite.used)  return res.status(409).json({ error: 'This invite link has already been used' });
 
     const password_hash = await hashPassword(password);
+    console.log('[auth/accept-invite-signup] password hashed successfully, length:', password_hash?.length);
 
-    // Insert profile directly into RDS with email + password_hash
-    await query(
-      `INSERT INTO profiles (email, password_hash, school_id, role)
-       VALUES ($1, $2, $3, $4)`,
+    const { rows: newProfile } = await query(
+      `INSERT INTO profiles (id, email, password_hash, school_id, role)
+       VALUES (gen_random_uuid(), $1, $2, $3, $4)
+       RETURNING id`,
       [email.trim().toLowerCase(), password_hash, invite.school_id, invite.role ?? 'trainer']
     );
+    console.log('[auth/accept-invite-signup] created profile id:', newProfile[0]?.id);
 
-    // Mark invite used
-    await supabase.from('invites').update({ used: true }).eq('id', invite.id);
+    await query(`UPDATE invites SET used = true WHERE id = $1`, [invite.id]);
 
     res.status(201).json({ success: true });
   } catch (err) {

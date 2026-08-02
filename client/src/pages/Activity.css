@@ -1,0 +1,214 @@
+.act-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 1100px;
+}
+
+.act-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.act-error {
+  color: #dc2626;
+  font-size: 0.9rem;
+}
+
+/* ── Layout ──────────────────────────────────────────────────────── */
+.act-layout {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
+}
+
+.act-table-wrap {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  border-radius: var(--radius, 10px);
+  border: 1px solid var(--color-border, #e5e7eb);
+  background: #fff;
+}
+
+.act-table-wrap--split {
+  max-width: 60%;
+}
+
+/* ── Table ───────────────────────────────────────────────────────── */
+.act-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.act-table thead tr {
+  background: var(--color-bg, #f8f9fa);
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+}
+
+.act-table th {
+  padding: 0.65rem 1rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted, #6b7280);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.act-row {
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.act-row:last-child {
+  border-bottom: none;
+}
+
+.act-row:hover {
+  background: var(--color-bg, #f8f9fa);
+}
+
+.act-row--selected {
+  background: var(--color-primary-light, rgba(37,99,235,0.07));
+}
+
+.act-row td {
+  padding: 0.75rem 1rem;
+  color: var(--color-text, #111827);
+  vertical-align: middle;
+}
+
+.act-school-name {
+  font-weight: 600;
+}
+
+.act-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text, #111827);
+}
+
+.act-empty {
+  padding: 1.5rem 1rem;
+  color: var(--color-text-muted, #6b7280);
+  font-size: 0.88rem;
+  text-align: center;
+}
+
+/* ── Status badges ───────────────────────────────────────────────── */
+.act-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.act-badge--active   { background: #d1fae5; color: #065f46; }
+.act-badge--quiet    { background: #fef3c7; color: #92400e; }
+.act-badge--inactive { background: #f3f4f6; color: #6b7280; }
+
+/* ── Detail panel ────────────────────────────────────────────────── */
+.act-detail {
+  width: 380px;
+  flex-shrink: 0;
+  background: #fff;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: var(--radius, 10px);
+  display: flex;
+  flex-direction: column;
+  max-height: 70vh;
+  overflow: hidden;
+}
+
+.act-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.1rem;
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+  flex-shrink: 0;
+}
+
+.act-detail-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--color-text, #111827);
+}
+
+.act-close {
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  color: var(--color-text-muted, #6b7280);
+  cursor: pointer;
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.act-close:hover {
+  background: var(--color-bg, #f8f9fa);
+}
+
+/* ── Activity feed ───────────────────────────────────────────────── */
+.act-feed {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.act-feed-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 1.1rem;
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+  font-size: 0.83rem;
+}
+
+.act-feed-row:last-child {
+  border-bottom: none;
+}
+
+.act-feed-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.act-feed-action {
+  font-weight: 500;
+  color: var(--color-text, #111827);
+}
+
+.act-feed-who {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #6b7280);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.act-feed-time {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #6b7280);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Mobile ──────────────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  .act-layout { flex-direction: column; }
+  .act-table-wrap--split { max-width: 100%; }
+  .act-detail { width: 100%; max-height: 50vh; }
+}

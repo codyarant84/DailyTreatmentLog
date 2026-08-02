@@ -2,6 +2,7 @@ import express from 'express';
 import { Resend } from 'resend';
 import { query } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
+import { logActivity } from '../middleware/logActivity.js';
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -244,6 +245,7 @@ router.post('/send-daily', async (req, res) => {
       html,
     });
 
+    logActivity({ schoolId: req.schoolId, profileId: req.userId, action: 'report.generated', metadata: { recipients: recipients.length, injuries: injuries.length } });
     res.json({ sent: true, recipients: recipients.length, injuries: injuries.length });
   } catch (err) {
     console.error('POST /reports/send-daily error:', err.message);

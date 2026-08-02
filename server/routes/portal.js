@@ -7,6 +7,7 @@ import { hashPassword, verifyPassword } from '../lib/auth.js';
 import { uploadFile } from '../lib/storage.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { requirePortalAuth } from '../middleware/requirePortalAuth.js';
+import { logActivity } from '../middleware/logActivity.js';
 
 const router = express.Router();
 
@@ -46,7 +47,7 @@ function sanitizeUser(u) {
 // creates the portal_user. Athletes whose email domain matches a school's
 // student_email_domain are auto-associated with that school.
 router.post('/auth/google', async (req, res) => {
-  const { credential } = req.body;
+  const { credential, invite_token } = req.body;
   if (!credential) return res.status(400).json({ error: 'credential is required' });
 
   try {
@@ -73,11 +74,26 @@ router.post('/auth/google', async (req, res) => {
     const normalEmail = email.trim().toLowerCase();
     const domain = normalEmail.split('@')[1];
 
+    // Resolve invite token if provided — takes precedence over domain matching
+    let invite = null;
+    if (invite_token) {
+      const { rows: invRows } = await query(
+        `SELECT * FROM portal_invites WHERE token = $1 AND used = false AND expires_at > now()`,
+        [invite_token]
+      );
+      console.log('[portal/auth/google] invite_token lookup:', invite_token, '→ rows:', invRows.length, invRows[0] ?? 'not found');
+      invite = invRows[0] ?? null;
+    }
+
     // If caller already picked a school, use it directly
     const { school_id: chosenSchoolId } = req.body;
 
     let matchedSchool = null;
-    if (chosenSchoolId) {
+    if (invite) {
+      // Use the school from the invite — bypass domain matching entirely
+      const { rows: direct } = await query('SELECT id, name FROM schools WHERE id = $1', [invite.school_id]);
+      matchedSchool = direct[0] ?? null;
+    } else if (chosenSchoolId) {
       const { rows: direct } = await query(
         'SELECT id, name FROM schools WHERE id = $1',
         [chosenSchoolId]
@@ -131,20 +147,29 @@ router.post('/auth/google', async (req, res) => {
         }
       }
 
+      const roleToAssign = invite?.role ?? (matchedSchool ? 'athlete' : 'parent');
+      const approvedOnCreate = !!invite; // invite = pre-approved; domain match = needs AT approval
+
       const { rows: created } = await query(
         `INSERT INTO portal_users (school_id, athlete_id, email, name, role, google_id, avatar_url, approved)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, false) RETURNING *`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
         [
           matchedSchool?.id ?? null,
           newAthleteId,
           normalEmail,
           name ?? normalEmail,
-          matchedSchool ? 'athlete' : 'parent',
+          roleToAssign,
           googleId,
           picture ?? null,
+          approvedOnCreate,
         ]
       );
       portalUser = created[0];
+
+      // Consume the invite now that the account is created
+      if (invite) {
+        await query('UPDATE portal_invites SET used = true WHERE id = $1', [invite.id]);
+      }
     }
 
     // Fetch school name for response
@@ -216,6 +241,17 @@ router.post('/auth/register', async (req, res) => {
   }
 
   try {
+    // Debug: check what the token resolves to before filtering
+    const { rows: rawRows } = await query(
+      `SELECT id, used, expires_at, expires_at > now() AS not_expired FROM portal_invites WHERE token = $1`,
+      [token]
+    );
+    console.log('[portal/auth/register] token lookup:', {
+      token: token?.slice(0, 16) + '…',
+      found: rawRows.length,
+      row: rawRows[0] ?? null,
+    });
+
     const { rows: inviteRows } = await query(
       `SELECT * FROM portal_invites
        WHERE token = $1 AND used = false AND expires_at > now()`,
@@ -223,6 +259,10 @@ router.post('/auth/register', async (req, res) => {
     );
 
     if (!inviteRows[0]) {
+      // Surface the specific reason so the debug log makes sense
+      if (!rawRows[0])          return res.status(404).json({ error: 'Invite token not found' });
+      if (rawRows[0].used)      return res.status(410).json({ error: 'Invite already used' });
+      if (!rawRows[0].not_expired) return res.status(410).json({ error: 'Invite has expired' });
       return res.status(404).json({ error: 'Invite not found or expired' });
     }
     const invite = inviteRows[0];
@@ -991,6 +1031,7 @@ router.post('/my-forms/:assignmentId/submit', requirePortalAuth, async (req, res
        VALUES ($1, $2, $3, $4, $5) RETURNING *`,
       [req.params.assignmentId, portalUserId, role, JSON.stringify(responses ?? {}), signature_data ?? null]
     );
+    logActivity({ schoolId: req.portalUser.schoolId, action: 'form.submitted', entityType: 'form_assignment', entityId: req.params.assignmentId, metadata: { role } });
     res.status(201).json(rows[0]);
   } catch (err) {
     console.error('POST /portal/my-forms/:assignmentId/submit error:', err.message);
@@ -1025,4 +1066,203 @@ router.post('/my-forms/:assignmentId/upload-pdf', requirePortalAuth, async (req,
   }
 });
 
+// ── Parent Portal Routes ────────────────────────────────────────────
+
+// GET /api/portal/my-athletes
+// For parent role: returns all athletes linked to this parent account
+router.get('/my-athletes', requirePortalAuth, async (req, res) => {
+  const { portalUserId, role } = req.portalUser;
+  if (role !== 'parent') return res.status(403).json({ error: 'Parent access only' });
+  try {
+    const { rows } = await query(
+      `SELECT a.id, a.name, a.sport, a.grade,
+              (SELECT rtp_status FROM injuries
+               WHERE athlete_id = a.id AND is_active = true AND rtp_status != 'Cleared'
+               ORDER BY CASE rtp_status WHEN 'Out' THEN 3 WHEN 'Limited Participation' THEN 2 ELSE 1 END DESC
+               LIMIT 1) AS rtp_status,
+              (SELECT COUNT(*)::int FROM injuries WHERE athlete_id = a.id AND is_active = true) AS active_injury_count,
+              (SELECT COUNT(*)::int FROM portal_form_assignments pfa
+               WHERE pfa.athlete_id = a.id AND pfa.assigned_to IN ('parent','both')
+               AND NOT EXISTS (
+                 SELECT 1 FROM portal_form_submissions pfs WHERE pfs.assignment_id = pfa.id
+               )) AS pending_forms
+       FROM portal_parent_athlete ppa
+       JOIN athletes a ON a.id = ppa.athlete_id
+       WHERE ppa.parent_id = $1
+       ORDER BY a.name ASC`,
+      [portalUserId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('GET /portal/my-athletes error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/portal/athlete/:athleteId/status
+// Parent view of a specific athlete's injury status (respects parent_visibility)
+router.get('/athlete/:athleteId/status', requirePortalAuth, async (req, res) => {
+  const { portalUserId, role } = req.portalUser;
+  if (role !== 'parent') return res.status(403).json({ error: 'Parent access only' });
+  try {
+    const { rows: link } = await query(
+      'SELECT 1 FROM portal_parent_athlete WHERE parent_id = $1 AND athlete_id = $2',
+      [portalUserId, req.params.athleteId]
+    );
+    if (!link[0]) return res.status(403).json({ error: 'Not authorized for this athlete' });
+
+    const { rows } = await query(
+      `SELECT i.id, i.body_part, i.rtp_status, i.injury_date, i.parent_visibility
+       FROM injuries i
+       WHERE i.athlete_id = $1 AND i.is_active = true AND i.rtp_status != 'Cleared'
+       ORDER BY i.injury_date DESC`,
+      [req.params.athleteId]
+    );
+
+    const visible = rows.map((i) => {
+      const vis = i.parent_visibility ?? {};
+      return {
+        id:           i.id,
+        rtp_status:   (vis.status !== false) ? i.rtp_status : null,
+        body_part:    (vis.body_part !== false) ? i.body_part : null,
+        injury_date:  i.injury_date,
+      };
+    });
+
+    if (!visible.length) return res.json({ status: 'No Active Injuries', injuries: [] });
+
+    const priority = { 'Out': 3, 'Limited Participation': 2, 'Full Participation': 1 };
+    const label    = { 'Out': 'Out', 'Limited Participation': 'Limited', 'Full Participation': 'Full Participation' };
+    const top = [...visible].sort((a, b) => (priority[b.rtp_status] ?? 0) - (priority[a.rtp_status] ?? 0))[0];
+
+    res.json({
+      status:   label[top.rtp_status] ?? top.rtp_status ?? 'Active Injury',
+      injuries: visible,
+    });
+  } catch (err) {
+    console.error('GET /portal/athlete/:athleteId/status error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/portal/athlete/:athleteId/forms
+// Parent view of forms assigned to an athlete that target parents
+router.get('/athlete/:athleteId/forms', requirePortalAuth, async (req, res) => {
+  const { portalUserId, role } = req.portalUser;
+  if (role !== 'parent') return res.status(403).json({ error: 'Parent access only' });
+  try {
+    const { rows: link } = await query(
+      'SELECT 1 FROM portal_parent_athlete WHERE parent_id = $1 AND athlete_id = $2',
+      [portalUserId, req.params.athleteId]
+    );
+    if (!link[0]) return res.status(403).json({ error: 'Not authorized for this athlete' });
+
+    const { rows } = await query(
+      `SELECT pfa.*,
+              pf.title             AS form_title,
+              pf.description       AS form_description,
+              pf.requires_signature,
+              EXISTS (
+                SELECT 1 FROM portal_form_submissions pfs
+                WHERE pfs.assignment_id = pfa.id
+                  AND (pfs.portal_user_id = $1 OR pfs.submitted_by_role = 'parent')
+              ) AS completed
+       FROM portal_form_assignments pfa
+       JOIN portal_forms pf ON pf.id = pfa.form_id
+       WHERE pfa.athlete_id = $2 AND pfa.assigned_to IN ('parent', 'both')
+       ORDER BY pfa.due_date ASC NULLS LAST, pfa.created_at DESC`,
+      [portalUserId, req.params.athleteId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('GET /portal/athlete/:athleteId/forms error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── AT-side: link/unlink parent accounts ───────────────────────────
+
+// GET /api/portal/athlete/:athleteId/parents
+router.get('/athlete/:athleteId/parents', requireAuth, async (req, res) => {
+  try {
+    const { rows } = await query(
+      `SELECT pu.id, pu.email, pu.name, pu.avatar_url, ppa.linked_at
+       FROM portal_parent_athlete ppa
+       JOIN portal_users pu ON pu.id = ppa.parent_id
+       WHERE ppa.athlete_id = $1 AND ppa.school_id = $2
+       ORDER BY ppa.linked_at DESC`,
+      [req.params.athleteId, req.schoolId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('GET /portal/athlete/:athleteId/parents error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/portal/athlete/:athleteId/parents/invite
+// Sends invite email to a parent and optionally links them if account exists
+router.post('/athlete/:athleteId/parents/invite', requireAuth, async (req, res) => {
+  const { email } = req.body;
+  if (!email?.trim()) return res.status(400).json({ error: 'email is required' });
+  try {
+    const { rows: ath } = await query(
+      'SELECT name FROM athletes WHERE id = $1 AND school_id = $2',
+      [req.params.athleteId, req.schoolId]
+    );
+    if (!ath[0]) return res.status(404).json({ error: 'Athlete not found' });
+
+    const { rows: sch } = await query('SELECT name FROM schools WHERE id = $1', [req.schoolId]);
+    const schoolName   = sch[0]?.name ?? 'your school';
+    const athleteName  = ath[0].name;
+    const normalEmail  = email.trim().toLowerCase();
+
+    // If portal account already exists, link directly
+    const { rows: existing } = await query(
+      'SELECT id FROM portal_users WHERE email = $1',
+      [normalEmail]
+    );
+
+    if (existing[0]) {
+      await query(
+        `INSERT INTO portal_parent_athlete (parent_id, athlete_id, school_id)
+         VALUES ($1, $2, $3) ON CONFLICT (parent_id, athlete_id) DO NOTHING`,
+        [existing[0].id, req.params.athleteId, req.schoolId]
+      );
+    }
+
+    if (resend) {
+      const portalUrl = process.env.PORTAL_URL ?? 'https://app.fieldsidehealth.com/portal/login';
+      await resend.emails.send({
+        from:    'Fieldside <noreply@fieldsidehealth.com>',
+        to:      normalEmail,
+        subject: `Parent portal access — ${athleteName} at ${schoolName}`,
+        html:    `<p>You've been invited to view ${athleteName}'s health updates on the Fieldside parent portal.</p>
+                  <p><a href="${portalUrl}">Sign in at ${portalUrl}</a></p>
+                  <p>If you don't have an account yet, sign in with Google using this email address.</p>`,
+      });
+    }
+
+    res.json({ ok: true, linked: !!existing[0] });
+  } catch (err) {
+    console.error('POST /portal/athlete/:athleteId/parents/invite error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/portal/athlete/:athleteId/parents/:parentId
+router.delete('/athlete/:athleteId/parents/:parentId', requireAuth, async (req, res) => {
+  try {
+    await query(
+      'DELETE FROM portal_parent_athlete WHERE parent_id = $1 AND athlete_id = $2 AND school_id = $3',
+      [req.params.parentId, req.params.athleteId, req.schoolId]
+    );
+    res.status(204).send();
+  } catch (err) {
+    console.error('DELETE /portal/athlete/:athleteId/parents/:parentId error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;
+

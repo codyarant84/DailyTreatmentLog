@@ -1,6 +1,7 @@
 import express from 'express';
 import { query } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
+import { logActivity } from '../middleware/logActivity.js';
 
 const router = express.Router();
 router.use(requireAuth);
@@ -75,6 +76,7 @@ router.post('/', async (req, res) => {
        RETURNING id, name, sport, grade, date_of_birth, emergency_contact_name, emergency_contact_phone, created_at`,
       [req.schoolId, name, sport.trim(), grade.trim(), date_of_birth || null, emergency_contact_name?.trim() || null, emergency_contact_phone?.trim() || null]
     );
+    logActivity({ schoolId: req.schoolId, profileId: req.userId, action: 'athlete.created', entityType: 'athlete', entityId: rows[0].id });
     res.status(201).json(rows[0]);
   } catch (err) {
     if (err.code === '23505') return res.status(409).json({ error: `An athlete named "${name}" already exists.` });

@@ -19,10 +19,18 @@ export default function InviteAccept() {
 
   // Load the school name for this invite token
   useEffect(() => {
+    console.log('[InviteAccept] token from URL params:', token);
+    console.log('[InviteAccept] GET /api/auth/invite-info/' + token);
     api
       .get(`/api/auth/invite-info/${token}`)
-      .then(({ data }) => setSchoolName(data.school_name))
-      .catch((err) => setLoadError(err.response?.data?.error ?? 'Invalid or expired invite link.'));
+      .then(({ data }) => {
+        console.log('[InviteAccept] invite-info response:', data);
+        setSchoolName(data.school_name);
+      })
+      .catch((err) => {
+        console.error('[InviteAccept] invite-info error:', err.response?.status, err.response?.data ?? err.message);
+        setLoadError(err.response?.data?.error ?? 'Invalid or expired invite link.');
+      });
   }, [token]);
 
   async function handleSubmit(e) {
@@ -32,13 +40,15 @@ export default function InviteAccept() {
     setLoading(true);
 
     try {
-      // Create a pre-confirmed account via the invite
-      await api.post('/api/auth/accept-invite-signup', { token, email, password });
+      console.log('[InviteAccept] POST /api/auth/accept-invite-signup — token:', token, 'email:', email);
+      const signupRes = await api.post('/api/auth/accept-invite-signup', { token, email, password });
+      console.log('[InviteAccept] accept-invite-signup response:', signupRes.data);
 
-      // Sign in immediately after account creation
+      console.log('[InviteAccept] logging in as:', email);
       await login(email, password);
       navigate('/', { replace: true });
     } catch (err) {
+      console.error('[InviteAccept] submit error:', err.response?.status, err.response?.data ?? err.message);
       setError(err.response?.data?.error ?? err.message);
       setLoading(false);
     }

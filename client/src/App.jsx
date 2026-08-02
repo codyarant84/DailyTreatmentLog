@@ -25,6 +25,7 @@ import ProgramBuilder from './pages/ProgramBuilder.jsx';
 import GPSDashboard from './pages/GPSDashboard.jsx';
 import Teams from './pages/Teams.jsx';
 import Reports from './pages/Reports.jsx';
+import Activity from './pages/Activity.jsx';
 import MarketingPage from './pages/MarketingPage.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import PortalLogin from './pages/portal/PortalLogin.jsx';
@@ -33,6 +34,7 @@ import PortalOnboarding from './pages/portal/PortalOnboarding.jsx';
 import PortalFormComplete from './pages/portal/PortalFormComplete.jsx';
 import PortalRehabView from './pages/portal/PortalRehabView.jsx';
 import PortalConcussionCheckin from './pages/portal/PortalConcussionCheckin.jsx';
+import ParentAthleteDetail from './pages/portal/ParentAthleteDetail.jsx';
 import Forms from './pages/Forms.jsx';
 import { PortalAuthProvider, usePortalAuth } from './context/PortalAuthContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
@@ -216,6 +218,7 @@ function MoreDrawer({ onClose, role }) {
     { label: 'Forms',        icon: <IconForms />,         path: '/forms',          show: role !== 'coach' },
     { label: 'Settings',     icon: <IconSettings />,     path: '/settings',    show: isAdmin },
     { label: 'Admin',        icon: <IconAdmin />,        path: '/admin',       show: isAdmin },
+    { label: 'Activity',     icon: <IconAdmin />,        path: '/activity',    show: role === 'super_admin' },
   ].filter((i) => i.show);
 
   return (
@@ -253,6 +256,7 @@ function GearDropdown({ role, onClose }) {
     <div className="nav-gear-dropdown">
       {isAdmin && <Link to="/settings" onClick={onClose}>Settings</Link>}
       {isAdmin && <Link to="/admin" onClick={onClose}>Admin</Link>}
+      {role === 'super_admin' && <Link to="/activity" onClick={onClose}>Activity</Link>}
     </div>
   );
 }
@@ -414,6 +418,7 @@ function App() {
           <Route path="/invite/:token" element={<InviteAccept />} />
           <Route path="/admin" element={<ProtectedRoute><CoachRoute><Admin /></CoachRoute></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
+          <Route path="/activity" element={<ProtectedRoute><Activity /></ProtectedRoute>} />
           <Route path="/injuries" element={<ProtectedRoute><CoachRoute><Injuries /></CoachRoute></ProtectedRoute>} />
           <Route path="/injuries/:id" element={<ProtectedRoute><CoachRoute><InjuryDetail /></CoachRoute></ProtectedRoute>} />
           <Route path="/concussions" element={<ProtectedRoute><Concussions /></ProtectedRoute>} />
@@ -507,6 +512,7 @@ function PortalRoutes() {
       <Route path="/portal/forms/:assignmentId" element={<PortalProtectedRoute><PortalFormComplete /></PortalProtectedRoute>} />
       <Route path="/portal/rehab/:programId" element={<PortalProtectedRoute><PortalRehabView /></PortalProtectedRoute>} />
       <Route path="/portal/concussion-checkin" element={<PortalProtectedRoute><PortalConcussionCheckin /></PortalProtectedRoute>} />
+      <Route path="/portal/athlete/:athleteId" element={<PortalProtectedRoute><ParentAthleteDetail /></PortalProtectedRoute>} />
     </Routes>
   );
 }

@@ -44,6 +44,12 @@ export default function AthleteProfile() {
   const [flagSaving, setFlagSaving] = useState(false);
   const [flagError, setFlagError]   = useState(null);
 
+  // Parent access state
+  const [parents, setParents]               = useState([]);
+  const [inviteEmail, setInviteEmail]       = useState('');
+  const [inviteSaving, setInviteSaving]     = useState(false);
+  const [inviteMsg, setInviteMsg]           = useState(null);
+
   useEffect(() => {
     setLoading(true);
     setError(null);
@@ -63,6 +69,9 @@ export default function AthleteProfile() {
     if (!athlete?.id) return;
     api.get(`/api/athletes/${athlete.id}/flags`)
       .then(({ data }) => setFlags(data))
+      .catch(() => {});
+    api.get(`/api/portal/athlete/${athlete.id}/parents`)
+      .then(({ data }) => setParents(data))
       .catch(() => {});
   }, [athlete?.id]);
 
@@ -109,6 +118,36 @@ export default function AthleteProfile() {
       setFlags((prev) => prev.filter((f) => f.id !== flagId));
     } catch (err) {
       alert(err.response?.data?.error ?? 'Failed to delete flag.');
+    }
+  }
+
+  async function handleInviteParent(e) {
+    e.preventDefault();
+    if (!inviteEmail.trim()) return;
+    setInviteSaving(true);
+    setInviteMsg(null);
+    try {
+      const { data } = await api.post(`/api/portal/athlete/${athlete.id}/parents/invite`, { email: inviteEmail.trim() });
+      setInviteEmail('');
+      setInviteMsg({ ok: true, text: data.linked ? 'Parent linked and notified.' : 'Invite sent.' });
+      if (data.linked) {
+        const { data: updated } = await api.get(`/api/portal/athlete/${athlete.id}/parents`);
+        setParents(updated);
+      }
+    } catch (err) {
+      setInviteMsg({ ok: false, text: err.response?.data?.error ?? 'Failed to send invite.' });
+    } finally {
+      setInviteSaving(false);
+    }
+  }
+
+  async function handleUnlinkParent(parentId) {
+    if (!window.confirm('Remove this parent\'s access?')) return;
+    try {
+      await api.delete(`/api/portal/athlete/${athlete.id}/parents/${parentId}`);
+      setParents((prev) => prev.filter((p) => p.id !== parentId));
+    } catch (err) {
+      alert(err.response?.data?.error ?? 'Failed to remove parent.');
     }
   }
 
@@ -369,6 +408,51 @@ export default function AthleteProfile() {
           ))}
         </div>
       )}
+
+      {/* Parent Access */}
+      <div className="parent-access-section">
+        <h2 className="flags-title">Parent Access</h2>
+        <p className="flags-empty" style={{ marginBottom: '0.75rem' }}>
+          Parents with access can view this athlete's injury status and forms via the portal.
+        </p>
+
+        {parents.length > 0 && (
+          <div className="parent-list">
+            {parents.map((p) => (
+              <div key={p.id} className="parent-row">
+                {p.avatar_url ? (
+                  <img src={p.avatar_url} alt={p.name} className="parent-avatar" />
+                ) : (
+                  <div className="parent-avatar-placeholder">{p.name?.[0]?.toUpperCase() ?? '?'}</div>
+                )}
+                <div className="parent-info">
+                  <span className="parent-name">{p.name}</span>
+                  <span className="parent-email">{p.email}</span>
+                </div>
+                <button className="btn btn--sm btn--danger-ghost" onClick={() => handleUnlinkParent(p.id)}>
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <form className="parent-invite-form" onSubmit={handleInviteParent}>
+          <input
+            type="email"
+            className="form-input"
+            placeholder="Parent email address"
+            value={inviteEmail}
+            onChange={(e) => setInviteEmail(e.target.value)}
+          />
+          <button type="submit" className="btn btn--sm btn--primary" disabled={inviteSaving}>
+            {inviteSaving ? 'Sending…' : 'Invite Parent'}
+          </button>
+        </form>
+        {inviteMsg && (
+          <p className={inviteMsg.ok ? 'parent-msg--ok' : 'parent-msg--error'}>{inviteMsg.text}</p>
+        )}
+      </div>
     </div>
   );
 }

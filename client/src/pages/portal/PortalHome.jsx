@@ -15,6 +15,7 @@ export default function PortalHome() {
   const { portalUser, isApproved, onboardingComplete, portalSignOut, getToken } = usePortalAuth();
   const navigate = useNavigate();
   const isAthlete = portalUser?.role === 'athlete';
+  const isParent  = portalUser?.role === 'parent';
 
   useEffect(() => {
     if (portalUser && isAthlete && !onboardingComplete) {
@@ -22,7 +23,7 @@ export default function PortalHome() {
     }
   }, [portalUser, isAthlete, onboardingComplete, navigate]);
 
-  // Forms
+  // Forms (athlete role)
   const [forms, setForms] = useState([]);
   const [formsLoading, setFormsLoading] = useState(true);
 
@@ -31,6 +32,10 @@ export default function PortalHome() {
   const [rehabPrograms, setRehabPrograms]       = useState([]);
   const [concussionStatus, setConcussionStatus] = useState(null);
   const [dashLoading, setDashLoading]           = useState(false);
+
+  // Parent-only data
+  const [myAthletes, setMyAthletes]       = useState([]);
+  const [athletesLoading, setAthletesLoading] = useState(false);
 
   const headers = useCallback(() => ({ Authorization: `Bearer ${getToken()}` }), [getToken]);
 
@@ -59,11 +64,28 @@ export default function PortalHome() {
     setDashLoading(false);
   }, [headers]);
 
+  const fetchMyAthletes = useCallback(async () => {
+    setAthletesLoading(true);
+    try {
+      const { data } = await api.get('/api/portal/my-athletes', { headers: headers() });
+      setMyAthletes(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setAthletesLoading(false);
+    }
+  }, [headers]);
+
   useEffect(() => {
     if (!isApproved) return;
-    fetchForms();
-    if (isAthlete) fetchDashboard();
-  }, [isApproved, isAthlete, fetchForms, fetchDashboard]);
+    if (isAthlete) {
+      fetchForms();
+      fetchDashboard();
+    } else if (isParent) {
+      fetchMyAthletes();
+      fetchForms();
+    }
+  }, [isApproved, isAthlete, isParent, fetchForms, fetchDashboard, fetchMyAthletes]);
 
   function handleSignOut() {
     portalSignOut();
@@ -245,6 +267,73 @@ export default function PortalHome() {
                     </div>
                   ))}
                 </div>
+              </section>
+            )}
+            {/* Parent: athlete cards */}
+            {isParent && (
+              <section className="ph-section">
+                <h2 className="ph-section-title">Your Athletes</h2>
+                {athletesLoading ? (
+                  <p className="ph-empty">Loading...</p>
+                ) : myAthletes.length === 0 ? (
+                  <p className="ph-empty">No athletes linked to your account yet. Contact your school's athletic trainer.</p>
+                ) : (
+                  <div className="ph-form-list">
+                    {myAthletes.map((a) => (
+                      <div key={a.id} className="ph-form-card ph-athlete-card">
+                        <div className="ph-form-info">
+                          <p className="ph-form-title">{a.name}</p>
+                          <p className="ph-form-due">
+                            {a.sport ?? 'Athlete'}
+                            {a.active_injury_count > 0 && (
+                              <span className="ph-injury-dot" title={`${a.active_injury_count} active injury`}> · {a.active_injury_count} injury</span>
+                            )}
+                            {a.pending_forms > 0 && (
+                              <span className="ph-form-dot"> · {a.pending_forms} form{a.pending_forms !== 1 ? 's' : ''} pending</span>
+                            )}
+                          </p>
+                        </div>
+                        <button
+                          className="ph-form-btn"
+                          onClick={() => navigate(`/portal/athlete/${a.id}`)}
+                        >
+                          View
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* Parent: forms assigned to them (cross-athlete) */}
+            {isParent && (
+              <section className="ph-section">
+                <h2 className="ph-section-title">
+                  Forms to Complete
+                  {forms.filter(f => !f.completed).length > 0 && (
+                    <span className="ph-badge">{forms.filter(f => !f.completed).length}</span>
+                  )}
+                </h2>
+                {formsLoading ? (
+                  <p className="ph-empty">Loading...</p>
+                ) : forms.filter(f => !f.completed).length === 0 ? (
+                  <p className="ph-empty">No forms to complete right now.</p>
+                ) : (
+                  <div className="ph-form-list">
+                    {forms.filter(f => !f.completed).map(f => (
+                      <div key={f.id} className="ph-form-card">
+                        <div className="ph-form-info">
+                          <p className="ph-form-title">{f.form_title}</p>
+                          {f.athlete_name && <p className="ph-form-due">For: {f.athlete_name}</p>}
+                        </div>
+                        <button className="ph-form-btn" onClick={() => navigate(`/portal/forms/${f.id}`)}>
+                          Complete
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </section>
             )}
           </div>

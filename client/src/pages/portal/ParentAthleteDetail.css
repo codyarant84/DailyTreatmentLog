@@ -1,0 +1,218 @@
+.pad-page {
+  min-height: 100dvh;
+  background: var(--color-bg, #f8f9fa);
+  display: flex;
+  flex-direction: column;
+}
+
+.pad-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  background: #fff;
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+}
+
+.pad-back {
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  color: var(--color-primary, #2563eb);
+  cursor: pointer;
+  padding: 0.25rem 0;
+}
+
+.pad-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+.pad-brand-icon {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-primary, #2563eb);
+}
+
+.pad-brand-name {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.pad-main {
+  flex: 1;
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pad-loading,
+.pad-empty {
+  color: var(--color-text-muted, #6b7280);
+  font-size: 0.9rem;
+  padding: 0.5rem 0;
+}
+
+.pad-error {
+  color: #c0392b;
+  font-size: 0.9rem;
+}
+
+.pad-card {
+  background: #fff;
+  border-radius: var(--radius, 10px);
+  border: 1px solid var(--color-border, #e5e7eb);
+  padding: 1.25rem;
+}
+
+.pad-section-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text, #111827);
+  margin: 0 0 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pad-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--color-primary, #2563eb);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0 6px;
+}
+
+.pad-status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pad-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.pad-status-badge--out   { background: #fef2f2; color: #dc2626; }
+.pad-status-badge--limited { background: #fffbeb; color: #d97706; }
+.pad-status-badge--full  { background: #f0fdf4; color: #16a34a; }
+.pad-status-badge--none  { background: #f3f4f6; color: #6b7280; }
+
+.pad-injury-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.pad-injury-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.pad-injury-part {
+  color: var(--color-text, #111827);
+  font-weight: 500;
+}
+
+.pad-status-pill {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+.pad-status-pill--out     { background: #fef2f2; color: #dc2626; }
+.pad-status-pill--limited { background: #fffbeb; color: #d97706; }
+.pad-status-pill--full    { background: #f0fdf4; color: #16a34a; }
+.pad-status-pill--none    { background: #f3f4f6; color: #6b7280; }
+
+.pad-form-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.pad-form-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--color-bg, #f8f9fa);
+}
+
+.pad-form-card--done {
+  opacity: 0.7;
+}
+
+.pad-form-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.pad-form-title {
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin: 0 0 0.15rem;
+  color: var(--color-text, #111827);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pad-form-due {
+  font-size: 0.78rem;
+  color: var(--color-text-muted, #6b7280);
+  margin: 0;
+}
+
+.pad-form-due.overdue {
+  color: #dc2626;
+}
+
+.pad-form-btn {
+  flex-shrink: 0;
+  padding: 0.35rem 0.9rem;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--color-primary, #2563eb);
+  color: #fff;
+  border: none;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.pad-done-badge {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  color: #16a34a;
+  font-weight: 600;
+  background: #f0fdf4;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+}
