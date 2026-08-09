@@ -267,7 +267,13 @@ function App() {
   const { session, isAdmin, role, branding, loading, signOut } = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [gearOpen, setGearOpen] = useState(false);
+  const [logoBroken, setLogoBroken] = useState(false);
   const gearRef = useRef(null);
+
+  // Reset broken-logo state when the logo URL changes (e.g. after a re-upload)
+  useEffect(() => {
+    setLogoBroken(false);
+  }, [branding?.logoUrl]);
 
   // Apply school branding as CSS variable overrides
   useEffect(() => {
@@ -337,8 +343,13 @@ function App() {
       <header className="app-header">
         <div className="header-inner">
           <Link to="/" className="brand">
-            {branding?.logoUrl ? (
-              <img src={branding.logoUrl} alt="School logo" className="brand-logo" />
+            {branding?.logoUrl && !logoBroken ? (
+              <img
+                src={branding.logoUrl}
+                alt="School logo"
+                className="brand-logo"
+                onError={() => setLogoBroken(true)}
+              />
             ) : (
               <span className="brand-icon">+</span>
             )}
