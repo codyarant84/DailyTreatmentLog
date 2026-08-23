@@ -2,7 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../lib/api.js';
 import TreatmentCard from '../components/TreatmentCard.jsx';
+import { CategoryBadge, DispositionBadge } from '../components/GeneralMedicalBadges.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
+import { formatEventDate } from '../lib/generalMedical.js';
 import './AthleteProfile.css';
 
 const TREATMENT_TYPES = ['Ice', 'Heat', 'Ultrasound', 'E-Stim', 'Massage', 'Taping', 'Exercise'];
@@ -44,6 +46,9 @@ export default function AthleteProfile() {
   const [flagSaving, setFlagSaving] = useState(false);
   const [flagError, setFlagError]   = useState(null);
 
+  // General medical history
+  const [genMedEvents, setGenMedEvents]     = useState([]);
+
   // Parent access state
   const [parents, setParents]               = useState([]);
   const [inviteEmail, setInviteEmail]       = useState('');
@@ -72,6 +77,9 @@ export default function AthleteProfile() {
       .catch(() => {});
     api.get(`/api/portal/athlete/${athlete.id}/parents`)
       .then(({ data }) => setParents(data))
+      .catch(() => {});
+    api.get(`/api/general-medical/athlete/${athlete.id}`)
+      .then(({ data }) => setGenMedEvents(data))
       .catch(() => {});
   }, [athlete?.id]);
 
@@ -292,6 +300,32 @@ export default function AthleteProfile() {
                   <button className="btn btn--sm btn--danger-ghost" onClick={() => handleDeleteFlag(flag.id)}>Delete</button>
                 </div>
               </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* General Medical History */}
+      <div className="flags-section">
+        <div className="flags-header">
+          <h2 className="flags-title">
+            General Medical History
+            {genMedEvents.length > 0 && <span className="flag-badge flag-badge--medium" style={{ marginLeft: '0.5rem' }}>{genMedEvents.length}</span>}
+          </h2>
+          <Link to="/gen-med" className="btn btn--sm btn--outline">+ Log Event</Link>
+        </div>
+
+        {genMedEvents.length === 0 ? (
+          <p className="flags-empty">No general medical events on file for this athlete.</p>
+        ) : (
+          <div className="flag-list">
+            {genMedEvents.map((e) => (
+              <Link key={e.id} to={`/gen-med?tab=history&highlight=${e.id}`} className="gm-history-row">
+                <span className="gm-history-date">{formatEventDate(e.event_date)}</span>
+                <CategoryBadge category={e.category} />
+                {e.subcategory && <span className="gm-history-subcategory">{e.subcategory}</span>}
+                <DispositionBadge disposition={e.disposition} />
+              </Link>
             ))}
           </div>
         )}

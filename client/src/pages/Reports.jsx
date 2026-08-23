@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../lib/api.js';
+import { categoryMeta, dispositionLabel } from '../lib/generalMedical.js';
 import './Reports.css';
 
 // ── Constants ────────────────────────────────────────────────────────
@@ -10,6 +11,7 @@ const SECTIONS = [
   { key: 'rtp_status',         label: 'Return to Play Status',  desc: 'Current RTP status for all active injuries' },
   { key: 'soap_notes',         label: 'SOAP Notes',             desc: 'Clinical notes within the selected date range' },
   { key: 'concussion_history', label: 'Concussion History',     desc: 'Active or recent concussion cases' },
+  { key: 'general_medical',    label: 'General Medical',        desc: 'Non-injury medical events within the selected date range' },
 ];
 
 const DATE_PRESETS = [
@@ -344,6 +346,26 @@ async function buildPDF(report) {
             headStyles: HEAD_STYLE, bodyStyles: BODY_STYLE, alternateRowStyles: ALT_ROW,
           })
         : emptyNote('No concussion cases recorded.');
+    }
+
+    // General Medical
+    if (secs.includes('general_medical')) {
+      sectionHeader('General Medical');
+      ath.general_medical.length
+        ? tbl({
+            head: [['Date', 'Category', 'Subcategory', 'Chief Complaint', 'Disposition']],
+            body: ath.general_medical.map(g => [
+              fmtDate(g.event_date),
+              categoryMeta(g.category).label,
+              g.subcategory ?? '—',
+              g.chief_complaint ?? '—',
+              dispositionLabel(g.disposition),
+            ]),
+            theme: 'striped',
+            headStyles: HEAD_STYLE, bodyStyles: BODY_STYLE, alternateRowStyles: ALT_ROW,
+            columnStyles: { 3: { cellWidth: 'auto' } },
+          })
+        : emptyNote('No general medical events in this date range.');
     }
 
     // Divider between athletes

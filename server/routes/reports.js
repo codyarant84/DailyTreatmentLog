@@ -60,7 +60,7 @@ router.post('/generate', async (req, res) => {
     const needsInjuries = sections.some(s => ['injury_summary', 'rtp_status', 'soap_notes'].includes(s));
 
     // Parallel data fetches
-    const [injuriesRes, treatmentsRes, concussionsRes] = await Promise.all([
+    const [injuriesRes, treatmentsRes, concussionsRes, generalMedicalRes] = await Promise.all([
       needsInjuries
         ? query(
             `SELECT * FROM injuries
@@ -88,6 +88,15 @@ router.post('/generate', async (req, res) => {
             [resolvedIds, req.schoolId, dateFrom, dateTo]
           )
         : { rows: [] },
+      sections.includes('general_medical')
+        ? query(
+            `SELECT * FROM general_medical
+             WHERE athlete_id = ANY($1) AND school_id = $2
+             AND event_date BETWEEN $3 AND $4
+             ORDER BY event_date DESC`,
+            [resolvedIds, req.schoolId, dateFrom, dateTo]
+          )
+        : { rows: [] },
     ]);
 
     // SOAP notes (requires injury IDs)
@@ -111,7 +120,8 @@ router.post('/generate', async (req, res) => {
       const concussions = concussionsRes.rows.filter(c => c.athlete_id === ath.id);
       const injuryIds  = injuries.map(i => i.id);
       const soap_notes = soapRows.filter(s => injuryIds.includes(s.injury_id));
-      return { profile: ath, injuries, treatments, concussions, soap_notes };
+      const general_medical = generalMedicalRes.rows.filter(g => g.athlete_id === ath.id);
+      return { profile: ath, injuries, treatments, concussions, soap_notes, general_medical };
     });
 
     res.json({

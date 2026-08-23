@@ -18,6 +18,7 @@ import ExerciseLibrary from './pages/ExerciseLibrary.jsx';
 import RehabPrograms from './pages/RehabPrograms.jsx';
 import Injuries from './pages/Injuries.jsx';
 import InjuryDetail from './pages/InjuryDetail.jsx';
+import GeneralMedical from './pages/GeneralMedical.jsx';
 import Concussions from './pages/Concussions.jsx';
 import ConcussionDetail from './pages/ConcussionDetail.jsx';
 import Insights from './pages/Insights.jsx';
@@ -186,6 +187,13 @@ const IconReports = () => (
   </svg>
 );
 
+const IconGenMed = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/>
+    <path d="M12 8v6M9 11h6"/>
+  </svg>
+);
+
 const IconConcussions = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M9.5 2A6.5 6.5 0 0 1 16 8.5c0 2.5-1.5 4.5-3 5.5v2a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-2c-1.5-1-3-3-3-5.5A6.5 6.5 0 0 1 9.5 2z"/>
@@ -210,6 +218,7 @@ function MoreDrawer({ onClose, role }) {
     { label: 'Log',          icon: <IconLog />,          path: '/log',         show: role !== 'coach' },
     { label: 'Athletes',     icon: <IconAthletes />,     path: '/athletes',    show: true },
     { label: 'Teams',        icon: <IconTeams />,        path: '/teams',       show: role !== 'coach' },
+    { label: 'Gen Med',      icon: <IconGenMed />,       path: '/gen-med',     show: role !== 'coach' },
     { label: 'Concussions',  icon: <IconConcussions />,  path: '/concussions', show: role !== 'coach' },
     { label: 'Insights',     icon: <IconInsights />,     path: '/insights',    show: true },
     { label: 'Library',      icon: <IconLibrary />,      path: '/exercises',   show: role !== 'coach' },
@@ -374,6 +383,9 @@ function App() {
                   <Link to="/injuries" className={`nav-link${p.startsWith('/injuries') ? ' active' : ''}`}>Injuries</Link>
                 )}
                 {role !== 'coach' && (
+                  <Link to="/gen-med" className={`nav-link${p.startsWith('/gen-med') ? ' active' : ''}`}>Gen Med</Link>
+                )}
+                {role !== 'coach' && (
                   <Link to="/concussions" className={`nav-link${p.startsWith('/concussions') ? ' active' : ''}`}>Concussions</Link>
                 )}
                 {role !== 'coach' && (
@@ -432,6 +444,7 @@ function App() {
           <Route path="/activity" element={<ProtectedRoute><Activity /></ProtectedRoute>} />
           <Route path="/injuries" element={<ProtectedRoute><CoachRoute><Injuries /></CoachRoute></ProtectedRoute>} />
           <Route path="/injuries/:id" element={<ProtectedRoute><CoachRoute><InjuryDetail /></CoachRoute></ProtectedRoute>} />
+          <Route path="/gen-med" element={<ProtectedRoute><CoachRoute><GeneralMedical /></CoachRoute></ProtectedRoute>} />
           <Route path="/concussions" element={<ProtectedRoute><Concussions /></ProtectedRoute>} />
           <Route path="/concussions/:id" element={<ProtectedRoute><ConcussionDetail /></ProtectedRoute>} />
           <Route path="/concussion-checkin/:token" element={<div>Check-in coming soon</div>} />

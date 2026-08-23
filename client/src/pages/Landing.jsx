@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import { CategoryBadge, DispositionBadge } from '../components/GeneralMedicalBadges.jsx';
 import './Landing.css';
 
 function getGreeting() {
@@ -58,17 +59,19 @@ export default function Landing() {
   const [allTreatments, setAllTreatments] = useState([]);
   const [gpsAlerts, setGpsAlerts] = useState([]);
   const [activeConcussions, setActiveConcussions] = useState(0);
+  const [genMedEvents, setGenMedEvents] = useState([]);
 
   useEffect(() => {
     async function load() {
       try {
-        const [todayRes, injuriesRes, athletesRes, allTreatmentsRes, gpsDashRes, concussionsRes] = await Promise.all([
+        const [todayRes, injuriesRes, athletesRes, allTreatmentsRes, gpsDashRes, concussionsRes, genMedRes] = await Promise.all([
           api.get(`/api/daily-treatments?date=${today}`),
           api.get('/api/injuries'),
           api.get('/api/athletes'),
           api.get('/api/daily-treatments'),
           api.get('/api/gps/dashboard'),
           api.get('/api/concussions?status=active'),
+          api.get('/api/general-medical'),
         ]);
 
         setTodayTreatments(todayRes.data ?? []);
@@ -82,6 +85,7 @@ export default function Landing() {
         setGpsAlerts(alerts);
 
         setActiveConcussions((concussionsRes.data ?? []).length);
+        setGenMedEvents(genMedRes.data ?? []);
       } catch (err) {
         console.error('Landing load error:', err);
       } finally {
@@ -116,6 +120,16 @@ export default function Landing() {
   const todaySorted = [...todayTreatments].sort(
     (a, b) => new Date(b.created_at) - new Date(a.created_at)
   );
+
+  // General medical: follow-ups needed in the last 30 days, and today's events
+  // (compare as YYYY-MM-DD strings to sidestep any timezone drift in date parsing)
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const cutoffStr = thirtyDaysAgo.toISOString().split('T')[0];
+  const activeFollowUps = genMedEvents.filter(
+    (e) => e.follow_up_required && e.event_date?.split('T')[0] >= cutoffStr
+  );
+  const todayGenMed = genMedEvents.filter((e) => e.event_date?.split('T')[0] === today);
 
   return (
     <div className="landing">
@@ -160,6 +174,12 @@ export default function Landing() {
             {loading ? '—' : activeConcussions}
           </span>
           <span className="stat-label">Active concussions</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-value stat-value--alert">
+            {loading ? '—' : activeFollowUps.length}
+          </span>
+          <span className="stat-label">Active Follow-ups</span>
         </div>
       </div>
 
@@ -253,6 +273,37 @@ export default function Landing() {
         </section>
 
       </div>
+
+      {/* General medical — today */}
+      <section className="landing-section">
+        <div className="section-header">
+          <h2 className="section-title">General Medical — Today</h2>
+          <Link to="/gen-med?tab=history" className="section-link">View all</Link>
+        </div>
+        {loading ? (
+          <div className="section-loading"><div className="spinner" /></div>
+        ) : todayGenMed.length === 0 ? (
+          <div className="section-empty"><p>No general medical events logged today.</p></div>
+        ) : (
+          <div className="compact-card-list">
+            {todayGenMed.map((e) => (
+              <Link key={e.id} to={`/gen-med?tab=history&highlight=${e.id}`} className="compact-card compact-card--link">
+                <div className="compact-card-main">
+                  <span className="compact-card-name">{e.athlete_name}</span>
+                  <div className="compact-card-tags">
+                    <CategoryBadge category={e.category} />
+                    {e.subcategory && <span className="compact-body-badge">{e.subcategory}</span>}
+                  </div>
+                </div>
+                <div className="compact-card-right">
+                  {e.follow_up_required && <span className="compact-days">Follow-up</span>}
+                  <DispositionBadge disposition={e.disposition} />
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* ── Bottom two-col grid ─────────────────────────────────────── */}
       <div className="landing-grid">
