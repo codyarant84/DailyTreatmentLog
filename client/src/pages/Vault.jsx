@@ -4,6 +4,7 @@ import {
   CREDENTIAL_TYPES, credentialTypeMeta, daysUntil, expirationStatus,
 } from '../lib/credentials.js';
 import { formatDate as formatCredentialDate } from '../lib/dateUtils.js';
+import { readFileAsBase64 } from '../lib/files.js';
 import './Vault.css';
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -17,15 +18,6 @@ const EMPTY_FORM = {
   expiration_date:    '',
   notes:              '',
 };
-
-function readFileAsBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
 
 function CredentialFormModal({ credential, onClose, onSaved }) {
   const isEdit = Boolean(credential);

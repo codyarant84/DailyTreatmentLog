@@ -20,6 +20,7 @@ import Injuries from './pages/Injuries.jsx';
 import InjuryDetail from './pages/InjuryDetail.jsx';
 import GeneralMedical from './pages/GeneralMedical.jsx';
 import Vault from './pages/Vault.jsx';
+import CEU from './pages/CEU.jsx';
 import Concussions from './pages/Concussions.jsx';
 import ConcussionDetail from './pages/ConcussionDetail.jsx';
 import Insights from './pages/Insights.jsx';
@@ -174,6 +175,13 @@ const IconVault = () => (
   </svg>
 );
 
+const IconCEU = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 10v6M2 10l10-5 10 5-10 5-10-5Z"/>
+    <path d="M6 12v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5"/>
+  </svg>
+);
+
 const IconAdmin = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -232,6 +240,7 @@ function MoreDrawer({ onClose, role }) {
     { label: 'Insights',     icon: <IconInsights />,     path: '/insights',    show: true },
     { label: 'Library',      icon: <IconLibrary />,      path: '/exercises',   show: role !== 'coach' },
     { label: 'Programs',     icon: <IconPrograms />,     path: '/programs',    show: role !== 'coach' },
+    { label: 'CEU',          icon: <IconCEU />,          path: '/ceu',         show: role !== 'coach' },
     { label: 'Reports',      icon: <IconReports />,      path: '/reports',     show: role !== 'coach' },
     { label: 'Forms',        icon: <IconForms />,         path: '/forms',          show: role !== 'coach' },
     { label: 'Vault',        icon: <IconVault />,        path: '/vault',       show: isAdmin },
@@ -418,6 +427,7 @@ function App() {
                     {/* Resources group */}
                     <Link to="/exercises" className={`nav-link${p === '/exercises' ? ' active' : ''}`}>Library</Link>
                     <Link to="/programs" className={`nav-link${p.startsWith('/programs') ? ' active' : ''}`}>Programs</Link>
+                    <Link to="/ceu" className={`nav-link${p.startsWith('/ceu') ? ' active' : ''}`}>CEU</Link>
                   </>
                 )}
               </nav>
@@ -457,6 +467,7 @@ function App() {
           <Route path="/injuries/:id" element={<ProtectedRoute><CoachRoute><InjuryDetail /></CoachRoute></ProtectedRoute>} />
           <Route path="/gen-med" element={<ProtectedRoute><CoachRoute><GeneralMedical /></CoachRoute></ProtectedRoute>} />
           <Route path="/vault" element={<ProtectedRoute><CoachRoute><Vault /></CoachRoute></ProtectedRoute>} />
+          <Route path="/ceu" element={<ProtectedRoute><CoachRoute><CEU /></CoachRoute></ProtectedRoute>} />
           <Route path="/concussions" element={<ProtectedRoute><Concussions /></ProtectedRoute>} />
           <Route path="/concussions/:id" element={<ProtectedRoute><ConcussionDetail /></ProtectedRoute>} />
           <Route path="/concussion-checkin/:token" element={<div>Check-in coming soon</div>} />

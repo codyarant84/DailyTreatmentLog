@@ -155,7 +155,7 @@ export default function GPSDashboard() {
       const prompt = `Team: ${teamLabel}\nTotal athletes: ${athleteData.length}\nRisk summary: ${redCount} high-risk, ${yellowCount} monitor, ${greenCount} green\nTotal sessions this week: ${totalSessions}\n\nAthlete breakdown:\n${athleteLines}`;
 
       const { data: json } = await api.post('/api/anthropic/messages', {
-        model: 'claude-sonnet-4-5',
+        model: 'claude-sonnet-4-6',
         max_tokens: 1000,
         system: "You are an expert sports scientist and athletic trainer assistant. Analyze the GPS load data provided and generate 3-5 concise, actionable insights about the team's current workload status. Each insight should be 1-2 sentences. Focus on: athletes with concerning ACWR trends, week-over-week load spikes, athletes with zero-data sessions, positive callouts for well-managed athletes, and team-level patterns. Be specific — use athlete names and actual numbers. Format your response as a JSON array of objects, each with two fields: 'text' (the insight string) and 'type' (one of: 'alert', 'warn', 'good', 'info'). Return only the JSON array, no other text.",
         messages: [{ role: 'user', content: prompt }],
