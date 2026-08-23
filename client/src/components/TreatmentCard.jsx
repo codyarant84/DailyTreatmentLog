@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { calculateSavings } from '../lib/cptCodes.js';
+import { formatDate as formatDateUtil } from '../lib/dateUtils.js';
 import './TreatmentCard.css';
 
 function formatDollars(n) {
@@ -38,10 +39,7 @@ function accentColor(types) {
 }
 
 function formatDate(dateStr) {
-  if (!dateStr) return '';
-  const [year, month, day] = dateStr.split('-');
-  const d = new Date(Number(year), Number(month) - 1, Number(day));
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  return formatDateUtil(dateStr, { weekday: 'short' });
 }
 
 function TreatmentCard({ treatment, onDelete }) {

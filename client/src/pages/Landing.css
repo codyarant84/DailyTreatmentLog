@@ -70,6 +70,37 @@
 }
 
 /* ── Two-column grid ─────────────────────────────────────────────── */
+/* ── Credential expiration warning ──────────────────────────────── */
+.credential-alert-card {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: var(--radius);
+  padding: 0.75rem 1.1rem;
+  color: #78350f;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  width: fit-content;
+}
+
+.credential-alert-card:hover {
+  text-decoration: none;
+  border-color: #f59e0b;
+}
+
+.credential-alert-icon {
+  font-size: 1rem;
+}
+
+.credential-alert-link {
+  color: #92400e;
+  font-weight: 700;
+  margin-left: 0.25rem;
+}
+
 .landing-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

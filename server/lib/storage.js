@@ -30,3 +30,10 @@ export async function uploadToPath(buffer, key, contentType) {
   }));
   return `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
 }
+
+export async function deleteAtPath(key) {
+  await client.send(new DeleteObjectCommand({
+    Bucket: process.env.S3_BUCKET_NAME,
+    Key: key,
+  }));
+}

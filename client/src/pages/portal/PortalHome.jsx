@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api.js';
 import { usePortalAuth } from '../../context/PortalAuthContext.jsx';
+import { formatDate, parseLocalDate } from '../../lib/dateUtils.js';
 import './PortalHome.css';
 
 function statusVariant(status) {
@@ -172,7 +173,7 @@ export default function PortalHome() {
                     </p>
                     {concussionStatus.last_checkin ? (
                       <p className="ph-concussion-meta">
-                        Last check-in: {new Date(concussionStatus.last_checkin).toLocaleDateString()}
+                        Last check-in: {formatDate(concussionStatus.last_checkin)}
                       </p>
                     ) : (
                       <p className="ph-concussion-meta ph-concussion-meta--alert">No check-ins submitted yet</p>
@@ -205,8 +206,8 @@ export default function PortalHome() {
                       <div className="ph-form-info">
                         <p className="ph-form-title">{f.form_title}</p>
                         {f.due_date && (
-                          <p className={`ph-form-due${new Date(f.due_date) < new Date() ? ' overdue' : ''}`}>
-                            Due: {new Date(f.due_date).toLocaleDateString()}
+                          <p className={`ph-form-due${parseLocalDate(f.due_date) < new Date() ? ' overdue' : ''}`}>
+                            Due: {formatDate(f.due_date)}
                           </p>
                         )}
                       </div>

@@ -48,14 +48,6 @@ export function dispositionLabel(key) {
   return DISPOSITIONS.find((d) => d.key === key)?.label ?? key;
 }
 
-// Mirrors Injuries.jsx's formatDate — event_date is a `date` column, same as injury_date.
-export function formatEventDate(str) {
-  if (!str) return '';
-  const [y, m, d] = str.split('-');
-  return new Date(Number(y), Number(m) - 1, Number(d))
-    .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
 export function formatEventTime(str) {
   if (!str) return null;
   const [h, m] = str.split(':');

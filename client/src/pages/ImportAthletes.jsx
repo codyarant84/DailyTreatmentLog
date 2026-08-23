@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { parseCsvFile, FIELD_LABELS, detectColumnMap } from '../lib/parseCsv.js';
 import api from '../lib/api.js';
+import { formatDate } from '../lib/dateUtils.js';
 import './ImportAthletes.css';
 
 const PREVIEW_LIMIT = 10;
@@ -20,9 +21,7 @@ function ColChip({ field, columnMap }) {
 
 function formatDob(iso) {
   if (!iso) return <span className="cell-empty">—</span>;
-  const [y, m, d] = iso.split('-');
-  return new Date(Number(y), Number(m) - 1, Number(d))
-    .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return formatDate(iso);
 }
 
 export default function ImportAthletes() {

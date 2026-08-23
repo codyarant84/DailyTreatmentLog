@@ -19,6 +19,7 @@ import RehabPrograms from './pages/RehabPrograms.jsx';
 import Injuries from './pages/Injuries.jsx';
 import InjuryDetail from './pages/InjuryDetail.jsx';
 import GeneralMedical from './pages/GeneralMedical.jsx';
+import Vault from './pages/Vault.jsx';
 import Concussions from './pages/Concussions.jsx';
 import ConcussionDetail from './pages/ConcussionDetail.jsx';
 import Insights from './pages/Insights.jsx';
@@ -165,6 +166,14 @@ const IconForms = () => (
   </svg>
 );
 
+const IconVault = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2"/>
+    <circle cx="12" cy="12" r="4"/>
+    <line x1="12" y1="10" x2="12" y2="10.01"/>
+  </svg>
+);
+
 const IconAdmin = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -225,6 +234,7 @@ function MoreDrawer({ onClose, role }) {
     { label: 'Programs',     icon: <IconPrograms />,     path: '/programs',    show: role !== 'coach' },
     { label: 'Reports',      icon: <IconReports />,      path: '/reports',     show: role !== 'coach' },
     { label: 'Forms',        icon: <IconForms />,         path: '/forms',          show: role !== 'coach' },
+    { label: 'Vault',        icon: <IconVault />,        path: '/vault',       show: isAdmin },
     { label: 'Settings',     icon: <IconSettings />,     path: '/settings',    show: isAdmin },
     { label: 'Admin',        icon: <IconAdmin />,        path: '/admin',       show: isAdmin },
     { label: 'Activity',     icon: <IconAdmin />,        path: '/activity',    show: role === 'super_admin' },
@@ -265,6 +275,7 @@ function GearDropdown({ role, onClose }) {
     <div className="nav-gear-dropdown">
       {isAdmin && <Link to="/settings" onClick={onClose}>Settings</Link>}
       {isAdmin && <Link to="/admin" onClick={onClose}>Admin</Link>}
+      <Link to="/vault" onClick={onClose}>Vault</Link>
       {role === 'super_admin' && <Link to="/activity" onClick={onClose}>Activity</Link>}
     </div>
   );
@@ -445,6 +456,7 @@ function App() {
           <Route path="/injuries" element={<ProtectedRoute><CoachRoute><Injuries /></CoachRoute></ProtectedRoute>} />
           <Route path="/injuries/:id" element={<ProtectedRoute><CoachRoute><InjuryDetail /></CoachRoute></ProtectedRoute>} />
           <Route path="/gen-med" element={<ProtectedRoute><CoachRoute><GeneralMedical /></CoachRoute></ProtectedRoute>} />
+          <Route path="/vault" element={<ProtectedRoute><CoachRoute><Vault /></CoachRoute></ProtectedRoute>} />
           <Route path="/concussions" element={<ProtectedRoute><Concussions /></ProtectedRoute>} />
           <Route path="/concussions/:id" element={<ProtectedRoute><ConcussionDetail /></ProtectedRoute>} />
           <Route path="/concussion-checkin/:token" element={<div>Check-in coming soon</div>} />

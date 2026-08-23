@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../lib/api.js';
 import SelectWithOther from '../components/SelectWithOther.jsx';
 import { BODY_PARTS, INJURY_TYPES } from '../lib/constants.js';
+import { formatDate, parseLocalDate } from '../lib/dateUtils.js';
 import './Injuries.css';
 
 export const MECHANISMS = ['Contact', 'Non-contact', 'Overuse', 'Unknown'];
@@ -25,16 +26,11 @@ const SEVERITY_COLORS = {
 };
 
 function daysSince(dateStr) {
-  if (!dateStr) return null;
-  const ms = Date.now() - new Date(dateStr).getTime();
-  return Math.floor(ms / (1000 * 60 * 60 * 24));
-}
-
-function formatDate(str) {
-  if (!str) return '';
-  const [y, m, d] = str.split('-');
-  return new Date(Number(y), Number(m) - 1, Number(d))
-    .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const date = parseLocalDate(dateStr);
+  if (!date) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.floor((today - date) / (1000 * 60 * 60 * 24));
 }
 
 function Badge({ label, colorMap }) {

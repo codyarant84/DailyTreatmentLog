@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../lib/api.js';
 import { categoryMeta, dispositionLabel } from '../lib/generalMedical.js';
+import { formatDate as fmtDate } from '../lib/dateUtils.js';
 import './Reports.css';
 
 // ── Constants ────────────────────────────────────────────────────────
@@ -40,13 +41,6 @@ function getPresetDates(preset) {
   return null;
 }
 
-function fmtDate(str) {
-  if (!str) return '—';
-  const clean = str.split('T')[0];
-  const [y, m, d] = clean.split('-');
-  return new Date(Number(y), Number(m) - 1, Number(d))
-    .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
 
 // ── PDF Builder ──────────────────────────────────────────────────────
 async function buildPDF(report) {

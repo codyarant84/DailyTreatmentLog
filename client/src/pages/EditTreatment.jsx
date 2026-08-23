@@ -5,6 +5,7 @@ import AthleteCombobox from '../components/AthleteCombobox.jsx';
 import SportCombobox from '../components/SportCombobox.jsx';
 import SelectWithOther from '../components/SelectWithOther.jsx';
 import { BODY_PARTS } from '../lib/constants.js';
+import { formatDate } from '../lib/dateUtils.js';
 import './NewTreatment.css';
 
 const TREATMENT_TYPES = ['Ice', 'Heat', 'Ultrasound', 'E-Stim', 'Massage', 'Taping', 'Cupping', 'Exercise', 'Stretching'];
@@ -268,7 +269,7 @@ export default function EditTreatment() {
                 {activeInjuries.map((inj) => (
                   <option key={inj.id} value={inj.id}>
                     {inj.injury_type} · {inj.body_part}
-                    {inj.injury_date ? ` (${new Date(inj.injury_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})` : ''}
+                    {inj.injury_date ? ` (${formatDate(inj.injury_date, { year: undefined })})` : ''}
                   </option>
                 ))}
               </select>

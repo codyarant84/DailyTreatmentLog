@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../lib/api.js';
 import { usePortalAuth } from '../../context/PortalAuthContext.jsx';
+import { formatDate } from '../../lib/dateUtils.js';
 import './PortalFormComplete.css';
 
 export default function PortalFormComplete() {
@@ -171,7 +172,7 @@ export default function PortalFormComplete() {
           <p className="pfc-form-desc">{assignment.form_description}</p>
         )}
         {assignment.due_date && (
-          <p className="pfc-due">Due: {new Date(assignment.due_date).toLocaleDateString()}</p>
+          <p className="pfc-due">Due: {formatDate(assignment.due_date)}</p>
         )}
 
         {uploadMode ? (

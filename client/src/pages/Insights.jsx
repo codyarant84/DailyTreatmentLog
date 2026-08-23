@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import api from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import { formatDate as fmtDate, parseLocalDate } from '../lib/dateUtils.js';
 import './Insights.css';
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
@@ -61,13 +62,6 @@ function fmt$(n) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 }
 
-function fmtDate(str) {
-  if (!str) return '';
-  const [y, m, d] = str.split('-');
-  return new Date(Number(y), Number(m) - 1, Number(d))
-    .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
 function countBy(arr, key) {
   const map = {};
   arr.forEach((item) => {
@@ -80,9 +74,11 @@ function countBy(arr, key) {
 }
 
 function daysSince(dateStr) {
-  if (!dateStr) return null;
-  const ms = Date.now() - new Date(dateStr + 'T00:00:00').getTime();
-  return Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)));
+  const date = parseLocalDate(dateStr);
+  if (!date) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.max(0, Math.floor((today - date) / (1000 * 60 * 60 * 24)));
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -242,7 +238,9 @@ export default function Insights() {
     );
     if (cleared.length === 0) return null;
     const total = cleared.reduce((sum, i) => {
-      const days = Math.floor((new Date(i.cleared_at) - new Date(i.injury_date + 'T00:00:00')) / (1000 * 60 * 60 * 24));
+      const injuryDate = parseLocalDate(i.injury_date);
+      if (!injuryDate) return sum;
+      const days = Math.floor((new Date(i.cleared_at) - injuryDate) / (1000 * 60 * 60 * 24));
       return sum + Math.max(0, days);
     }, 0);
     return Math.round(total / cleared.length);
@@ -308,9 +306,9 @@ export default function Insights() {
     const NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const counts = new Array(7).fill(0);
     treatments.forEach((t) => {
-      if (!t.date) return;
-      const [y, m, d] = t.date.split('-');
-      counts[new Date(Number(y), Number(m) - 1, Number(d)).getDay()]++;
+      const date = parseLocalDate(t.date);
+      if (!date) return;
+      counts[date.getDay()]++;
     });
     return NAMES.map((name, i) => ({ name, count: counts[i] }));
   }, [treatments]);

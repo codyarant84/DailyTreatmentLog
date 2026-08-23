@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import api from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { CategoryBadge, DispositionBadge } from '../components/GeneralMedicalBadges.jsx';
+import { daysUntil } from '../lib/credentials.js';
+import { parseLocalDate } from '../lib/dateUtils.js';
 import './Landing.css';
 
 function getGreeting() {
@@ -32,8 +34,11 @@ function formatTime(iso) {
 }
 
 function daysSince(dateStr) {
-  if (!dateStr) return null;
-  return Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
+  const date = parseLocalDate(dateStr);
+  if (!date) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.floor((today - date) / (1000 * 60 * 60 * 24));
 }
 
 const RTP_META = {
@@ -60,11 +65,12 @@ export default function Landing() {
   const [gpsAlerts, setGpsAlerts] = useState([]);
   const [activeConcussions, setActiveConcussions] = useState(0);
   const [genMedEvents, setGenMedEvents] = useState([]);
+  const [expiringCredentials, setExpiringCredentials] = useState([]);
 
   useEffect(() => {
     async function load() {
       try {
-        const [todayRes, injuriesRes, athletesRes, allTreatmentsRes, gpsDashRes, concussionsRes, genMedRes] = await Promise.all([
+        const [todayRes, injuriesRes, athletesRes, allTreatmentsRes, gpsDashRes, concussionsRes, genMedRes, credentialsRes] = await Promise.all([
           api.get(`/api/daily-treatments?date=${today}`),
           api.get('/api/injuries'),
           api.get('/api/athletes'),
@@ -72,6 +78,7 @@ export default function Landing() {
           api.get('/api/gps/dashboard'),
           api.get('/api/concussions?status=active'),
           api.get('/api/general-medical'),
+          api.get('/api/credentials/expiring'),
         ]);
 
         setTodayTreatments(todayRes.data ?? []);
@@ -86,6 +93,13 @@ export default function Landing() {
 
         setActiveConcussions((concussionsRes.data ?? []).length);
         setGenMedEvents(genMedRes.data ?? []);
+
+        // Dashboard warning card only cares about the next 30 days
+        const within30 = (credentialsRes.data ?? []).filter((c) => {
+          const days = daysUntil(c.expiration_date);
+          return days !== null && days <= 30;
+        });
+        setExpiringCredentials(within30);
       } catch (err) {
         console.error('Landing load error:', err);
       } finally {
@@ -148,6 +162,17 @@ export default function Landing() {
           <Link to="/gps" className="btn btn--outline landing-action-btn">Import GPS</Link>
         </div>
       </div>
+
+      {/* ── Credential expiration warning ────────────────────────────── */}
+      {!loading && expiringCredentials.length > 0 && (
+        <Link to="/vault" className="credential-alert-card">
+          <span className="credential-alert-icon" aria-hidden="true">⚠️</span>
+          <span>
+            {expiringCredentials.length} credential{expiringCredentials.length !== 1 ? 's' : ''} expiring within 30 days
+          </span>
+          <span className="credential-alert-link">Review Vault →</span>
+        </Link>
+      )}
 
       {/* ── Stats strip ────────────────────────────────────────────── */}
       <div className="stats-row">

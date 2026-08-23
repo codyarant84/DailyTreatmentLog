@@ -4,9 +4,8 @@ import api from '../lib/api.js';
 import AthleteCombobox from '../components/AthleteCombobox.jsx';
 import SelectWithOther from '../components/SelectWithOther.jsx';
 import { CategoryBadge, DispositionBadge } from '../components/GeneralMedicalBadges.jsx';
-import {
-  CATEGORIES, SUBCATEGORY_OPTIONS, DISPOSITIONS, formatEventDate,
-} from '../lib/generalMedical.js';
+import { CATEGORIES, SUBCATEGORY_OPTIONS, DISPOSITIONS } from '../lib/generalMedical.js';
+import { formatDate } from '../lib/dateUtils.js';
 import './GeneralMedical.css';
 
 function emptyForm() {
@@ -313,7 +312,7 @@ function HistoryTab({ events, expandedId, onToggleExpand, onEdit, onDelete }) {
                     >
                       {e.athlete_name}
                     </Link>
-                    <span className="gm-date">{formatEventDate(e.event_date)}</span>
+                    <span className="gm-date">{formatDate(e.event_date)}</span>
                   </div>
                   <div className="gm-card-header-badges">
                     <CategoryBadge category={e.category} />

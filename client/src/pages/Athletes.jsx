@@ -2,14 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../lib/api.js';
 import SportCombobox from '../components/SportCombobox.jsx';
+import { formatDate as formatDob } from '../lib/dateUtils.js';
 import './Athletes.css';
-
-function formatDob(iso) {
-  if (!iso) return '—';
-  const [y, m, d] = iso.split('-');
-  return new Date(Number(y), Number(m) - 1, Number(d))
-    .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
 
 const EMPTY_FORM = {
   first_name: '',

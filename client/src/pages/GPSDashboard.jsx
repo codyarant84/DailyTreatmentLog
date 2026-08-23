@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { parsePlayerDataCSV } from '../lib/parsePlayerDataCSV.js';
 import api from '../lib/api.js';
+import { formatDate as formatDateUtil } from '../lib/dateUtils.js';
 import './GPSDashboard.css';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -34,10 +35,7 @@ function fmtSpeed(n) {
 }
 
 function fmtDate(iso) {
-  if (!iso) return '—';
-  const [y, m, d] = iso.split('-');
-  return new Date(Number(y), Number(m) - 1, Number(d))
-    .toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return formatDateUtil(iso, { year: undefined });
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────

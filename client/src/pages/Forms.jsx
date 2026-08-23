@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../lib/api.js';
+import { formatDate, parseLocalDate } from '../lib/dateUtils.js';
 import './Forms.css';
 
 const FIELD_TYPES = [
@@ -466,7 +467,7 @@ function SubmissionModal({ assignment, fields, onClose }) {
 // ── Status badge ───────────────────────────────────────────────────
 function statusBadge(a) {
   if (a.completed) return <span className="forms-badge forms-badge--complete">Complete</span>;
-  if (a.due_date && new Date(a.due_date) < new Date()) return <span className="forms-badge forms-badge--overdue">Overdue</span>;
+  if (a.due_date && parseLocalDate(a.due_date) < new Date()) return <span className="forms-badge forms-badge--overdue">Overdue</span>;
   return <span className="forms-badge forms-badge--pending">Pending</span>;
 }
 
@@ -703,7 +704,7 @@ export default function Forms() {
                     <td>{a.form_title}</td>
                     <td>{a.athlete_name ?? '—'}</td>
                     <td className="forms-assigned-to">{a.assigned_to}</td>
-                    <td>{a.due_date ? new Date(a.due_date).toLocaleDateString() : '—'}</td>
+                    <td>{formatDate(a.due_date)}</td>
                     <td>
                       {loadingSubId === a.id
                         ? <span className="forms-badge forms-badge--pending">Loading…</span>

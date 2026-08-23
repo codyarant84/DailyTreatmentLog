@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../lib/api.js';
+import { formatDate, parseLocalDate } from '../lib/dateUtils.js';
 import './ConcussionDetail.css';
 
 const TOTAL_STEPS = 6;
@@ -62,15 +63,11 @@ function symptomCount(asm) {
 }
 
 function daysSince(dateStr) {
-  if (!dateStr) return null;
-  return Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
-}
-
-function formatDate(str) {
-  if (!str) return '';
-  const [y, m, d] = str.split('-');
-  return new Date(Number(y), Number(m) - 1, Number(d))
-    .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const date = parseLocalDate(dateStr);
+  if (!date) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.floor((today - date) / (1000 * 60 * 60 * 24));
 }
 
 // ── Symptom Chart ──────────────────────────────────────────────────

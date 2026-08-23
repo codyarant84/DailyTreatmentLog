@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import api from '../lib/api.js';
 import SelectWithOther from '../components/SelectWithOther.jsx';
 import { BODY_PARTS, INJURY_TYPES } from '../lib/constants.js';
+import { formatDate, parseLocalDate } from '../lib/dateUtils.js';
 import './InjuryDetail.css';
 
 // ── Constants ──────────────────────────────────────────────────────
@@ -46,15 +47,11 @@ const EMPTY_SOAP = {
 
 // ── Helpers ────────────────────────────────────────────────────────
 function daysSince(dateStr) {
-  if (!dateStr) return null;
-  return Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
-}
-
-function formatDate(str) {
-  if (!str) return '';
-  const [y, m, d] = str.split('-');
-  return new Date(Number(y), Number(m) - 1, Number(d))
-    .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const date = parseLocalDate(dateStr);
+  if (!date) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.floor((today - date) / (1000 * 60 * 60 * 24));
 }
 
 function formatDateTime(iso) {

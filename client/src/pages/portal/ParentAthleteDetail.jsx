@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../lib/api.js';
 import { usePortalAuth } from '../../context/PortalAuthContext.jsx';
+import { formatDate, parseLocalDate } from '../../lib/dateUtils.js';
 import './ParentAthleteDetail.css';
 
 const STATUS_VARIANT = { 'Out': 'out', 'Limited': 'limited', 'Full Participation': 'full' };
@@ -111,8 +112,8 @@ export default function ParentAthleteDetail() {
                   <div className="pad-form-info">
                     <p className="pad-form-title">{f.form_title}</p>
                     {f.due_date && (
-                      <p className={`pad-form-due${new Date(f.due_date) < new Date() ? ' overdue' : ''}`}>
-                        Due: {new Date(f.due_date).toLocaleDateString()}
+                      <p className={`pad-form-due${parseLocalDate(f.due_date) < new Date() ? ' overdue' : ''}`}>
+                        Due: {formatDate(f.due_date)}
                       </p>
                     )}
                   </div>

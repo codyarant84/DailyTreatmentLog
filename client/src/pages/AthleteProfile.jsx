@@ -4,7 +4,7 @@ import api from '../lib/api.js';
 import TreatmentCard from '../components/TreatmentCard.jsx';
 import { CategoryBadge, DispositionBadge } from '../components/GeneralMedicalBadges.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
-import { formatEventDate } from '../lib/generalMedical.js';
+import { formatDate, parseLocalDate } from '../lib/dateUtils.js';
 import './AthleteProfile.css';
 
 const TREATMENT_TYPES = ['Ice', 'Heat', 'Ultrasound', 'E-Stim', 'Massage', 'Taping', 'Exercise'];
@@ -14,13 +14,6 @@ function mostCommon(values) {
   const counts = {};
   for (const v of values) counts[v] = (counts[v] ?? 0) + 1;
   return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
-}
-
-function formatDisplayDate(iso) {
-  if (!iso) return '';
-  const [y, m, d] = iso.split('-');
-  return new Date(Number(y), Number(m) - 1, Number(d))
-    .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 const EMPTY_FILTERS = { from: '', to: '', treatment_type: '' };
@@ -161,9 +154,12 @@ export default function AthleteProfile() {
 
   // Client-side filtering for instant response
   const filtered = useMemo(() => {
+    const from = filters.from ? parseLocalDate(filters.from) : null;
+    const to   = filters.to   ? parseLocalDate(filters.to)   : null;
     return treatments.filter((t) => {
-      if (filters.from && t.date < filters.from) return false;
-      if (filters.to   && t.date > filters.to)   return false;
+      const date = parseLocalDate(t.date);
+      if (from && date && date < from) return false;
+      if (to   && date && date > to)   return false;
       if (filters.treatment_type && t.treatment_type !== filters.treatment_type) return false;
       return true;
     });
@@ -321,7 +317,7 @@ export default function AthleteProfile() {
           <div className="flag-list">
             {genMedEvents.map((e) => (
               <Link key={e.id} to={`/gen-med?tab=history&highlight=${e.id}`} className="gm-history-row">
-                <span className="gm-history-date">{formatEventDate(e.event_date)}</span>
+                <span className="gm-history-date">{formatDate(e.event_date)}</span>
                 <CategoryBadge category={e.category} />
                 {e.subcategory && <span className="gm-history-subcategory">{e.subcategory}</span>}
                 <DispositionBadge disposition={e.disposition} />
@@ -412,8 +408,8 @@ export default function AthleteProfile() {
       {hasFilters && (
         <p className="filter-result-label">
           Showing {filtered.length} of {treatments.length} treatment{treatments.length !== 1 ? 's' : ''}
-          {filters.from && ` · from ${formatDisplayDate(filters.from)}`}
-          {filters.to   && ` · to ${formatDisplayDate(filters.to)}`}
+          {filters.from && ` · from ${formatDate(filters.from)}`}
+          {filters.to   && ` · to ${formatDate(filters.to)}`}
           {filters.treatment_type && ` · ${filters.treatment_type}`}
         </p>
       )}
