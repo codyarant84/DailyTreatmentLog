@@ -1,9 +1,8 @@
 import express from 'express';
 import crypto from 'crypto';
-import jwt from 'jsonwebtoken';
 import { Resend } from 'resend';
 import { query } from '../lib/db.js';
-import { hashPassword, verifyPassword } from '../lib/auth.js';
+import { hashPassword, verifyPassword, signPortalToken } from '../lib/auth.js';
 import { uploadFile } from '../lib/storage.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { requirePortalAuth } from '../middleware/requirePortalAuth.js';
@@ -14,16 +13,6 @@ const router = express.Router();
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
-
-// ── Helpers ────────────────────────────────────────────────────────────
-
-function signPortalToken(payload) {
-  return jwt.sign(
-    { sub: 'portal', ...payload },
-    process.env.JWT_SECRET,
-    { expiresIn: '30d' }
-  );
-}
 
 function sanitizeUser(u) {
   return {

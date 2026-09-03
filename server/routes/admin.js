@@ -2,9 +2,105 @@ import express from 'express';
 import { query } from '../lib/db.js';
 import { requireAdmin } from '../middleware/requireAdmin.js';
 import { uploadFile } from '../lib/storage.js';
+import { signToken, signPortalToken } from '../lib/auth.js';
+import { logActivity } from '../middleware/logActivity.js';
 
 const router = express.Router();
 router.use(requireAdmin);
+
+// Impersonation tokens are intentionally short-lived — this is a support/
+// debugging tool, not a persistent session.
+const IMPERSONATION_EXPIRES_IN = '1h';
+
+// POST /api/admin/impersonate/:profileId (super_admin only)
+router.post('/impersonate/:profileId', async (req, res) => {
+  if (req.role !== 'super_admin') return res.status(403).json({ error: 'Super admin only' });
+  try {
+    const { rows } = await query(
+      `SELECT p.id, p.school_id, p.role, p.is_admin, p.sport, p.email, s.name AS school_name
+       FROM profiles p
+       LEFT JOIN schools s ON s.id = p.school_id
+       WHERE p.id = $1`,
+      [req.params.profileId]
+    );
+    const target = rows[0];
+    if (!target) return res.status(404).json({ error: 'User not found.' });
+
+    const token = signToken({
+      userId:         target.id,
+      schoolId:       target.school_id,
+      role:           target.role ?? 'trainer',
+      isAdmin:        target.is_admin ?? false,
+      sport:          target.sport ?? null,
+      impersonating:  true,
+      impersonatedBy: req.userId,
+    }, IMPERSONATION_EXPIRES_IN);
+
+    logActivity({
+      schoolId: target.school_id, profileId: req.userId,
+      action: 'admin.impersonate_start', entityType: 'profile', entityId: target.id,
+    });
+
+    res.json({
+      token,
+      user: {
+        id:          target.id,
+        email:       target.email,
+        role:        target.role ?? 'trainer',
+        school_id:   target.school_id,
+        school_name: target.school_name ?? null,
+      },
+    });
+  } catch (err) {
+    console.error('POST /admin/impersonate/:profileId error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/admin/impersonate/portal/:portalUserId (super_admin only)
+router.post('/impersonate/portal/:portalUserId', async (req, res) => {
+  if (req.role !== 'super_admin') return res.status(403).json({ error: 'Super admin only' });
+  try {
+    const { rows } = await query(
+      `SELECT pu.*, s.name AS school_name
+       FROM portal_users pu
+       LEFT JOIN schools s ON s.id = pu.school_id
+       WHERE pu.id = $1`,
+      [req.params.portalUserId]
+    );
+    const target = rows[0];
+    if (!target) return res.status(404).json({ error: 'Portal user not found.' });
+
+    const token = signPortalToken({
+      portalUserId:   target.id,
+      role:           target.role,
+      schoolId:       target.school_id,
+      athleteId:      target.athlete_id,
+      approved:       target.approved,
+      impersonating:  true,
+      impersonatedBy: req.userId,
+    }, IMPERSONATION_EXPIRES_IN);
+
+    logActivity({
+      schoolId: target.school_id, profileId: req.userId,
+      action: 'admin.impersonate_portal_start', entityType: 'portal_user', entityId: target.id,
+    });
+
+    res.json({
+      token,
+      user: {
+        id:          target.id,
+        name:        target.name,
+        email:       target.email,
+        role:        target.role,
+        school_name: target.school_name ?? null,
+      },
+    });
+  } catch (err) {
+    console.error('POST /admin/impersonate/portal/:portalUserId error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // GET /api/admin/schools — all schools with their users and pending invites
 router.get('/schools', async (req, res) => {

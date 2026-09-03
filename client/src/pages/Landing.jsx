@@ -33,6 +33,13 @@ function formatTime(iso) {
   return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
+// requested_time is a plain `time` column ("HH:MM:SS") — no date/timezone component at all
+function formatTimeLabel(t) {
+  if (!t) return '';
+  const [h, m] = t.split(':').map(Number);
+  return new Date(2000, 0, 1, h, m).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
 function daysSince(dateStr) {
   const date = parseLocalDate(dateStr);
   if (!date) return null;
@@ -66,11 +73,12 @@ export default function Landing() {
   const [activeConcussions, setActiveConcussions] = useState(0);
   const [genMedEvents, setGenMedEvents] = useState([]);
   const [expiringCredentials, setExpiringCredentials] = useState([]);
+  const [todaySchedule, setTodaySchedule] = useState([]);
 
   useEffect(() => {
     async function load() {
       try {
-        const [todayRes, injuriesRes, athletesRes, allTreatmentsRes, gpsDashRes, concussionsRes, genMedRes, credentialsRes] = await Promise.all([
+        const [todayRes, injuriesRes, athletesRes, allTreatmentsRes, gpsDashRes, concussionsRes, genMedRes, credentialsRes, scheduleRes] = await Promise.all([
           api.get(`/api/daily-treatments?date=${today}`),
           api.get('/api/injuries'),
           api.get('/api/athletes'),
@@ -79,6 +87,7 @@ export default function Landing() {
           api.get('/api/concussions?status=active'),
           api.get('/api/general-medical'),
           api.get('/api/credentials/expiring'),
+          api.get(`/api/schedule/requests?date=${today}&status=approved`),
         ]);
 
         setTodayTreatments(todayRes.data ?? []);
@@ -100,6 +109,7 @@ export default function Landing() {
           return days !== null && days <= 30;
         });
         setExpiringCredentials(within30);
+        setTodaySchedule(scheduleRes.data ?? []);
       } catch (err) {
         console.error('Landing load error:', err);
       } finally {
@@ -133,6 +143,9 @@ export default function Landing() {
   const firstName = getFirstName(session);
   const todaySorted = [...todayTreatments].sort(
     (a, b) => new Date(b.created_at) - new Date(a.created_at)
+  );
+  const todayScheduleSorted = [...todaySchedule].sort(
+    (a, b) => a.requested_time.localeCompare(b.requested_time)
   );
 
   // General medical: follow-ups needed in the last 30 days, and today's events
@@ -402,24 +415,35 @@ export default function Landing() {
 
       </div>
 
-      {/* ── Schedule placeholder ────────────────────────────────────── */}
-      <div className="schedule-placeholder">
-        <div className="schedule-placeholder-icon">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="4" width="18" height="18" rx="2"/>
-            <line x1="16" y1="2" x2="16" y2="6"/>
-            <line x1="8" y1="2" x2="8" y2="6"/>
-            <line x1="3" y1="10" x2="21" y2="10"/>
-          </svg>
+      {/* Today's schedule */}
+      <section className="landing-section">
+        <div className="section-header">
+          <h2 className="section-title">Today's schedule</h2>
+          <Link to="/schedule" className="section-link">View Full Schedule</Link>
         </div>
-        <div className="schedule-placeholder-text">
-          <div className="schedule-placeholder-heading">
-            Scheduling
-            <span className="schedule-coming-soon">Coming soon</span>
+        {loading ? (
+          <div className="section-loading"><div className="spinner" /></div>
+        ) : todayScheduleSorted.length === 0 ? (
+          <div className="section-empty">
+            <p>No appointments scheduled for today. <Link to="/schedule">View Full Schedule</Link></p>
           </div>
-          <p className="schedule-placeholder-sub">Appointment scheduling coming soon.</p>
-        </div>
-      </div>
+        ) : (
+          <div className="compact-card-list">
+            {todayScheduleSorted.map((r) => (
+              <div key={r.id} className="compact-card">
+                <div className="compact-card-main">
+                  <span className="compact-card-name">{r.athlete_name}</span>
+                  <div className="compact-card-tags">
+                    <span className="compact-type-badge">{r.reason}</span>
+                    {r.body_part && <span className="compact-body-badge">{r.body_part}</span>}
+                  </div>
+                </div>
+                <span className="compact-card-time">{formatTimeLabel(r.requested_time)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
     </div>
   );

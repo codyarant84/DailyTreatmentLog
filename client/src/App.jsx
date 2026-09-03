@@ -21,6 +21,8 @@ import InjuryDetail from './pages/InjuryDetail.jsx';
 import GeneralMedical from './pages/GeneralMedical.jsx';
 import Vault from './pages/Vault.jsx';
 import CEU from './pages/CEU.jsx';
+import Schedule from './pages/Schedule.jsx';
+import PortalSchedule from './pages/portal/PortalSchedule.jsx';
 import Concussions from './pages/Concussions.jsx';
 import ConcussionDetail from './pages/ConcussionDetail.jsx';
 import Insights from './pages/Insights.jsx';
@@ -53,6 +55,50 @@ function AdminRoute({ children }) {
   const { role } = useAuth();
   if (role !== 'admin' && role !== 'super_admin') return <Navigate to="/home" replace />;
   return children;
+}
+
+function SuperAdminRoute({ children }) {
+  const { role } = useAuth();
+  if (role !== 'super_admin') return <Navigate to="/home" replace />;
+  return children;
+}
+
+// ─── Impersonation banner ───────────────────────────────────────────
+// Rendered whenever a super_admin is "viewing as" another user (AT or
+// portal). Reads localStorage directly rather than context state, since
+// the impersonation swap always triggers a full page reload (auth state
+// is only ever hydrated on mount), so a fresh read here is always current.
+function ImpersonationBanner() {
+  const [meta] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('fieldside_impersonation') ?? 'null');
+    } catch {
+      return null;
+    }
+  });
+
+  if (!meta) return null;
+
+  function handleReturn() {
+    const adminToken = localStorage.getItem('fieldside_admin_token');
+    if (adminToken) localStorage.setItem('fieldside_token', adminToken);
+    localStorage.removeItem('fieldside_admin_token');
+    localStorage.removeItem('fieldside_impersonation');
+    localStorage.removeItem('fieldside_portal_token');
+    window.location.href = '/admin';
+  }
+
+  return (
+    <div
+      className="impersonation-banner"
+      onClick={handleReturn}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleReturn(); } }}
+    >
+      Viewing as {meta.name}{meta.school ? ` at ${meta.school}` : ''} — Click to return to admin
+    </div>
+  );
 }
 
 // ─── Icons ────────────────────────────────────────────────────────
@@ -125,6 +171,16 @@ const IconTeams = () => (
     <circle cx="9" cy="7" r="4"/>
     <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
     <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+  </svg>
+);
+
+const IconSchedule = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2"/>
+    <line x1="16" y1="2" x2="16" y2="6"/>
+    <line x1="8" y1="2" x2="8" y2="6"/>
+    <line x1="3" y1="10" x2="21" y2="10"/>
+    <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>
   </svg>
 );
 
@@ -235,12 +291,13 @@ function MoreDrawer({ onClose, role }) {
     { label: 'Log',          icon: <IconLog />,          path: '/log',         show: role !== 'coach' },
     { label: 'Athletes',     icon: <IconAthletes />,     path: '/athletes',    show: true },
     { label: 'Teams',        icon: <IconTeams />,        path: '/teams',       show: role !== 'coach' },
+    { label: 'Schedule',     icon: <IconSchedule />,     path: '/schedule',    show: role !== 'coach' },
     { label: 'Gen Med',      icon: <IconGenMed />,       path: '/gen-med',     show: role !== 'coach' },
     { label: 'Concussions',  icon: <IconConcussions />,  path: '/concussions', show: role !== 'coach' },
     { label: 'Insights',     icon: <IconInsights />,     path: '/insights',    show: true },
     { label: 'Library',      icon: <IconLibrary />,      path: '/exercises',   show: role !== 'coach' },
     { label: 'Programs',     icon: <IconPrograms />,     path: '/programs',    show: role !== 'coach' },
-    { label: 'CEU',          icon: <IconCEU />,          path: '/ceu',         show: role !== 'coach' },
+    { label: 'CEU',          icon: <IconCEU />,          path: '/ceu',         show: role === 'super_admin' },
     { label: 'Reports',      icon: <IconReports />,      path: '/reports',     show: role !== 'coach' },
     { label: 'Forms',        icon: <IconForms />,         path: '/forms',          show: role !== 'coach' },
     { label: 'Vault',        icon: <IconVault />,        path: '/vault',       show: isAdmin },
@@ -364,11 +421,17 @@ function App() {
   }
 
   if (isPortal) {
-    return <PortalRoutes />;
+    return (
+      <>
+        <ImpersonationBanner />
+        <PortalRoutes />
+      </>
+    );
   }
 
   return (
     <div className="app">
+      <ImpersonationBanner />
       <header className="app-header">
         <div className="header-inner">
           <Link to="/" className="brand">
@@ -400,6 +463,9 @@ function App() {
                   <Link to="/teams" className={`nav-link${p.startsWith('/teams') ? ' active' : ''}`}>Teams</Link>
                 )}
                 {role !== 'coach' && (
+                  <Link to="/schedule" className={`nav-link${p.startsWith('/schedule') ? ' active' : ''}`}>Schedule</Link>
+                )}
+                {role !== 'coach' && (
                   <Link to="/injuries" className={`nav-link${p.startsWith('/injuries') ? ' active' : ''}`}>Injuries</Link>
                 )}
                 {role !== 'coach' && (
@@ -427,7 +493,9 @@ function App() {
                     {/* Resources group */}
                     <Link to="/exercises" className={`nav-link${p === '/exercises' ? ' active' : ''}`}>Library</Link>
                     <Link to="/programs" className={`nav-link${p.startsWith('/programs') ? ' active' : ''}`}>Programs</Link>
-                    <Link to="/ceu" className={`nav-link${p.startsWith('/ceu') ? ' active' : ''}`}>CEU</Link>
+                    {role === 'super_admin' && (
+                      <Link to="/ceu" className={`nav-link${p.startsWith('/ceu') ? ' active' : ''}`}>CEU</Link>
+                    )}
                   </>
                 )}
               </nav>
@@ -467,7 +535,7 @@ function App() {
           <Route path="/injuries/:id" element={<ProtectedRoute><CoachRoute><InjuryDetail /></CoachRoute></ProtectedRoute>} />
           <Route path="/gen-med" element={<ProtectedRoute><CoachRoute><GeneralMedical /></CoachRoute></ProtectedRoute>} />
           <Route path="/vault" element={<ProtectedRoute><CoachRoute><Vault /></CoachRoute></ProtectedRoute>} />
-          <Route path="/ceu" element={<ProtectedRoute><CoachRoute><CEU /></CoachRoute></ProtectedRoute>} />
+          <Route path="/ceu" element={<ProtectedRoute><SuperAdminRoute><CEU /></SuperAdminRoute></ProtectedRoute>} />
           <Route path="/concussions" element={<ProtectedRoute><Concussions /></ProtectedRoute>} />
           <Route path="/concussions/:id" element={<ProtectedRoute><ConcussionDetail /></ProtectedRoute>} />
           <Route path="/concussion-checkin/:token" element={<div>Check-in coming soon</div>} />
@@ -485,6 +553,7 @@ function App() {
           <Route path="/athletes/import" element={<ProtectedRoute><ImportAthletes /></ProtectedRoute>} />
           <Route path="/athletes/:name" element={<ProtectedRoute><AthleteProfile /></ProtectedRoute>} />
           <Route path="/teams" element={<ProtectedRoute><Teams /></ProtectedRoute>} />
+          <Route path="/schedule" element={<ProtectedRoute><CoachRoute><Schedule /></CoachRoute></ProtectedRoute>} />
           <Route path="/reports" element={<ProtectedRoute><CoachRoute><Reports /></CoachRoute></ProtectedRoute>} />
           <Route path="/forms" element={<ProtectedRoute><CoachRoute><Forms /></CoachRoute></ProtectedRoute>} />
           <Route path="/new" element={<ProtectedRoute><CoachRoute><NewTreatment /></CoachRoute></ProtectedRoute>} />
@@ -560,6 +629,7 @@ function PortalRoutes() {
       <Route path="/portal/rehab/:programId" element={<PortalProtectedRoute><PortalRehabView /></PortalProtectedRoute>} />
       <Route path="/portal/concussion-checkin" element={<PortalProtectedRoute><PortalConcussionCheckin /></PortalProtectedRoute>} />
       <Route path="/portal/athlete/:athleteId" element={<PortalProtectedRoute><ParentAthleteDetail /></PortalProtectedRoute>} />
+      <Route path="/portal/schedule" element={<PortalProtectedRoute><PortalSchedule /></PortalProtectedRoute>} />
     </Routes>
   );
 }

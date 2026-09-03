@@ -4,6 +4,22 @@
   min-height: 100vh;
 }
 
+/* ─── Impersonation banner ───────────────────────────────────── */
+.impersonation-banner {
+  background-color: #fbbf24;
+  color: #78350f;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.impersonation-banner:hover {
+  background-color: #f59e0b;
+}
+
 /* ─── Header ─────────────────────────────────────────────────── */
 .app-header {
   background-color: var(--color-surface);

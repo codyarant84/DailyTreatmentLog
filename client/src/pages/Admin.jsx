@@ -28,6 +28,7 @@ export default function Admin() {
   // Track which schools are expanded
   const [expanded, setExpanded] = useState({});
   const [actionError, setActionError] = useState(null);
+  const [impersonatingId, setImpersonatingId] = useState(null);
 
   // Add new school form
   const [showAddSchool, setShowAddSchool] = useState(false);
@@ -238,6 +239,44 @@ export default function Admin() {
     }
   }
 
+  async function handleViewAs(profileId) {
+    setActionError(null);
+    setImpersonatingId(profileId);
+    try {
+      const { data } = await api.post(`/api/admin/impersonate/${profileId}`);
+      localStorage.setItem('fieldside_admin_token', localStorage.getItem('fieldside_token'));
+      localStorage.setItem('fieldside_token', data.token);
+      localStorage.setItem('fieldside_impersonation', JSON.stringify({
+        type: 'profile',
+        name: data.user.email,
+        school: data.user.school_name,
+      }));
+      window.location.href = '/home';
+    } catch (err) {
+      setActionError(err.response?.data?.error ?? err.message);
+      setImpersonatingId(null);
+    }
+  }
+
+  async function handleViewAsPortal(portalUserId) {
+    setActionError(null);
+    setImpersonatingId(portalUserId);
+    try {
+      const { data } = await api.post(`/api/admin/impersonate/portal/${portalUserId}`);
+      localStorage.setItem('fieldside_admin_token', localStorage.getItem('fieldside_token'));
+      localStorage.setItem('fieldside_portal_token', data.token);
+      localStorage.setItem('fieldside_impersonation', JSON.stringify({
+        type: 'portal',
+        name: data.user.name,
+        school: data.user.school_name,
+      }));
+      window.location.href = '/portal/home';
+    } catch (err) {
+      setActionError(err.response?.data?.error ?? err.message);
+      setImpersonatingId(null);
+    }
+  }
+
   if (loading) {
     return (
       <div className="state-msg">
@@ -402,6 +441,15 @@ export default function Admin() {
                           <span className="portal-user-email">{u.email}</span>
                           <span className="role-badge">{u.role}</span>
                         </div>
+                        {isSuperAdmin && (
+                          <button
+                            className="btn btn--sm btn--outline"
+                            onClick={() => handleViewAsPortal(u.id)}
+                            disabled={impersonatingId === u.id}
+                          >
+                            {impersonatingId === u.id ? 'Loading…' : 'View As'}
+                          </button>
+                        )}
                         <span className="ph-done-badge">Approved</span>
                       </div>
                     ))}
@@ -561,6 +609,15 @@ export default function Admin() {
                           <option value="coach">Coach</option>
                           <option value="admin">School Admin</option>
                         </select>
+                        {isSuperAdmin && (
+                          <button
+                            className="btn btn--sm btn--outline"
+                            onClick={() => handleViewAs(user.id)}
+                            disabled={impersonatingId === user.id}
+                          >
+                            {impersonatingId === user.id ? 'Loading…' : 'View As'}
+                          </button>
+                        )}
                         <button
                           className="btn--danger-ghost"
                           onClick={() => handleDeleteUser(user.id, user.email)}

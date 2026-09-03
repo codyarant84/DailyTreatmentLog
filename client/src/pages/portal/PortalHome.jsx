@@ -12,6 +12,12 @@ function statusVariant(status) {
   return 'none';
 }
 
+function formatTimeLabel(t) {
+  if (!t) return '';
+  const [h, m] = t.split(':').map(Number);
+  return new Date(2000, 0, 1, h, m).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
 export default function PortalHome() {
   const { portalUser, isApproved, onboardingComplete, portalSignOut, getToken } = usePortalAuth();
   const navigate = useNavigate();
@@ -33,6 +39,7 @@ export default function PortalHome() {
   const [rehabPrograms, setRehabPrograms]       = useState([]);
   const [concussionStatus, setConcussionStatus] = useState(null);
   const [dashLoading, setDashLoading]           = useState(false);
+  const [upcomingAppts, setUpcomingAppts]       = useState([]);
 
   // Parent-only data
   const [myAthletes, setMyAthletes]       = useState([]);
@@ -54,14 +61,18 @@ export default function PortalHome() {
   const fetchDashboard = useCallback(async () => {
     setDashLoading(true);
     const h = { headers: headers() };
-    const [statusRes, rehabRes, concussionRes] = await Promise.allSettled([
+    const [statusRes, rehabRes, concussionRes, scheduleRes] = await Promise.allSettled([
       api.get('/api/portal/athlete-status', h),
       api.get('/api/portal/my-rehab', h),
       api.get('/api/portal/concussion-status', h),
+      api.get('/api/schedule/my-requests', h),
     ]);
     if (statusRes.status    === 'fulfilled') setAthleteStatus(statusRes.value.data);
     if (rehabRes.status     === 'fulfilled') setRehabPrograms(rehabRes.value.data);
     if (concussionRes.status === 'fulfilled') setConcussionStatus(concussionRes.value.data);
+    if (scheduleRes.status  === 'fulfilled') {
+      setUpcomingAppts(scheduleRes.value.data.filter((r) => r.status === 'approved'));
+    }
     setDashLoading(false);
   }, [headers]);
 
@@ -157,6 +168,36 @@ export default function PortalHome() {
                   </div>
                 )}
               </div>
+            )}
+
+            {/* Schedule — athlete only */}
+            {isAthlete && (
+              <section className="ph-section">
+                <h2 className="ph-section-title">Schedule</h2>
+                {dashLoading && upcomingAppts.length === 0 ? (
+                  <p className="ph-empty">Loading...</p>
+                ) : upcomingAppts.length === 0 ? (
+                  <p className="ph-empty">No upcoming appointments.</p>
+                ) : (
+                  <div className="ph-form-list">
+                    {upcomingAppts.map((r) => (
+                      <div key={r.id} className="ph-form-card">
+                        <div className="ph-form-info">
+                          <p className="ph-form-title">
+                            {formatDate(r.requested_date)} at {formatTimeLabel(r.requested_time)}
+                          </p>
+                          <p className="ph-form-due">
+                            {r.reason}{r.body_part ? ` · ${r.body_part}` : ''}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <button className="ph-form-btn" style={{ marginTop: '0.75rem' }} onClick={() => navigate('/portal/schedule')}>
+                  Request Treatment
+                </button>
+              </section>
             )}
 
             {/* Concussion check-in — athlete only */}
