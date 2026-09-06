@@ -51,12 +51,6 @@ function CoachRoute({ children }) {
   return children;
 }
 
-function AdminRoute({ children }) {
-  const { role } = useAuth();
-  if (role !== 'admin' && role !== 'super_admin') return <Navigate to="/home" replace />;
-  return children;
-}
-
 function SuperAdminRoute({ children }) {
   const { role } = useAuth();
   if (role !== 'super_admin') return <Navigate to="/home" replace />;
@@ -281,6 +275,7 @@ function MoreDrawer({ onClose, role }) {
   const navigate = useNavigate();
   const { signOut } = useAuth();
   const isAdmin = role === 'admin' || role === 'super_admin';
+  const canAccessSettings = isAdmin || role === 'trainer';
 
   function go(path) {
     navigate(path);
@@ -300,8 +295,8 @@ function MoreDrawer({ onClose, role }) {
     { label: 'CEU',          icon: <IconCEU />,          path: '/ceu',         show: role === 'super_admin' },
     { label: 'Reports',      icon: <IconReports />,      path: '/reports',     show: role !== 'coach' },
     { label: 'Forms',        icon: <IconForms />,         path: '/forms',          show: role !== 'coach' },
-    { label: 'Vault',        icon: <IconVault />,        path: '/vault',       show: isAdmin },
-    { label: 'Settings',     icon: <IconSettings />,     path: '/settings',    show: isAdmin },
+    { label: 'Vault',        icon: <IconVault />,        path: '/vault',       show: canAccessSettings },
+    { label: 'Settings',     icon: <IconSettings />,     path: '/settings',    show: canAccessSettings },
     { label: 'Admin',        icon: <IconAdmin />,        path: '/admin',       show: isAdmin },
     { label: 'Activity',     icon: <IconAdmin />,        path: '/activity',    show: role === 'super_admin' },
   ].filter((i) => i.show);
@@ -337,9 +332,10 @@ function MoreDrawer({ onClose, role }) {
 // ─── Gear dropdown ─────────────────────────────────────────────────
 function GearDropdown({ role, onClose }) {
   const isAdmin = role === 'admin' || role === 'super_admin';
+  const canAccessSettings = isAdmin || role === 'trainer';
   return (
     <div className="nav-gear-dropdown">
-      {isAdmin && <Link to="/settings" onClick={onClose}>Settings</Link>}
+      {canAccessSettings && <Link to="/settings" onClick={onClose}>Settings</Link>}
       {isAdmin && <Link to="/admin" onClick={onClose}>Admin</Link>}
       <Link to="/vault" onClick={onClose}>Vault</Link>
       {role === 'super_admin' && <Link to="/activity" onClick={onClose}>Activity</Link>}
@@ -408,6 +404,7 @@ function App() {
   }
 
   const isAdminRole = role === 'admin' || role === 'super_admin';
+  const canOpenSettingsGear = isAdminRole || role === 'trainer';
   const p = location.pathname;
   const isMarketing = p === '/' && !session;
   const isPortal = p.startsWith('/portal');
@@ -501,7 +498,7 @@ function App() {
               </nav>
 
               <div className="nav-right">
-                {isAdminRole && (
+                {canOpenSettingsGear && (
                   <div className="nav-gear-wrapper" ref={gearRef}>
                     <button
                       className={`nav-gear-btn${gearOpen ? ' open' : ''}`}
@@ -529,7 +526,7 @@ function App() {
           <Route path="/setup" element={<SetupProfile />} />
           <Route path="/invite/:token" element={<InviteAccept />} />
           <Route path="/admin" element={<ProtectedRoute><CoachRoute><Admin /></CoachRoute></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><CoachRoute><Settings /></CoachRoute></ProtectedRoute>} />
           <Route path="/activity" element={<ProtectedRoute><Activity /></ProtectedRoute>} />
           <Route path="/injuries" element={<ProtectedRoute><CoachRoute><Injuries /></CoachRoute></ProtectedRoute>} />
           <Route path="/injuries/:id" element={<ProtectedRoute><CoachRoute><InjuryDetail /></CoachRoute></ProtectedRoute>} />

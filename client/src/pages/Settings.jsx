@@ -25,7 +25,8 @@ const SPORTS = [
 ];
 
 export default function Settings() {
-  const { branding, setBranding, isAdmin } = useAuth();
+  const { branding, setBranding, isAdmin, role } = useAuth();
+  const canManageCoaches = isAdmin || role === 'trainer';
 
   const [color, setColor] = useState(branding?.primaryColor ?? DEFAULT_COLOR);
   const [colorSaving, setColorSaving] = useState(false);
@@ -41,6 +42,35 @@ export default function Settings() {
   const [domainSaving, setDomainSaving] = useState(false);
   const [domainSaved, setDomainSaved] = useState(false);
   const [domainError, setDomainError] = useState(null);
+
+  // ── My Profile (SMS logging phone number) ───────────────────────────
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneSaving, setPhoneSaving] = useState(false);
+  const [phoneSaved, setPhoneSaved] = useState(false);
+  const [phoneError, setPhoneError] = useState(null);
+
+  useEffect(() => {
+    api.get('/api/auth/me')
+      .then(({ data }) => setPhoneNumber(data.phone_number ?? ''))
+      .catch(() => {});
+  }, []);
+
+  async function handleSavePhone(e) {
+    e.preventDefault();
+    setPhoneError(null);
+    setPhoneSaved(false);
+    setPhoneSaving(true);
+    try {
+      const { data } = await api.put('/api/auth/phone', { phone_number: phoneNumber });
+      setPhoneNumber(data.phone_number ?? '');
+      setPhoneSaved(true);
+      setTimeout(() => setPhoneSaved(false), 2500);
+    } catch (err) {
+      setPhoneError(err.response?.data?.error ?? err.message);
+    } finally {
+      setPhoneSaving(false);
+    }
+  }
 
   // ── Organization Settings ──────────────────────────────────────────
   const [orgType, setOrgType] = useState(branding?.organizationType ?? 'high_school');
@@ -149,9 +179,9 @@ export default function Settings() {
   const [coachSportSaving, setCoachSportSaving] = useState({});
 
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!canManageCoaches) return;
     api.get('/api/school/coaches').then(({ data }) => setCoaches(data)).catch(() => {});
-  }, [isAdmin]);
+  }, [canManageCoaches]);
 
   async function handleCoachSportChange(coachId, sport) {
     setCoaches((prev) => prev.map((c) => c.id === coachId ? { ...c, sport } : c));
@@ -626,7 +656,34 @@ export default function Settings() {
         </form>
       </div>
 
-      {isAdmin && (
+      <div className="settings-card">
+        <h2 className="settings-section-title">SMS Logging</h2>
+        <p className="settings-hint">
+          Your personal phone number, used to identify treatment-log messages sent in by text.
+        </p>
+        <form onSubmit={handleSavePhone}>
+          <div className="cost-field">
+            <label className="cost-label" htmlFor="sms-phone">Phone number</label>
+            <div className="cost-input-row">
+              <input
+                id="sms-phone"
+                type="tel"
+                className="form-input"
+                placeholder="(555) 555-5555"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                style={{ flex: 1 }}
+              />
+              <button type="submit" className="btn btn--primary" disabled={phoneSaving}>
+                {phoneSaving ? 'Saving...' : phoneSaved ? 'Saved!' : 'Save'}
+              </button>
+            </div>
+          </div>
+          {phoneError && <p className="settings-error">{phoneError}</p>}
+        </form>
+      </div>
+
+      {canManageCoaches && (
         <div className="settings-card">
           <h2 className="settings-section-title">Coach Sport Assignment</h2>
           <p className="settings-hint">

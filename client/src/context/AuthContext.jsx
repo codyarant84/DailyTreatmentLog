@@ -19,6 +19,7 @@ export function AuthProvider({ children }) {
   // On mount: validate stored token via /api/auth/me
   useEffect(() => {
     const token = localStorage.getItem(TOKEN_KEY);
+    console.log('[AuthContext] mount — fieldside_token found:', token ? `${token.slice(0, 20)}…` : null);
     if (!token) {
       setSession(null);
       return;
@@ -27,6 +28,7 @@ export function AuthProvider({ children }) {
     api
       .get('/api/auth/me')
       .then(({ data }) => {
+        console.log('[AuthContext] /api/auth/me returned:', data);
         setSession(data);
         setHasProfile(true);
         setIsAdmin(data.is_admin ?? false);
@@ -41,10 +43,20 @@ export function AuthProvider({ children }) {
           archiveRetentionYears: data.archive_retention_years ?? 3,
         });
       })
-      .catch(() => {
-        localStorage.removeItem(TOKEN_KEY);
-        setSession(null);
-        setHasProfile(null);
+      .catch((err) => {
+        console.error('[AuthContext] /api/auth/me failed:', err.response?.status, err.response?.data ?? err.message);
+        // Only a genuine auth rejection (expired/invalid/unrecognized token)
+        // should log the user out. Any other failure (network blip, 500 from
+        // a transient server error) should surface the error and retry on
+        // next mount rather than silently discarding a valid token — that
+        // was previously masking the real cause of failed sign-ins.
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          localStorage.removeItem(TOKEN_KEY);
+          setSession(null);
+          setHasProfile(null);
+        } else {
+          setSession(null);
+        }
       });
   }, []);
 

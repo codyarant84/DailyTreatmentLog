@@ -28,7 +28,8 @@ export function requireAuth(req, res, next) {
     req.role       = payload.role;
     req.coachSport = payload.sport ?? null;
     next();
-  } catch {
+  } catch (err) {
+    console.error('[requireAuth] token verification failed:', err.name, err.message);
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 }

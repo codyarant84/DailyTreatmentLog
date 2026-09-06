@@ -26,7 +26,7 @@ router.post('/impersonate/:profileId', async (req, res) => {
     const target = rows[0];
     if (!target) return res.status(404).json({ error: 'User not found.' });
 
-    const token = signToken({
+    const tokenPayload = {
       userId:         target.id,
       schoolId:       target.school_id,
       role:           target.role ?? 'trainer',
@@ -34,7 +34,9 @@ router.post('/impersonate/:profileId', async (req, res) => {
       sport:          target.sport ?? null,
       impersonating:  true,
       impersonatedBy: req.userId,
-    }, IMPERSONATION_EXPIRES_IN);
+    };
+    console.log('[admin/impersonate] issuing token with payload:', tokenPayload);
+    const token = signToken(tokenPayload, IMPERSONATION_EXPIRES_IN);
 
     logActivity({
       schoolId: target.school_id, profileId: req.userId,

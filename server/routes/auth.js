@@ -132,13 +132,14 @@ router.post('/register', async (req, res) => {
 // });
 
 router.get('/me', requireAuth, async (req, res) => {
+  console.log('[auth/me] req.userId (from JWT):', req.userId, '| req.role (from JWT):', req.role);
   try {
     const { rows } = await query(
-      `SELECT p.id, p.email, p.school_id, p.role, p.is_admin, p.sport,
+      `SELECT p.id, p.email, p.school_id, p.role, p.is_admin, p.sport, p.phone_number,
               s.primary_color, s.logo_url, s.cost_per_visit, s.student_email_domain,
               s.organization_type, s.max_years, s.archive_retention_years
-       FROM   profiles p
-       JOIN   schools  s ON s.id = p.school_id
+       FROM      profiles p
+       LEFT JOIN schools  s ON s.id = p.school_id
        WHERE  p.id = $1`,
       [req.userId]
     );
@@ -149,6 +150,7 @@ router.get('/me', requireAuth, async (req, res) => {
 
     // Return without a new token — client keeps the one it already has
     const p = rows[0];
+    console.log('[auth/me] resolved profile id:', p.id, '| email:', p.email, '| role:', p.role, '| school_id:', p.school_id);
     res.json({
       user_id:       p.id,
       email:         p.email         ?? null,
@@ -156,6 +158,7 @@ router.get('/me', requireAuth, async (req, res) => {
       role:          p.role          ?? 'trainer',
       is_admin:      p.is_admin      ?? false,
       sport:         p.sport         ?? null,
+      phone_number:  p.phone_number  ?? null,
       primary_color: p.primary_color ?? null,
       logo_url:             p.logo_url             ?? null,
       cost_per_visit:       p.cost_per_visit       ?? 50,
@@ -166,6 +169,30 @@ router.get('/me', requireAuth, async (req, res) => {
     });
   } catch (err) {
     console.error('GET /auth/me error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── PUT /api/auth/phone ────────────────────────────────────────────
+// Self-service: a trainer's own phone number, used to identify inbound
+// SMS treatment-log messages.
+router.put('/phone', requireAuth, async (req, res) => {
+  const { phone_number } = req.body;
+  const phone = phone_number?.trim() || null;
+
+  if (phone && !/^[\d\s()+.-]{7,20}$/.test(phone)) {
+    return res.status(400).json({ error: 'Enter a valid phone number.' });
+  }
+
+  try {
+    const { rows } = await query(
+      `UPDATE profiles SET phone_number = $1 WHERE id = $2 RETURNING phone_number`,
+      [phone, req.userId]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'User profile not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('PUT /auth/phone error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
