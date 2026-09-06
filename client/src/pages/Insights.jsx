@@ -6,6 +6,7 @@ import {
 import api from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { formatDate as fmtDate, parseLocalDate } from '../lib/dateUtils.js';
+import { WarningIcon } from '../components/Icons.jsx';
 import './Insights.css';
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
@@ -435,7 +436,7 @@ export default function Insights() {
         {flaggedOut.length > 0 && (
           <div className="ins-flag-list">
             <div className="ins-flag-header">
-              <span className="ins-flag-icon">⚠</span>
+              <span className="ins-flag-icon"><WarningIcon /></span>
               <span>Athletes out for 14+ days — consider follow-up</span>
             </div>
             <div className="ins-flag-items">
@@ -465,7 +466,7 @@ export default function Insights() {
         {overuseFlags.length > 0 && (
           <div className="ins-flag-list ins-flag-list--overuse">
             <div className="ins-flag-header">
-              <span className="ins-flag-icon">⚠</span>
+              <span className="ins-flag-icon"><WarningIcon /></span>
               <span>Potential overuse — 5+ visits in the past 7 days</span>
             </div>
             <div className="ins-flag-items">

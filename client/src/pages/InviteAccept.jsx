@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import { WarningIcon } from '../components/Icons.jsx';
 import './Login.css';
 
 export default function InviteAccept() {
@@ -63,7 +64,7 @@ export default function InviteAccept() {
             <span className="brand-name">Daily Treatment Log</span>
           </div>
           <div className="login-confirm">
-            <div className="confirm-icon">⚠</div>
+            <div className="confirm-icon"><WarningIcon /></div>
             <h2>Invalid invite</h2>
             <p>{loadError}</p>
             <button className="btn btn--outline btn--full" onClick={() => navigate('/login')}>

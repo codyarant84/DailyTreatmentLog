@@ -62,14 +62,15 @@ function InjuryFormModal({ injury, athletes, onClose, onSaved }) {
   const [form, setForm] = useState(
     isEdit
       ? {
-          athlete_id:  injury.athlete_id,
-          injury_date: injury.injury_date,
-          body_part:   injury.body_part,
-          injury_type: injury.injury_type,
-          mechanism:   injury.mechanism   ?? '',
-          severity:    injury.severity    ?? '',
-          rtp_status:  injury.rtp_status  ?? 'Out',
-          notes:       injury.notes       ?? '',
+          athlete_id:       injury.athlete_id,
+          injury_date:      injury.injury_date,
+          body_part:        injury.body_part,
+          injury_type:      injury.injury_type,
+          mechanism:        injury.mechanism   ?? '',
+          severity:         injury.severity    ?? '',
+          rtp_status:       injury.rtp_status  ?? 'Out',
+          notes:            injury.notes       ?? '',
+          clearance_status: injury.clearance_status ?? 'not_required',
         }
       : EMPTY_FORM
   );
@@ -224,13 +225,14 @@ function InjuryCard({ injury, onUpdate, onDelete }) {
     setUpdatingRtp(true);
     try {
       const { data } = await api.put(`/api/injuries/${injury.id}`, {
-        injury_date: injury.injury_date,
-        body_part:   injury.body_part,
-        injury_type: injury.injury_type,
-        mechanism:   injury.mechanism,
-        severity:    injury.severity,
-        notes:       injury.notes,
-        is_active:   injury.is_active,
+        injury_date:      injury.injury_date,
+        body_part:        injury.body_part,
+        injury_type:      injury.injury_type,
+        mechanism:        injury.mechanism,
+        severity:         injury.severity,
+        notes:            injury.notes,
+        is_active:        injury.is_active,
+        clearance_status: injury.clearance_status,
         rtp_status,
       });
       onUpdate(data);
@@ -245,14 +247,15 @@ function InjuryCard({ injury, onUpdate, onDelete }) {
     if (!confirm(`Mark this injury as resolved? It will be moved to the inactive list.`)) return;
     try {
       const { data } = await api.put(`/api/injuries/${injury.id}`, {
-        injury_date: injury.injury_date,
-        body_part:   injury.body_part,
-        injury_type: injury.injury_type,
-        mechanism:   injury.mechanism,
-        severity:    injury.severity,
-        notes:       injury.notes,
-        rtp_status:  'Cleared',
-        is_active:   false,
+        injury_date:      injury.injury_date,
+        body_part:        injury.body_part,
+        injury_type:      injury.injury_type,
+        mechanism:        injury.mechanism,
+        severity:         injury.severity,
+        notes:            injury.notes,
+        clearance_status: injury.clearance_status,
+        rtp_status:       'Cleared',
+        is_active:        false,
       });
       onUpdate(data);
     } catch (err) {

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import api from '../lib/api.js';
+import { MailIcon } from '../components/Icons.jsx';
 import './Login.css';
 
 export default function Login() {
@@ -61,7 +62,7 @@ export default function Login() {
         <div className="login-card">
           {brand}
           <div className="login-confirm">
-            <div className="confirm-icon">✉️</div>
+            <div className="confirm-icon"><MailIcon /></div>
             <h2>Check your email</h2>
             <p>
               If an account exists with that email, you will receive a reset link

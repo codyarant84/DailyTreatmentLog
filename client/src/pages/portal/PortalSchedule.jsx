@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api.js';
 import { usePortalAuth } from '../../context/PortalAuthContext.jsx';
 import { formatDate } from '../../lib/dateUtils.js';
+import { ClockIcon, CheckCircleIcon } from '../../components/Icons.jsx';
 import './PortalSchedule.css';
 
 const BODY_PARTS = ['Head', 'Neck', 'Shoulder', 'Elbow', 'Wrist/Hand', 'Back', 'Hip', 'Knee', 'Ankle/Foot', 'Other'];
@@ -157,7 +158,9 @@ export default function PortalSchedule() {
 
         {confirmation && (
           <div className="ps-confirmation">
-            <span className="ps-confirmation-icon">{confirmation.status === 'approved' ? '✓' : '⏳'}</span>
+            <span className="ps-confirmation-icon">
+              {confirmation.status === 'approved' ? <CheckCircleIcon /> : <ClockIcon />}
+            </span>
             <div className="ps-confirmation-body">
               <p className="ps-confirmation-title">
                 {confirmation.status === 'approved' ? 'Confirmed!' : 'Request submitted — Pending Approval'}

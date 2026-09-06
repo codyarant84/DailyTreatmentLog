@@ -4,17 +4,17 @@
 import { parseLocalDate } from './dateUtils.js';
 
 export const CREDENTIAL_TYPES = [
-  { key: 'cpr_aed',         label: 'CPR/AED Certification', icon: '🫀' },
-  { key: 'boc',              label: 'BOC Certification',     icon: '🎓' },
-  { key: 'state_licensure',  label: 'State Licensure',       icon: '📜' },
-  { key: 'nata',             label: 'NATA Membership',       icon: '🏅' },
-  { key: 'npi',              label: 'NPI Number',            icon: '🔢' },
-  { key: 'insurance',        label: 'Liability Insurance',   icon: '🛡️' },
-  { key: 'other',            label: 'Other',                 icon: '📁' },
+  { key: 'cpr_aed',         label: 'CPR/AED Certification' },
+  { key: 'boc',             label: 'BOC Certification' },
+  { key: 'state_licensure', label: 'State Licensure' },
+  { key: 'nata',            label: 'NATA Membership' },
+  { key: 'npi',             label: 'NPI Number' },
+  { key: 'insurance',       label: 'Liability Insurance' },
+  { key: 'other',           label: 'Other' },
 ];
 
 export function credentialTypeMeta(key) {
-  return CREDENTIAL_TYPES.find((t) => t.key === key) ?? { key, label: key, icon: '📁' };
+  return CREDENTIAL_TYPES.find((t) => t.key === key) ?? { key, label: key };
 }
 
 // Days between today and the given date (negative if already past); null if

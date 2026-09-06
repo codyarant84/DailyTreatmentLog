@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { CategoryBadge, DispositionBadge } from '../components/GeneralMedicalBadges.jsx';
 import { daysUntil } from '../lib/credentials.js';
 import { parseLocalDate } from '../lib/dateUtils.js';
+import { severityColor } from '../lib/riskFlags.js';
+import { WarningIcon } from '../components/Icons.jsx';
 import './Landing.css';
 
 function getGreeting() {
@@ -74,11 +76,12 @@ export default function Landing() {
   const [genMedEvents, setGenMedEvents] = useState([]);
   const [expiringCredentials, setExpiringCredentials] = useState([]);
   const [todaySchedule, setTodaySchedule] = useState([]);
+  const [highRiskAthletes, setHighRiskAthletes] = useState([]);
 
   useEffect(() => {
     async function load() {
       try {
-        const [todayRes, injuriesRes, athletesRes, allTreatmentsRes, gpsDashRes, concussionsRes, genMedRes, credentialsRes, scheduleRes] = await Promise.all([
+        const [todayRes, injuriesRes, athletesRes, allTreatmentsRes, gpsDashRes, concussionsRes, genMedRes, credentialsRes, scheduleRes, highRiskRes] = await Promise.all([
           api.get(`/api/daily-treatments?date=${today}`),
           api.get('/api/injuries'),
           api.get('/api/athletes'),
@@ -88,6 +91,7 @@ export default function Landing() {
           api.get('/api/general-medical'),
           api.get('/api/credentials/expiring'),
           api.get(`/api/schedule/requests?date=${today}&status=approved`),
+          api.get('/api/athletes/high-risk'),
         ]);
 
         setTodayTreatments(todayRes.data ?? []);
@@ -110,6 +114,7 @@ export default function Landing() {
         });
         setExpiringCredentials(within30);
         setTodaySchedule(scheduleRes.data ?? []);
+        setHighRiskAthletes(highRiskRes.data ?? []);
       } catch (err) {
         console.error('Landing load error:', err);
       } finally {
@@ -179,12 +184,46 @@ export default function Landing() {
       {/* ── Credential expiration warning ────────────────────────────── */}
       {!loading && expiringCredentials.length > 0 && (
         <Link to="/vault" className="credential-alert-card">
-          <span className="credential-alert-icon" aria-hidden="true">⚠️</span>
+          <span className="credential-alert-icon" aria-hidden="true"><WarningIcon /></span>
           <span>
             {expiringCredentials.length} credential{expiringCredentials.length !== 1 ? 's' : ''} expiring within 30 days
           </span>
           <span className="credential-alert-link">Review Vault →</span>
         </Link>
+      )}
+
+      {/* ── High risk athletes ───────────────────────────────────────── */}
+      {!loading && highRiskAthletes.length > 0 && (
+        <section className="high-risk-card">
+          <div className="high-risk-header">
+            <span className="high-risk-icon" aria-hidden="true"><WarningIcon /></span>
+            <h2 className="high-risk-title">High Risk Athletes</h2>
+          </div>
+          <div className="high-risk-list">
+            {highRiskAthletes.map((a) => (
+              <Link key={a.id} to={`/athletes/${encodeURIComponent(a.name)}`} className="high-risk-row">
+                <div className="high-risk-row-main">
+                  <span className="high-risk-name">{a.name}</span>
+                  {a.sport && <span className="compact-sport-badge">{a.sport}</span>}
+                </div>
+                <div className="high-risk-badges">
+                  {a.flags.map((f) => {
+                    const c = severityColor(f.severity);
+                    return (
+                      <span
+                        key={f.type}
+                        className="high-risk-flag-badge"
+                        style={{ background: c.bg, color: c.color, borderColor: c.border }}
+                      >
+                        {f.label}
+                      </span>
+                    );
+                  })}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
       )}
 
       {/* ── Stats strip ────────────────────────────────────────────── */}

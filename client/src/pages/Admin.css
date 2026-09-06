@@ -69,8 +69,15 @@
 }
 
 .school-caret {
+  display: inline-flex;
   font-size: 0.65rem;
   color: var(--color-text-muted);
+  transform: rotate(-90deg);
+  transition: transform 0.15s;
+}
+
+.school-caret--open {
+  transform: rotate(0deg);
 }
 
 .school-name {

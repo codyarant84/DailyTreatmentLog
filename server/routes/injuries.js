@@ -7,6 +7,8 @@ import { logActivity } from '../middleware/logActivity.js';
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
+const CLEARANCE_STATUSES = ['pending_physician', 'cleared', 'not_required'];
+
 const router = express.Router();
 router.use(requireAuth);
 
@@ -109,10 +111,13 @@ router.post('/', async (req, res) => {
 
 // PUT /api/injuries/:id
 router.put('/:id', async (req, res) => {
-  const { injury_date, body_part, injury_type, mechanism, severity, rtp_status, notes, is_active } = req.body;
+  const { injury_date, body_part, injury_type, mechanism, severity, rtp_status, notes, is_active, clearance_status } = req.body;
 
   if (!injury_date || !body_part || !injury_type) {
     return res.status(400).json({ error: 'injury_date, body_part, and injury_type are required.' });
+  }
+  if (clearance_status && !CLEARANCE_STATUSES.includes(clearance_status)) {
+    return res.status(400).json({ error: 'Invalid clearance_status.' });
   }
 
   try {
@@ -129,11 +134,12 @@ router.put('/:id', async (req, res) => {
       `UPDATE injuries
        SET injury_date = $1, body_part = $2, injury_type = $3, mechanism = $4,
            severity = $5, rtp_status = $6, notes = $7, is_active = $8,
-           cleared_at = CASE WHEN $9 THEN NOW() ELSE cleared_at END
-       WHERE id = $10 AND school_id = $11
+           cleared_at = CASE WHEN $9 THEN NOW() ELSE cleared_at END,
+           clearance_status = $10
+       WHERE id = $11 AND school_id = $12
        RETURNING *`,
       [injury_date, body_part, injury_type, mechanism || null, severity || null,
-       rtp_status || 'Out', notes || null, wasActive, isNowInactive,
+       rtp_status || 'Out', notes || null, wasActive, isNowInactive, clearance_status || null,
        req.params.id, req.schoolId]
     );
     if (!rows[0]) return res.status(404).json({ error: 'Injury not found.' });

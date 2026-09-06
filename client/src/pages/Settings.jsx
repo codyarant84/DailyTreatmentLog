@@ -1,7 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import './Settings.css';
+
+const ORG_TYPE_LABELS = {
+  high_school: 'High School',
+  college: 'College',
+  semi_pro: 'Semi-Pro / Professional',
+  club: 'Club / Youth',
+};
+
+const HS_GRADE_ORDER = ['6th', '7th', '8th', '9th', '10th', '11th', '12th'];
+const COLLEGE_GRADE_ORDER = ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5', 'Year 6+'];
 
 const DEFAULT_COLOR = '#1d6fa5';
 
@@ -30,6 +41,102 @@ export default function Settings() {
   const [domainSaving, setDomainSaving] = useState(false);
   const [domainSaved, setDomainSaved] = useState(false);
   const [domainError, setDomainError] = useState(null);
+
+  // ── Organization Settings ──────────────────────────────────────────
+  const [orgType, setOrgType] = useState(branding?.organizationType ?? 'high_school');
+  const [maxYears, setMaxYears] = useState(String(branding?.maxYears ?? 4));
+  const [retentionYears, setRetentionYears] = useState(
+    branding?.archiveRetentionYears == null ? 'forever' : String(branding.archiveRetentionYears)
+  );
+  const [orgSaving, setOrgSaving] = useState(false);
+  const [orgSaved, setOrgSaved] = useState(false);
+  const [orgError, setOrgError] = useState(null);
+
+  async function handleSaveOrgSettings(e) {
+    e.preventDefault();
+    setOrgError(null);
+    setOrgSaved(false);
+    setOrgSaving(true);
+    try {
+      const payload = {
+        organization_type: orgType,
+        archive_retention_years: retentionYears === 'forever' ? null : Number(retentionYears),
+      };
+      if (orgType === 'college') payload.max_years = Number(maxYears);
+
+      const { data } = await api.put('/api/school/settings', payload);
+      setBranding((prev) => ({
+        ...prev,
+        organizationType: data.organization_type,
+        maxYears: data.max_years,
+        archiveRetentionYears: data.archive_retention_years,
+      }));
+      setOrgSaved(true);
+      setTimeout(() => setOrgSaved(false), 2500);
+    } catch (err) {
+      setOrgError(err.response?.data?.error ?? err.message);
+    } finally {
+      setOrgSaving(false);
+    }
+  }
+
+  // ── School Year Management ─────────────────────────────────────────
+  const showYearMgmt = orgType === 'high_school' || orgType === 'college';
+
+  const [yearAthletes, setYearAthletes] = useState([]);
+  const [yearLoading, setYearLoading] = useState(false);
+  const [archiveCandidates, setArchiveCandidates] = useState(null);
+  const [showAdvanceModal, setShowAdvanceModal] = useState(false);
+  const [advancing, setAdvancing] = useState(false);
+  const [advanceResult, setAdvanceResult] = useState(null);
+  const [advanceError, setAdvanceError] = useState(null);
+
+  const loadYearData = () => {
+    setYearLoading(true);
+    Promise.all([
+      api.get('/api/athletes'),
+      api.get('/api/school/archive-candidates'),
+    ])
+      .then(([athletesRes, candidatesRes]) => {
+        setYearAthletes(athletesRes.data);
+        setArchiveCandidates(candidatesRes.data);
+      })
+      .catch(() => {})
+      .finally(() => setYearLoading(false));
+  };
+
+  useEffect(() => {
+    if (!showYearMgmt) return;
+    loadYearData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showYearMgmt]);
+
+  const gradeCounts = yearAthletes.reduce((acc, a) => {
+    if (a.grade) acc[a.grade] = (acc[a.grade] ?? 0) + 1;
+    return acc;
+  }, {});
+  const gradeOrder = orgType === 'college' ? COLLEGE_GRADE_ORDER : HS_GRADE_ORDER;
+  const distribution = gradeOrder.filter((g) => gradeCounts[g]).map((g) => [g, gradeCounts[g]]);
+  const graduatingCount = orgType === 'high_school'
+    ? yearAthletes.filter((a) => a.grade === '12th' && !a.eligibility_override).length
+    : 0;
+
+  async function handleAdvanceYear() {
+    setAdvancing(true);
+    setAdvanceError(null);
+    try {
+      const { data } = await api.post('/api/school/advance-year');
+      setAdvanceResult(data);
+      setShowAdvanceModal(false);
+      loadYearData();
+      setTimeout(() => setAdvanceResult(null), 6000);
+    } catch (err) {
+      setAdvanceError(err.response?.data?.error ?? err.message);
+      setShowAdvanceModal(false);
+    } finally {
+      setAdvancing(false);
+    }
+  }
 
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoError, setLogoError] = useState(null);
@@ -219,6 +326,143 @@ export default function Settings() {
         <h1 className="page-title">Settings</h1>
         <p className="page-subtitle">Customize the appearance for your school</p>
       </div>
+
+      <div className="settings-card">
+        <h2 className="settings-section-title">Organization Settings</h2>
+        <p className="settings-hint">
+          Controls grade/year terminology across the roster and how school-year advancement behaves.
+        </p>
+
+        <form className="org-settings-form" onSubmit={handleSaveOrgSettings}>
+          <div className="form-group">
+            <label className="form-label">Organization Type</label>
+            <select className="form-input" value={orgType} onChange={(e) => setOrgType(e.target.value)}>
+              {Object.entries(ORG_TYPE_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </div>
+
+          {orgType === 'college' && (
+            <div className="form-group">
+              <label className="form-label">Max Years</label>
+              <input
+                type="number"
+                min="4"
+                max="6"
+                className="form-input"
+                style={{ width: 100 }}
+                value={maxYears}
+                onChange={(e) => setMaxYears(e.target.value)}
+              />
+              <p className="cost-hint">
+                Informational only — Advance School Year always caps athletes at "Year 6+" regardless of this value.
+              </p>
+            </div>
+          )}
+
+          <div className="form-group">
+            <label className="form-label">Archive Retention Period</label>
+            <select className="form-input" value={retentionYears} onChange={(e) => setRetentionYears(e.target.value)}>
+              <option value="1">1 year</option>
+              <option value="2">2 years</option>
+              <option value="3">3 years</option>
+              <option value="5">5 years</option>
+              <option value="7">7 years</option>
+              <option value="forever">Forever</option>
+            </select>
+            <p className="cost-hint">How long archived athletes are kept before becoming eligible for permanent deletion.</p>
+          </div>
+
+          {orgError && <p className="settings-error">{orgError}</p>}
+
+          <button type="submit" className="btn btn--primary" disabled={orgSaving} style={{ alignSelf: 'flex-start' }}>
+            {orgSaving ? 'Saving...' : orgSaved ? 'Saved!' : 'Save'}
+          </button>
+        </form>
+      </div>
+
+      {showYearMgmt && (
+        <div className="settings-card">
+          <h2 className="settings-section-title">School Year Management</h2>
+
+          {yearLoading ? (
+            <p className="settings-hint">Loading roster…</p>
+          ) : distribution.length > 0 ? (
+            <p className="settings-hint">
+              {distribution
+                .map(([g, n]) => `${n} athlete${n !== 1 ? 's' : ''} in ${g}${orgType === 'high_school' ? ' grade' : ''}`)
+                .join(' · ')}
+            </p>
+          ) : (
+            <p className="settings-hint">No active athletes on the roster yet.</p>
+          )}
+
+          <button
+            type="button"
+            className="btn btn--outline"
+            style={{ alignSelf: 'flex-start' }}
+            onClick={() => setShowAdvanceModal(true)}
+          >
+            Advance School Year
+          </button>
+
+          {advanceResult && (
+            <p className="settings-hint" style={{ color: '#166534' }}>
+              Advanced {advanceResult.advanced} athlete{advanceResult.advanced !== 1 ? 's' : ''}.
+              {advanceResult.archived > 0 && ` Archived ${advanceResult.archived} graduating athlete${advanceResult.archived !== 1 ? 's' : ''}.`}
+            </p>
+          )}
+          {advanceError && <p className="settings-error">{advanceError}</p>}
+
+          <div className="archive-candidates-row">
+            <div>
+              <p className="cost-label" style={{ margin: 0 }}>Eligible for Permanent Deletion</p>
+              <p className="cost-hint">
+                {archiveCandidates === null
+                  ? 'Loading…'
+                  : archiveCandidates.retention_years === null
+                    ? 'Retention is set to Forever — nothing is eligible.'
+                    : `${archiveCandidates.count} athlete${archiveCandidates.count !== 1 ? 's' : ''} archived over ${archiveCandidates.retention_years} year${archiveCandidates.retention_years !== 1 ? 's' : ''} ago.`}
+              </p>
+            </div>
+            <Link to="/athletes?tab=archived" className="btn btn--outline btn--sm">Review &amp; Delete</Link>
+          </div>
+        </div>
+      )}
+
+      {showAdvanceModal && (
+        <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setShowAdvanceModal(false); }}>
+          <div className="modal" role="dialog" aria-modal="true" style={{ maxWidth: 460 }}>
+            <div className="modal-header">
+              <h2 className="modal-title">Advance School Year</h2>
+              <button className="modal-close" onClick={() => setShowAdvanceModal(false)} aria-label="Close">✕</button>
+            </div>
+            <div style={{ padding: '1.25rem 1.5rem' }}>
+              {orgType === 'high_school' ? (
+                <p style={{ margin: '0 0 1.5rem', fontSize: '0.9rem', lineHeight: 1.6 }}>
+                  This will advance all athletes one grade level and archive {graduatingCount} graduating athlete{graduatingCount !== 1 ? 's' : ''}. This cannot be undone. Are you sure?
+                </p>
+              ) : (
+                <>
+                  <p style={{ margin: '0 0 1rem', fontSize: '0.9rem', lineHeight: 1.6 }}>
+                    This will advance all athletes one year (capped at Year 6+). This cannot be undone. Are you sure?
+                  </p>
+                  <p style={{ margin: '0 0 1.5rem', fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
+                    Note: College athletes are never automatically archived. Use the Athletes page to manually archive athletes who have exhausted their eligibility.
+                  </p>
+                </>
+              )}
+              <div className="modal-actions">
+                <button className="btn btn--ghost" onClick={() => setShowAdvanceModal(false)} disabled={advancing}>Cancel</button>
+                <button className="btn btn--primary" onClick={handleAdvanceYear} disabled={advancing}>
+                  {advancing ? 'Advancing…' : 'Advance Year'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="settings-card">
         <h2 className="settings-section-title">School Color</h2>

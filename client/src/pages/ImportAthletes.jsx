@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { parseCsvFile, FIELD_LABELS, detectColumnMap } from '../lib/parseCsv.js';
 import api from '../lib/api.js';
 import { formatDate } from '../lib/dateUtils.js';
+import { DocumentIcon, WarningIcon, CheckCircleIcon } from '../components/Icons.jsx';
 import './ImportAthletes.css';
 
 const PREVIEW_LIMIT = 10;
@@ -137,7 +138,7 @@ export default function ImportAthletes() {
               className="file-input-hidden"
               onChange={handleFileInput}
             />
-            <div className="drop-icon">📄</div>
+            <div className="drop-icon"><DocumentIcon /></div>
             <p className="drop-title">Click to browse or drag &amp; drop a CSV</p>
             <p className="drop-hint">.csv files only · max 500 rows</p>
           </div>
@@ -229,7 +230,7 @@ export default function ImportAthletes() {
           {/* Warnings */}
           {warnings.length > 0 && (
             <div className="warnings-card">
-              <h3 className="section-title">⚠ Warnings ({warnings.length})</h3>
+              <h3 className="section-title"><WarningIcon /> Warnings ({warnings.length})</h3>
               <ul className="warnings-list">
                 {warnings.map((w, i) => <li key={i}>{w.message}</li>)}
               </ul>
@@ -314,7 +315,7 @@ export default function ImportAthletes() {
 
         <div className="import-body">
           <div className={`result-banner ${allSkipped ? 'result-banner--warn' : 'result-banner--success'}`}>
-            <div className="result-icon">{allSkipped ? '⚠' : '✓'}</div>
+            <div className="result-icon">{allSkipped ? <WarningIcon /> : <CheckCircleIcon />}</div>
             <div className="result-text">
               {allSkipped
                 ? 'All rows were already in the roster — nothing new was added.'

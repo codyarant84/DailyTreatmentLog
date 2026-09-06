@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../lib/api.js';
+import { WarningIcon } from '../components/Icons.jsx';
 import './Login.css';
 
 export default function ResetPassword() {
@@ -51,7 +52,7 @@ export default function ResetPassword() {
         <div className="login-card">
           {brand}
           <div className="login-confirm">
-            <div className="confirm-icon">⚠️</div>
+            <div className="confirm-icon"><WarningIcon /></div>
             <h2>Invalid reset link</h2>
             <p>This password reset link is missing or malformed. Please request a new one.</p>
             <button className="btn btn--outline btn--full" onClick={() => navigate('/login')}>

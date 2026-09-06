@@ -5,6 +5,7 @@ import {
 } from '../lib/credentials.js';
 import { formatDate as formatCredentialDate } from '../lib/dateUtils.js';
 import { readFileAsBase64 } from '../lib/files.js';
+import { WarningIcon } from '../components/Icons.jsx';
 import './Vault.css';
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -129,7 +130,7 @@ function CredentialFormModal({ credential, onClose, onSaved }) {
             >
               <option value="">Select…</option>
               {CREDENTIAL_TYPES.map((t) => (
-                <option key={t.key} value={t.key}>{t.icon} {t.label}</option>
+                <option key={t.key} value={t.key}>{t.label}</option>
               ))}
             </select>
           </div>
@@ -245,7 +246,6 @@ function CredentialCard({ credential, onEdit, onDelete }) {
   return (
     <div className="vault-card">
       <div className="vault-card-header">
-        <span className="vault-card-icon" aria-hidden="true">{meta.icon}</span>
         <span className="vault-card-name">{credential.credential_name || meta.label}</span>
       </div>
 
@@ -262,7 +262,7 @@ function CredentialCard({ credential, onEdit, onDelete }) {
       </div>
 
       {credential.file_name && (
-        <div className="vault-card-file">📎 {credential.file_name}</div>
+        <div className="vault-card-file">{credential.file_name}</div>
       )}
 
       <div className="vault-card-actions">
@@ -333,7 +333,7 @@ export default function Vault() {
 
       {expiringSoon.length > 0 && (
         <div className="vault-banner">
-          <div className="vault-banner-title">⚠️ Expiring Soon</div>
+          <div className="vault-banner-title"><WarningIcon /> Expiring Soon</div>
           <ul className="vault-banner-list">
             {expiringSoon.map((c) => {
               const days = daysUntil(c.expiration_date);
@@ -359,7 +359,7 @@ export default function Vault() {
       ) : (
         grouped.map((g) => (
           <div key={g.type.key} className="vault-group">
-            <h2 className="vault-group-title">{g.type.icon} {g.type.label}</h2>
+            <h2 className="vault-group-title">{g.type.label}</h2>
             <div className="vault-grid">
               {g.items.map((c) => (
                 <CredentialCard

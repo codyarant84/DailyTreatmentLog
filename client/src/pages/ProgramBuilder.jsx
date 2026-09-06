@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import AthleteCombobox from '../components/AthleteCombobox.jsx';
+import { PlayIcon } from '../components/Icons.jsx';
 import './ProgramBuilder.css';
 
 function getYouTubeId(url) {
@@ -259,7 +260,7 @@ export default function ProgramBuilder() {
                           title="Watch video"
                         >
                           <img src={`https://img.youtube.com/vi/${ytId}/default.jpg`} alt="video" />
-                          <span className="row-play">▶</span>
+                          <span className="row-play"><PlayIcon /></span>
                         </a>
                       )}
                     </div>

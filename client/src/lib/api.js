@@ -26,7 +26,7 @@ const api = {
     return axios.patch(`${BASE_URL}${url}`, data, { headers: mergeHeaders(opts) });
   },
   async delete(url, opts = {}) {
-    return axios.delete(`${BASE_URL}${url}`, { headers: mergeHeaders(opts) });
+    return axios.delete(`${BASE_URL}${url}`, { ...opts, headers: mergeHeaders(opts) });
   },
 };
 

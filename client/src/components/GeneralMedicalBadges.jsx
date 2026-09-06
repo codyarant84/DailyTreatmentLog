@@ -6,7 +6,7 @@ export function CategoryBadge({ category }) {
   const c = categoryColor(category);
   return (
     <span className="gm-badge" style={{ background: c.bg, color: c.color, borderColor: c.border }}>
-      <span aria-hidden="true">{meta.icon}</span> {meta.label}
+      {meta.label}
     </span>
   );
 }

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api.js';
 import { usePortalAuth } from '../../context/PortalAuthContext.jsx';
 import { formatDate, parseLocalDate } from '../../lib/dateUtils.js';
+import { ClockIcon } from '../../components/Icons.jsx';
 import './PortalHome.css';
 
 function statusVariant(status) {
@@ -120,7 +121,7 @@ export default function PortalHome() {
       <main className="ph-main">
         {!isApproved ? (
           <div className="ph-card ph-pending">
-            <div className="ph-pending-icon">⏳</div>
+            <div className="ph-pending-icon"><ClockIcon /></div>
             <h2 className="ph-pending-title">Pending Approval</h2>
             <p className="ph-pending-text">
               Your account is awaiting approval from your school's athletic trainer.

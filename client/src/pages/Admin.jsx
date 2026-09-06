@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import { ChevronDownIcon } from '../components/Icons.jsx';
 import './Admin.css';
 
 const BLANK_SCHOOL = { name: '', primary_color: '#cc0000', cost_per_visit: 50, logoFile: null };
@@ -478,7 +479,9 @@ export default function Admin() {
                     onClick={() => toggleExpand(school.id)}
                     aria-expanded={isExpanded}
                   >
-                    <span className="school-caret">{isExpanded ? '▼' : '▶'}</span>
+                    <span className={`school-caret${isExpanded ? ' school-caret--open' : ''}`}>
+                      <ChevronDownIcon />
+                    </span>
                     <span className="school-name">{school.name}</span>
                   </button>
                   <span className="school-meta">

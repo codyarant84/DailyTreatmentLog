@@ -4,6 +4,90 @@
   gap: 1.5rem;
 }
 
+/* ── High risk athletes ──────────────────────────────────────────── */
+.high-risk-card {
+  background: #fff5f5;
+  border: 1.5px solid #fca5a5;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.high-risk-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.high-risk-icon {
+  font-size: 1.1rem;
+}
+
+.high-risk-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #991b1b;
+  margin: 0;
+}
+
+.high-risk-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.high-risk-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.85rem;
+  text-decoration: none;
+  transition: border-color 0.15s;
+}
+
+.high-risk-row:hover {
+  border-color: #f87171;
+  text-decoration: none;
+}
+
+.high-risk-row-main {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.high-risk-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.high-risk-badges {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.high-risk-flag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
 /* ── Header row ──────────────────────────────────────────────────── */
 .landing-header {
   display: flex;

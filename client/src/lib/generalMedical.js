@@ -2,13 +2,13 @@
 // used by the log/history page, the Today dashboard, athlete profile, and reports.
 
 export const CATEGORIES = [
-  { key: 'heat_illness',   label: 'Heat Illness',   icon: '🌡️' },
-  { key: 'illness',        label: 'Illness',        icon: '🤒' },
-  { key: 'skin_condition', label: 'Skin Condition', icon: '🩹' },
-  { key: 'cardiac',        label: 'Cardiac',        icon: '❤️' },
-  { key: 'diabetes',       label: 'Diabetes',       icon: '💉' },
-  { key: 'asthma',         label: 'Asthma',         icon: '💨' },
-  { key: 'other',          label: 'Other',          icon: '📋' },
+  { key: 'heat_illness',   label: 'Heat Illness' },
+  { key: 'illness',        label: 'Illness' },
+  { key: 'skin_condition', label: 'Skin Condition' },
+  { key: 'cardiac',        label: 'Cardiac' },
+  { key: 'diabetes',       label: 'Diabetes' },
+  { key: 'asthma',         label: 'Asthma' },
+  { key: 'other',          label: 'Other' },
 ];
 
 // Categories not listed here get a free-text subcategory field instead of a dropdown.
@@ -37,7 +37,7 @@ export const CATEGORY_COLORS = {
 };
 
 export function categoryMeta(key) {
-  return CATEGORIES.find((c) => c.key === key) ?? { key, label: key, icon: '📋' };
+  return CATEGORIES.find((c) => c.key === key) ?? { key, label: key };
 }
 
 export function categoryColor(key) {

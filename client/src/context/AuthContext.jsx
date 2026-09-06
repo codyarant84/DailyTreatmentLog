@@ -11,7 +11,10 @@ export function AuthProvider({ children }) {
   const [hasProfile, setHasProfile] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [role, setRole] = useState(null);
-  const [branding, setBranding] = useState({ primaryColor: null, logoUrl: null, costPerVisit: 50, studentEmailDomain: null });
+  const [branding, setBranding] = useState({
+    primaryColor: null, logoUrl: null, costPerVisit: 50, studentEmailDomain: null,
+    organizationType: 'high_school', maxYears: 4, archiveRetentionYears: 3,
+  });
 
   // On mount: validate stored token via /api/auth/me
   useEffect(() => {
@@ -33,6 +36,9 @@ export function AuthProvider({ children }) {
           logoUrl:            data.logo_url             ?? null,
           costPerVisit:       data.cost_per_visit       ?? 50,
           studentEmailDomain: data.student_email_domain ?? null,
+          organizationType:      data.organization_type      ?? 'high_school',
+          maxYears:               data.max_years               ?? 4,
+          archiveRetentionYears: data.archive_retention_years ?? 3,
         });
       })
       .catch(() => {
@@ -53,6 +59,9 @@ export function AuthProvider({ children }) {
       primaryColor: data.primary_color ?? null,
       logoUrl:      data.logo_url      ?? null,
       costPerVisit: data.cost_per_visit ?? 50,
+      organizationType:      data.organization_type      ?? 'high_school',
+      maxYears:               data.max_years               ?? 4,
+      archiveRetentionYears: data.archive_retention_years ?? 3,
     });
     return data;
   }
@@ -63,7 +72,10 @@ export function AuthProvider({ children }) {
     setHasProfile(null);
     setIsAdmin(false);
     setRole(null);
-    setBranding({ primaryColor: null, logoUrl: null, costPerVisit: 50, studentEmailDomain: null });
+    setBranding({
+      primaryColor: null, logoUrl: null, costPerVisit: 50, studentEmailDomain: null,
+      organizationType: 'high_school', maxYears: 4, archiveRetentionYears: 3,
+    });
   }
 
   return (

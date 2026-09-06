@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../lib/api.js';
 import { formatDate, parseLocalDate } from '../lib/dateUtils.js';
+import { WarningIcon } from '../components/Icons.jsx';
 import './ConcussionDetail.css';
 
 const TOTAL_STEPS = 6;
@@ -738,7 +739,7 @@ export default function ConcussionDetail() {
             )}
             {needsPhysician && (
               <div className="cd-physician-warning">
-                ⚠ Step {currentStep} requires physician clearance before advancing. Set clearance date in Edit.
+                <WarningIcon /> Step {currentStep} requires physician clearance before advancing. Set clearance date in Edit.
               </div>
             )}
             {currentStep < TOTAL_STEPS && (

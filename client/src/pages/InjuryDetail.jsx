@@ -9,6 +9,11 @@ import './InjuryDetail.css';
 // ── Constants ──────────────────────────────────────────────────────
 const RTP_STATUSES = ['Full Participation', 'Limited Participation', 'Out', 'Cleared'];
 const SEVERITIES   = ['Mild', 'Moderate', 'Severe'];
+const CLEARANCE_STATUSES = [
+  { value: 'not_required',      label: 'Not Required' },
+  { value: 'pending_physician', label: 'Pending Physician Clearance' },
+  { value: 'cleared',           label: 'Cleared by Physician' },
+];
 const MECHANISMS   = ['Contact', 'Non-contact', 'Overuse', 'Unknown'];
 
 const RTP_COLORS = {
@@ -73,13 +78,14 @@ function InjurySummaryCard({ injury, onUpdate }) {
 
   function startEdit() {
     setForm({
-      injury_date: injury.injury_date,
-      body_part:   injury.body_part,
-      injury_type: injury.injury_type,
-      mechanism:   injury.mechanism   ?? '',
-      severity:    injury.severity    ?? '',
-      notes:       injury.notes       ?? '',
-      rtp_status:  injury.rtp_status  ?? 'Out',
+      injury_date:      injury.injury_date,
+      body_part:        injury.body_part,
+      injury_type:      injury.injury_type,
+      mechanism:        injury.mechanism   ?? '',
+      severity:         injury.severity    ?? '',
+      notes:            injury.notes       ?? '',
+      rtp_status:       injury.rtp_status  ?? 'Out',
+      clearance_status: injury.clearance_status ?? 'not_required',
     });
     setError(null);
     setEditing(true);
@@ -95,14 +101,15 @@ function InjurySummaryCard({ injury, onUpdate }) {
     setError(null);
     try {
       const { data } = await api.put(`/api/injuries/${injury.id}`, {
-        injury_date: form.injury_date,
-        body_part:   form.body_part,
-        injury_type: form.injury_type,
-        mechanism:   form.mechanism  || null,
-        severity:    form.severity   || null,
-        notes:       form.notes      || null,
-        rtp_status:  form.rtp_status,
-        is_active:   injury.is_active,
+        injury_date:      form.injury_date,
+        body_part:        form.body_part,
+        injury_type:      form.injury_type,
+        mechanism:        form.mechanism  || null,
+        severity:         form.severity   || null,
+        notes:            form.notes      || null,
+        rtp_status:       form.rtp_status,
+        clearance_status: form.clearance_status,
+        is_active:        injury.is_active,
       });
       onUpdate(data);
       setEditing(false);
@@ -118,13 +125,14 @@ function InjurySummaryCard({ injury, onUpdate }) {
     setUpdatingRtp(true);
     try {
       const { data } = await api.put(`/api/injuries/${injury.id}`, {
-        injury_date: injury.injury_date,
-        body_part:   injury.body_part,
-        injury_type: injury.injury_type,
-        mechanism:   injury.mechanism,
-        severity:    injury.severity,
-        notes:       injury.notes,
-        is_active:   injury.is_active,
+        injury_date:      injury.injury_date,
+        body_part:        injury.body_part,
+        injury_type:      injury.injury_type,
+        mechanism:        injury.mechanism,
+        severity:         injury.severity,
+        notes:            injury.notes,
+        is_active:        injury.is_active,
+        clearance_status: injury.clearance_status,
         rtp_status,
       });
       onUpdate(data);
@@ -138,14 +146,15 @@ function InjurySummaryCard({ injury, onUpdate }) {
     setResolving(true);
     try {
       const { data } = await api.put(`/api/injuries/${injury.id}`, {
-        injury_date: injury.injury_date,
-        body_part:   injury.body_part,
-        injury_type: injury.injury_type,
-        mechanism:   injury.mechanism,
-        severity:    injury.severity,
-        notes:       injury.notes,
-        rtp_status:  'Cleared',
-        is_active:   false,
+        injury_date:      injury.injury_date,
+        body_part:        injury.body_part,
+        injury_type:      injury.injury_type,
+        mechanism:        injury.mechanism,
+        severity:         injury.severity,
+        notes:            injury.notes,
+        clearance_status: injury.clearance_status,
+        rtp_status:       'Cleared',
+        is_active:        false,
       });
       onUpdate(data);
     } finally {
@@ -162,6 +171,19 @@ function InjurySummaryCard({ injury, onUpdate }) {
       <div className="id-summary-card">
         <form className="id-edit-form no-print" onSubmit={handleSave} noValidate>
           {error && <div className="form-error">{error}</div>}
+
+          <div className="id-clearance-field">
+            <label className="form-label">Physician Clearance</label>
+            <select
+              className="form-input"
+              value={form.clearance_status}
+              onChange={(e) => set('clearance_status', e.target.value)}
+            >
+              {CLEARANCE_STATUSES.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
+          </div>
 
           <div className="id-edit-row">
             <div className="form-group">
@@ -265,6 +287,12 @@ function InjurySummaryCard({ injury, onUpdate }) {
           )}
           {!injury.is_active && (
             <span className="inj-badge inj-badge--resolved">Resolved</span>
+          )}
+          {injury.clearance_status === 'pending_physician' && (
+            <span className="inj-badge inj-badge--clearance-pending">Pending Physician Clearance</span>
+          )}
+          {injury.clearance_status === 'cleared' && (
+            <span className="inj-badge inj-badge--clearance-cleared">✓ Cleared by Physician</span>
           )}
         </div>
       </div>

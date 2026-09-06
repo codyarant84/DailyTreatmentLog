@@ -5,6 +5,8 @@ import TreatmentCard from '../components/TreatmentCard.jsx';
 import { CategoryBadge, DispositionBadge } from '../components/GeneralMedicalBadges.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { formatDate, parseLocalDate } from '../lib/dateUtils.js';
+import { severityColor } from '../lib/riskFlags.js';
+import { WarningIcon } from '../components/Icons.jsx';
 import './AthleteProfile.css';
 
 const TREATMENT_TYPES = ['Ice', 'Heat', 'Ultrasound', 'E-Stim', 'Massage', 'Taping', 'Exercise'];
@@ -42,6 +44,9 @@ export default function AthleteProfile() {
   // General medical history
   const [genMedEvents, setGenMedEvents]     = useState([]);
 
+  // Risk flags (automatic, recalculated fresh on every load)
+  const [riskFlags, setRiskFlags]           = useState([]);
+
   // Parent access state
   const [parents, setParents]               = useState([]);
   const [inviteEmail, setInviteEmail]       = useState('');
@@ -73,6 +78,9 @@ export default function AthleteProfile() {
       .catch(() => {});
     api.get(`/api/general-medical/athlete/${athlete.id}`)
       .then(({ data }) => setGenMedEvents(data))
+      .catch(() => {});
+    api.get(`/api/athletes/${athlete.id}/risk-flags`)
+      .then(({ data }) => setRiskFlags(data))
       .catch(() => {});
   }, [athlete?.id]);
 
@@ -228,6 +236,37 @@ export default function AthleteProfile() {
       </div>
 
       {error && <div className="state-msg state-msg--error"><p>{error}</p></div>}
+
+      {/* Risk Flags — automatic, computed fresh on every load */}
+      {riskFlags.length > 0 && (
+        <div className="risk-flags-section">
+          <h2 className="risk-flags-title">
+            <WarningIcon /> Risk Flags
+          </h2>
+          <div className="risk-flags-list">
+            {riskFlags.map((f) => {
+              const c = severityColor(f.severity);
+              return (
+                <div key={f.type} className="risk-flag-card" style={{ borderColor: c.border }}>
+                  <span className="risk-flag-card-icon" aria-hidden="true"><WarningIcon /></span>
+                  <div className="risk-flag-card-body">
+                    <div className="risk-flag-card-top">
+                      <span className="risk-flag-card-label">{f.label}</span>
+                      <span
+                        className="risk-flag-severity-badge"
+                        style={{ background: c.bg, color: c.color, borderColor: c.border }}
+                      >
+                        {f.severity}
+                      </span>
+                    </div>
+                    <p className="risk-flag-card-desc">{f.description}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Flags */}
       <div className="flags-section">

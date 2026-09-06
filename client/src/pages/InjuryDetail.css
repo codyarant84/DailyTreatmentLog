@@ -86,6 +86,18 @@
   border-color: #d1d5db;
 }
 
+.inj-badge--clearance-pending {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fcd34d;
+}
+
+.inj-badge--clearance-cleared {
+  background: #d1fae5;
+  color: #065f46;
+  border-color: #6ee7b7;
+}
+
 .id-type-line {
   font-size: 1rem;
   font-weight: 600;
@@ -415,6 +427,16 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+.id-clearance-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: #fffbeb;
+  border: 1.5px solid #fcd34d;
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
 }
 
 .id-edit-row {

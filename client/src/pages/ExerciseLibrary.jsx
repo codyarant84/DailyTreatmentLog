@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import api from '../lib/api.js';
+import { PlayIcon } from '../components/Icons.jsx';
 import './ExerciseLibrary.css';
 
 function getYouTubeId(url) {
@@ -253,7 +254,7 @@ export default function ExerciseLibrary() {
                                   alt={`${ex.name} video`}
                                   className="video-thumb"
                                 />
-                                <span className="play-badge">▶ Watch</span>
+                                <span className="play-badge"><PlayIcon /> Watch</span>
                               </a>
                             )}
                             <div className="exercise-card-body">
@@ -261,7 +262,7 @@ export default function ExerciseLibrary() {
                               {ex.description && <p className="exercise-desc">{ex.description}</p>}
                               {ex.video_url && !ytId && (
                                 <a href={ex.video_url} target="_blank" rel="noopener noreferrer" className="video-link">
-                                  🔗 Video
+                                  Video
                                 </a>
                               )}
                             </div>

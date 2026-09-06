@@ -1,7 +1,9 @@
 import express from 'express';
-import { query } from '../lib/db.js';
+import { query, pool } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
+import { requireAdmin } from '../middleware/requireAdmin.js';
 import { logActivity } from '../middleware/logActivity.js';
+import { calculateRiskFlags, getHighRiskAthletes } from '../lib/riskFlags.js';
 
 const router = express.Router();
 router.use(requireAuth);
@@ -9,11 +11,16 @@ router.use(requireAuth);
 // GET /api/athletes
 router.get('/', async (req, res) => {
   const includeArchived = req.query.include_archived === 'true';
+  const archivedOnly    = req.query.archived_only === 'true';
   const conditions = ['a.school_id = $1'];
   const params = [req.schoolId];
   let p = 2;
 
-  if (!includeArchived) conditions.push('(a.archived = false OR a.archived IS NULL)');
+  if (archivedOnly) {
+    conditions.push('a.archived = true');
+  } else if (!includeArchived) {
+    conditions.push('(a.archived = false OR a.archived IS NULL)');
+  }
   if (req.role === 'coach' && req.coachSport) {
     conditions.push(`a.sport = $${p++}`);
     params.push(req.coachSport);
@@ -23,7 +30,8 @@ router.get('/', async (req, res) => {
     const { rows } = await query(
       `SELECT a.id, a.name, a.sport, a.grade, a.date_of_birth,
               a.emergency_contact_name, a.emergency_contact_phone,
-              a.created_at, a.archived,
+              a.created_at, a.archived, a.archived_reason, a.archived_at,
+              a.graduation_year, a.eligibility_override,
               (SELECT COUNT(*)::int FROM athlete_flags WHERE athlete_id = a.id) AS flag_count,
               (SELECT severity FROM athlete_flags WHERE athlete_id = a.id
                ORDER BY CASE severity WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 END LIMIT 1
@@ -36,6 +44,32 @@ router.get('/', async (req, res) => {
     res.json(rows);
   } catch (err) {
     console.error('GET /athletes error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/athletes/archived — full archive detail (reason, date, grade/year at archive)
+router.get('/archived', async (req, res) => {
+  const conditions = ['a.school_id = $1', 'a.archived = true'];
+  const params = [req.schoolId];
+  let p = 2;
+
+  if (req.role === 'coach' && req.coachSport) {
+    conditions.push(`a.sport = $${p++}`);
+    params.push(req.coachSport);
+  }
+
+  try {
+    const { rows } = await query(
+      `SELECT a.id, a.name, a.sport, a.grade, a.archived_reason, a.archived_at, a.graduation_year
+       FROM athletes a
+       WHERE ${conditions.join(' AND ')}
+       ORDER BY a.archived_at DESC NULLS LAST, a.name`,
+      params
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('GET /athletes/archived error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -58,6 +92,18 @@ router.get('/by-name/:name', async (req, res) => {
   }
 });
 
+// GET /api/athletes/high-risk — all athletes with at least one active risk flag
+router.get('/high-risk', async (req, res) => {
+  try {
+    const coachSport = req.role === 'coach' ? req.coachSport : null;
+    const athletes = await getHighRiskAthletes(req.schoolId, { coachSport });
+    res.json(athletes);
+  } catch (err) {
+    console.error('GET /athletes/high-risk error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/athletes
 router.post('/', async (req, res) => {
   const { first_name, last_name, sport, grade, date_of_birth, emergency_contact_name, emergency_contact_phone } = req.body;
@@ -65,7 +111,6 @@ router.post('/', async (req, res) => {
   if (!first_name?.trim()) return res.status(400).json({ error: 'First name is required.' });
   if (!last_name?.trim())  return res.status(400).json({ error: 'Last name is required.' });
   if (!sport?.trim())      return res.status(400).json({ error: 'Sport is required.' });
-  if (!grade?.trim())      return res.status(400).json({ error: 'Grade is required.' });
 
   const name = `${first_name.trim()} ${last_name.trim()}`;
 
@@ -74,7 +119,7 @@ router.post('/', async (req, res) => {
       `INSERT INTO athletes (school_id, name, sport, grade, date_of_birth, emergency_contact_name, emergency_contact_phone)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING id, name, sport, grade, date_of_birth, emergency_contact_name, emergency_contact_phone, created_at`,
-      [req.schoolId, name, sport.trim(), grade.trim(), date_of_birth || null, emergency_contact_name?.trim() || null, emergency_contact_phone?.trim() || null]
+      [req.schoolId, name, sport.trim(), grade?.trim() || null, date_of_birth || null, emergency_contact_name?.trim() || null, emergency_contact_phone?.trim() || null]
     );
     logActivity({ schoolId: req.schoolId, profileId: req.userId, action: 'athlete.created', entityType: 'athlete', entityId: rows[0].id });
     res.status(201).json(rows[0]);
@@ -152,6 +197,144 @@ router.delete('/:id', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('DELETE /athletes/:id error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/athletes/:id — edit core fields (name is immutable: daily_treatments,
+// treatments, and rehab_programs key off it by text with no FK to repoint).
+router.put('/:id', async (req, res) => {
+  const { sport, grade, date_of_birth, emergency_contact_name, emergency_contact_phone, eligibility_override } = req.body;
+
+  const fields = [];
+  const params = [];
+  let p = 1;
+  if (sport !== undefined)                   { fields.push(`sport = $${p++}`);                   params.push(sport?.trim() || null); }
+  if (grade !== undefined)                   { fields.push(`grade = $${p++}`);                   params.push(grade?.trim() || null); }
+  if (date_of_birth !== undefined)           { fields.push(`date_of_birth = $${p++}`);            params.push(date_of_birth || null); }
+  if (emergency_contact_name !== undefined)  { fields.push(`emergency_contact_name = $${p++}`);   params.push(emergency_contact_name?.trim() || null); }
+  if (emergency_contact_phone !== undefined) { fields.push(`emergency_contact_phone = $${p++}`);  params.push(emergency_contact_phone?.trim() || null); }
+  if (eligibility_override !== undefined)    { fields.push(`eligibility_override = $${p++}`);     params.push(!!eligibility_override); }
+
+  if (fields.length === 0) return res.status(400).json({ error: 'No fields provided.' });
+
+  params.push(req.params.id, req.schoolId);
+
+  try {
+    const { rows } = await query(
+      `UPDATE athletes SET ${fields.join(', ')} WHERE id = $${p++} AND school_id = $${p}
+       RETURNING id, name, sport, grade, date_of_birth, emergency_contact_name, emergency_contact_phone, eligibility_override`,
+      params
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Athlete not found.' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('PUT /athletes/:id error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/athletes/:id/unarchive
+router.post('/:id/unarchive', async (req, res) => {
+  try {
+    const { rows } = await query(
+      `UPDATE athletes SET archived = false, archived_reason = NULL, archived_at = NULL
+       WHERE id = $1 AND school_id = $2
+       RETURNING id, name`,
+      [req.params.id, req.schoolId]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Athlete not found.' });
+    logActivity({ schoolId: req.schoolId, profileId: req.userId, action: 'athlete.unarchived', entityType: 'athlete', entityId: rows[0].id });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('POST /athletes/:id/unarchive error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/athletes/:id/permanent — irreversible; archived athletes only.
+router.delete('/:id/permanent', requireAdmin, async (req, res) => {
+  if (req.body?.confirm !== true) {
+    return res.status(400).json({ error: 'Pass { confirm: true } to permanently delete this athlete.' });
+  }
+
+  const client = await pool.connect();
+  try {
+    const { rows: found } = await client.query(
+      'SELECT id, name, archived FROM athletes WHERE id = $1 AND school_id = $2',
+      [req.params.id, req.schoolId]
+    );
+    if (!found[0]) {
+      return res.status(404).json({ error: 'Athlete not found.' });
+    }
+    const athlete = found[0];
+    if (!athlete.archived) {
+      return res.status(400).json({ error: 'Only archived athletes can be permanently deleted.' });
+    }
+
+    await client.query('BEGIN');
+
+    // concussion_cases has no FK to athletes at all, and its own child
+    // tables (checkins/assessments/links) key off case_id — clean up
+    // explicitly before removing the case rows themselves.
+    await client.query(
+      `DELETE FROM concussion_checkins WHERE case_id IN
+        (SELECT id FROM concussion_cases WHERE athlete_id = $1 AND school_id = $2)`,
+      [athlete.id, req.schoolId]
+    );
+    await client.query(
+      `DELETE FROM concussion_assessments WHERE case_id IN
+        (SELECT id FROM concussion_cases WHERE athlete_id = $1 AND school_id = $2)`,
+      [athlete.id, req.schoolId]
+    );
+    await client.query(
+      `DELETE FROM concussion_links WHERE case_id IN
+        (SELECT id FROM concussion_cases WHERE athlete_id = $1 AND school_id = $2)`,
+      [athlete.id, req.schoolId]
+    );
+    await client.query('DELETE FROM concussion_cases WHERE athlete_id = $1 AND school_id = $2', [athlete.id, req.schoolId]);
+
+    // soap_notes has direct athlete_id/school_id columns but no confirmed
+    // cascade (predates the migration-script convention) — clean up explicitly.
+    await client.query('DELETE FROM soap_notes WHERE athlete_id = $1 AND school_id = $2', [athlete.id, req.schoolId]);
+
+    // Name-keyed tables (no FK possible).
+    await client.query('DELETE FROM daily_treatments WHERE athlete_name = $1 AND school_id = $2', [athlete.name, req.schoolId]);
+    await client.query('DELETE FROM treatments WHERE athlete_name = $1 AND school_id = $2', [athlete.name, req.schoolId]);
+    await client.query('DELETE FROM rehab_programs WHERE athlete_name = $1 AND school_id = $2', [athlete.name, req.schoolId]);
+
+    // Everything else (injuries + injury_attachments, general_medical,
+    // athlete_flags, treatment_requests, portal_parent_athlete) cascades via
+    // FK; portal_users.athlete_id is ON DELETE SET NULL.
+    await client.query('DELETE FROM athletes WHERE id = $1 AND school_id = $2', [athlete.id, req.schoolId]);
+
+    await client.query('COMMIT');
+    logActivity({ schoolId: req.schoolId, profileId: req.userId, action: 'athlete.permanently_deleted', entityType: 'athlete', entityId: athlete.id, metadata: { name: athlete.name } });
+    res.json({ success: true });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('DELETE /athletes/:id/permanent error:', err.message);
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+// ── Risk flags (automatic, computed fresh on every request) ─────────
+
+// GET /api/athletes/:id/risk-flags
+router.get('/:id/risk-flags', async (req, res) => {
+  try {
+    const { rows: found } = await query(
+      'SELECT id FROM athletes WHERE id = $1 AND school_id = $2',
+      [req.params.id, req.schoolId]
+    );
+    if (!found[0]) return res.status(404).json({ error: 'Athlete not found.' });
+
+    const flags = await calculateRiskFlags(req.params.id, req.schoolId);
+    res.json(flags);
+  } catch (err) {
+    console.error('GET /athletes/:id/risk-flags error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });

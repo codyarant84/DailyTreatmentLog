@@ -137,7 +137,7 @@ function LogEntryTab({ event, athletes, athleteNames, onSaved, onCancelEdit }) {
           >
             <option value="">Select…</option>
             {CATEGORIES.map((c) => (
-              <option key={c.key} value={c.key}>{c.icon} {c.label}</option>
+              <option key={c.key} value={c.key}>{c.label}</option>
             ))}
           </select>
         </div>
@@ -265,7 +265,7 @@ function HistoryTab({ events, expandedId, onToggleExpand, onEdit, onDelete }) {
             onChange={(e) => setCategoryFilter(e.target.value)}
           >
             <option value="">All Categories</option>
-            {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.icon} {c.label}</option>)}
+            {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
           </select>
         </div>
         <div className="filter-group">

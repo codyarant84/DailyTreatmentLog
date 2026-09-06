@@ -655,7 +655,7 @@ export default function CEU() {
             />
             <div className="ceu-toolbar-actions">
               <button className="btn btn--outline" onClick={() => setShowDiscoverModal(true)}>
-                ✨ Discover CEUs with AI
+                Discover CEUs with AI
               </button>
               <button className="btn btn--primary" onClick={() => { setSubmitPrefill(null); setShowSubmitModal(true); }}>
                 + Submit a CEU

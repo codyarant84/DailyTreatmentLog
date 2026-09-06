@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../lib/api.js';
+import { PencilIcon } from '../components/Icons.jsx';
 import './Dashboard.css';
 
 const TREATMENT_COLORS = {
@@ -63,7 +64,7 @@ function DayCard({ treatment, isNew }) {
             className="day-card-edit"
             title="Edit treatment"
           >
-            ✏
+            <PencilIcon />
           </Link>
         </div>
       </div>

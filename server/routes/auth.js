@@ -37,6 +37,9 @@ function buildAuthResponse(profile) {
     primary_color: profile.primary_color ?? null,
     logo_url:      profile.logo_url      ?? null,
     cost_per_visit: profile.cost_per_visit ?? 50,
+    organization_type:      profile.organization_type      ?? 'high_school',
+    max_years:               profile.max_years               ?? 4,
+    archive_retention_years: profile.archive_retention_years ?? 3,
   };
 }
 
@@ -53,7 +56,8 @@ router.post('/login', async (req, res) => {
   try {
     const { rows } = await query(
       `SELECT p.id, p.email, p.password_hash, p.school_id, p.role, p.is_admin, p.sport,
-              s.primary_color, s.logo_url, s.cost_per_visit
+              s.primary_color, s.logo_url, s.cost_per_visit,
+              s.organization_type, s.max_years, s.archive_retention_years
        FROM   profiles p
        JOIN   schools  s ON s.id = p.school_id
        WHERE  p.email = $1`,
@@ -102,7 +106,7 @@ router.post('/register', async (req, res) => {
     const profile = profileRows[0];
 
     const { rows: schoolRows } = await query(
-      'SELECT primary_color, logo_url, cost_per_visit FROM schools WHERE id = $1',
+      'SELECT primary_color, logo_url, cost_per_visit, organization_type, max_years, archive_retention_years FROM schools WHERE id = $1',
       [school_id]
     );
 
@@ -131,7 +135,8 @@ router.get('/me', requireAuth, async (req, res) => {
   try {
     const { rows } = await query(
       `SELECT p.id, p.email, p.school_id, p.role, p.is_admin, p.sport,
-              s.primary_color, s.logo_url, s.cost_per_visit, s.student_email_domain
+              s.primary_color, s.logo_url, s.cost_per_visit, s.student_email_domain,
+              s.organization_type, s.max_years, s.archive_retention_years
        FROM   profiles p
        JOIN   schools  s ON s.id = p.school_id
        WHERE  p.id = $1`,
@@ -155,6 +160,9 @@ router.get('/me', requireAuth, async (req, res) => {
       logo_url:             p.logo_url             ?? null,
       cost_per_visit:       p.cost_per_visit       ?? 50,
       student_email_domain: p.student_email_domain ?? null,
+      organization_type:      p.organization_type      ?? 'high_school',
+      max_years:               p.max_years               ?? 4,
+      archive_retention_years: p.archive_retention_years ?? 3,
     });
   } catch (err) {
     console.error('GET /auth/me error:', err.message);
