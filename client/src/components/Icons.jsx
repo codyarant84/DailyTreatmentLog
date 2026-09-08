@@ -84,3 +84,11 @@ export function PencilIcon({ size = '1em', ...props }) {
     </svg>
   );
 }
+
+export function MessageIcon({ size = '1em', ...props }) {
+  return (
+    <svg width={size} height={size} {...base} {...props}>
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" />
+    </svg>
+  );
+}

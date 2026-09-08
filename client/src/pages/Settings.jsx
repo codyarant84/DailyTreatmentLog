@@ -24,6 +24,104 @@ const SPORTS = [
   'Field Hockey', 'Skiing / Snowboarding', 'Other',
 ];
 
+const TWILIO_SMS_NUMBER = import.meta.env.VITE_TWILIO_PHONE_NUMBER || 'the Fieldside SMS number';
+
+function AddPhoneModal({ onClose, onVerified }) {
+  const [step, setStep] = useState('phone'); // 'phone' | 'code'
+  const [phone, setPhone] = useState('');
+  const [code, setCode] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function handleSendCode(e) {
+    e.preventDefault();
+    if (!phone.trim()) { setError('Enter a phone number.'); return; }
+    setError(null);
+    setSubmitting(true);
+    try {
+      await api.post('/api/phone-numbers', { phone_number: phone.trim() });
+      setStep('code');
+    } catch (err) {
+      setError(err.response?.data?.error ?? err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleVerify(e) {
+    e.preventDefault();
+    if (!code.trim()) { setError('Enter the verification code.'); return; }
+    setError(null);
+    setSubmitting(true);
+    try {
+      const { data } = await api.post('/api/phone-numbers/verify', { phone_number: phone.trim(), code: code.trim() });
+      onVerified(data);
+    } catch (err) {
+      setError(err.response?.data?.error ?? err.message);
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="modal" role="dialog" aria-modal="true" style={{ maxWidth: 420 }}>
+        <div className="modal-header">
+          <h2 className="modal-title">Add Phone Number</h2>
+          <button className="modal-close" onClick={onClose} aria-label="Close">✕</button>
+        </div>
+
+        {step === 'phone' ? (
+          <form className="modal-form" onSubmit={handleSendCode} noValidate>
+            {error && <div className="form-error">{error}</div>}
+            <div className="form-group">
+              <label className="form-label">Phone Number</label>
+              <input
+                type="tel"
+                className="form-input"
+                placeholder="(555) 555-5555"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="modal-actions">
+              <button type="button" className="btn btn--ghost" onClick={onClose} disabled={submitting}>Cancel</button>
+              <button type="submit" className="btn btn--primary" disabled={submitting}>
+                {submitting ? 'Sending…' : 'Send Code'}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <form className="modal-form" onSubmit={handleVerify} noValidate>
+            {error && <div className="form-error">{error}</div>}
+            <p className="settings-hint" style={{ margin: 0 }}>
+              We texted a 6-digit code to {phone}. Enter it below to verify.
+            </p>
+            <div className="form-group">
+              <label className="form-label">Verification Code</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                className="form-input"
+                placeholder="123456"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="modal-actions">
+              <button type="button" className="btn btn--ghost" onClick={onClose} disabled={submitting}>Cancel</button>
+              <button type="submit" className="btn btn--primary" disabled={submitting}>
+                {submitting ? 'Verifying…' : 'Verify'}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Settings() {
   const { branding, setBranding, isAdmin, role } = useAuth();
   const canManageCoaches = isAdmin || role === 'trainer';
@@ -43,32 +141,28 @@ export default function Settings() {
   const [domainSaved, setDomainSaved] = useState(false);
   const [domainError, setDomainError] = useState(null);
 
-  // ── My Profile (SMS logging phone number) ───────────────────────────
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [phoneSaving, setPhoneSaving] = useState(false);
-  const [phoneSaved, setPhoneSaved] = useState(false);
-  const [phoneError, setPhoneError] = useState(null);
+  // ── SMS Injury Logging (at_phone_numbers) ───────────────────────────
+  const [smsNumbers, setSmsNumbers] = useState([]);
+  const [smsLoading, setSmsLoading] = useState(true);
+  const [showAddPhoneModal, setShowAddPhoneModal] = useState(false);
 
-  useEffect(() => {
-    api.get('/api/auth/me')
-      .then(({ data }) => setPhoneNumber(data.phone_number ?? ''))
-      .catch(() => {});
-  }, []);
+  const loadSmsNumbers = () => {
+    setSmsLoading(true);
+    api.get('/api/phone-numbers')
+      .then(({ data }) => setSmsNumbers(data))
+      .catch(() => {})
+      .finally(() => setSmsLoading(false));
+  };
 
-  async function handleSavePhone(e) {
-    e.preventDefault();
-    setPhoneError(null);
-    setPhoneSaved(false);
-    setPhoneSaving(true);
+  useEffect(() => { loadSmsNumbers(); }, []);
+
+  async function handleRemovePhone(id) {
+    if (!confirm('Remove this phone number from SMS injury logging?')) return;
     try {
-      const { data } = await api.put('/api/auth/phone', { phone_number: phoneNumber });
-      setPhoneNumber(data.phone_number ?? '');
-      setPhoneSaved(true);
-      setTimeout(() => setPhoneSaved(false), 2500);
+      await api.delete(`/api/phone-numbers/${id}`);
+      setSmsNumbers((prev) => prev.filter((n) => n.id !== id));
     } catch (err) {
-      setPhoneError(err.response?.data?.error ?? err.message);
-    } finally {
-      setPhoneSaving(false);
+      alert(err.response?.data?.error ?? err.message);
     }
   }
 
@@ -657,30 +751,52 @@ export default function Settings() {
       </div>
 
       <div className="settings-card">
-        <h2 className="settings-section-title">SMS Logging</h2>
+        <h2 className="settings-section-title">SMS Injury Logging</h2>
         <p className="settings-hint">
-          Your personal phone number, used to identify treatment-log messages sent in by text.
+          Text an injury description to <strong>{TWILIO_SMS_NUMBER}</strong> and Fieldside will use AI to
+          draft an injury record automatically. Register your phone number below to use it.
         </p>
-        <form onSubmit={handleSavePhone}>
-          <div className="cost-field">
-            <label className="cost-label" htmlFor="sms-phone">Phone number</label>
-            <div className="cost-input-row">
-              <input
-                id="sms-phone"
-                type="tel"
-                className="form-input"
-                placeholder="(555) 555-5555"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                style={{ flex: 1 }}
-              />
-              <button type="submit" className="btn btn--primary" disabled={phoneSaving}>
-                {phoneSaving ? 'Saving...' : phoneSaved ? 'Saved!' : 'Save'}
-              </button>
-            </div>
+
+        {showAddPhoneModal && (
+          <AddPhoneModal
+            onClose={() => setShowAddPhoneModal(false)}
+            onVerified={(number) => { setSmsNumbers((prev) => [number, ...prev]); setShowAddPhoneModal(false); }}
+          />
+        )}
+
+        {smsLoading ? (
+          <p className="settings-hint">Loading…</p>
+        ) : smsNumbers.length === 0 ? (
+          <p className="settings-hint" style={{ fontStyle: 'italic' }}>No phone numbers registered yet.</p>
+        ) : (
+          <div className="sms-number-list">
+            {smsNumbers.map((n) => (
+              <div key={n.id} className="sms-number-row">
+                <span className="sms-number-value">{n.phone_number}</span>
+                <span className={`sms-verified-badge${n.verified ? ' sms-verified-badge--verified' : ''}`}>
+                  {n.verified ? 'Verified' : 'Pending verification'}
+                </span>
+                <button className="btn btn--sm btn--danger-ghost" onClick={() => handleRemovePhone(n.id)}>
+                  Remove
+                </button>
+              </div>
+            ))}
           </div>
-          {phoneError && <p className="settings-error">{phoneError}</p>}
-        </form>
+        )}
+
+        <button
+          type="button"
+          className="btn btn--outline"
+          style={{ alignSelf: 'flex-start', marginTop: '0.5rem' }}
+          onClick={() => setShowAddPhoneModal(true)}
+        >
+          + Add Phone Number
+        </button>
+
+        <p className="sms-disclaimer">
+          SMS messages are not end-to-end encrypted. By using this feature you acknowledge that injury
+          information sent via SMS may not be fully HIPAA compliant. Use at your own discretion.
+        </p>
       </div>
 
       {canManageCoaches && (

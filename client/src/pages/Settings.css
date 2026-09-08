@@ -309,3 +309,51 @@
   padding-top: 1rem;
   border-top: 1px solid var(--color-border);
 }
+
+/* SMS injury logging */
+.sms-number-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sms-number-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.sms-number-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+  flex: 1;
+  min-width: 140px;
+}
+
+.sms-verified-badge {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.sms-verified-badge--verified {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.sms-disclaimer {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
+}

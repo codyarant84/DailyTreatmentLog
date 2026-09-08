@@ -4,6 +4,7 @@ import api from '../lib/api.js';
 import SelectWithOther from '../components/SelectWithOther.jsx';
 import { BODY_PARTS, INJURY_TYPES } from '../lib/constants.js';
 import { formatDate, parseLocalDate } from '../lib/dateUtils.js';
+import { MessageIcon } from '../components/Icons.jsx';
 import './Injuries.css';
 
 export const MECHANISMS = ['Contact', 'Non-contact', 'Overuse', 'Unknown'];
@@ -288,6 +289,11 @@ function InjuryCard({ injury, onUpdate, onDelete }) {
           )}
         </div>
         <div className="inj-card-badges">
+          {injury.logged_via_sms && (
+            <span className="inj-sms-badge" title="Logged via SMS — review and complete this record">
+              <MessageIcon /> SMS
+            </span>
+          )}
           {injury.severity && <Badge label={injury.severity} colorMap={SEVERITY_COLORS} />}
           <Link to={`/injuries/${injury.id}`} className="inj-detail-link">View →</Link>
         </div>
@@ -392,6 +398,8 @@ export default function Injuries() {
 
   const displayed = showAll ? injuries : injuries.filter((i) => i.is_active);
   const activeCount = injuries.filter((i) => i.is_active).length;
+  const needsReview = displayed.filter((i) => i.logged_via_sms && i.is_active);
+  const otherDisplayed = displayed.filter((i) => !(i.logged_via_sms && i.is_active));
 
   if (loading) return <div className="state-msg"><div className="spinner" /><span>Loading…</span></div>;
 
@@ -436,8 +444,30 @@ export default function Injuries() {
         </div>
       )}
 
+      {needsReview.length > 0 && (
+        <div className="inj-needs-review">
+          <h2 className="inj-needs-review-title">
+            Needs Review ({needsReview.length})
+          </h2>
+          <p className="page-subtitle" style={{ marginTop: 0, marginBottom: '0.75rem' }}>
+            Drafted from SMS reports — review and complete these records.
+          </p>
+          <div className="inj-grid">
+            {needsReview.map((inj) => (
+              <InjuryCard
+                key={inj.id}
+                injury={inj}
+                onUpdate={handleUpdate}
+                onDelete={handleDelete}
+                onEdit={() => setEditTarget(inj)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="inj-grid">
-        {displayed.map((inj) => (
+        {otherDisplayed.map((inj) => (
           <InjuryCard
             key={inj.id}
             injury={inj}

@@ -24,6 +24,8 @@ import reportsRouter from './routes/reports.js';
 import injuryReportsRouter from './routes/injuryReports.js';
 import demoRouter from './routes/demo.js';
 import portalRouter from './routes/portal.js';
+import smsWebhookRouter from './routes/smsWebhook.js';
+import phoneNumbersRouter from './routes/phoneNumbers.js';
 
 const app = express();
 
@@ -55,6 +57,8 @@ app.use('/api/reports', reportsRouter);
 app.use('/api/injury-reports', injuryReportsRouter);
 app.use('/api/demo-request', demoRouter);
 app.use('/api/portal', portalRouter);
+app.use('/api/sms', smsWebhookRouter);
+app.use('/api/phone-numbers', phoneNumbersRouter);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
