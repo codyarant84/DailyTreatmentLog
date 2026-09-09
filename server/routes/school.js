@@ -276,6 +276,23 @@ router.get('/coaches', async (req, res) => {
   }
 });
 
+// GET /api/school/staff — AT/admin profiles at this school (not coaches),
+// used for e.g. controlled-substance witness selection.
+router.get('/staff', async (req, res) => {
+  try {
+    const { rows } = await query(
+      `SELECT id, email, role FROM profiles
+       WHERE school_id = $1 AND role IN ('trainer', 'admin', 'super_admin')
+       ORDER BY email`,
+      [req.schoolId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('GET /school/staff error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // PUT /api/school/coaches/:id/sport
 router.put('/coaches/:id/sport', async (req, res) => {
   const { sport } = req.body;

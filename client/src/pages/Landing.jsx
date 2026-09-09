@@ -77,11 +77,12 @@ export default function Landing() {
   const [expiringCredentials, setExpiringCredentials] = useState([]);
   const [todaySchedule, setTodaySchedule] = useState([]);
   const [highRiskAthletes, setHighRiskAthletes] = useState([]);
+  const [inventoryAlerts, setInventoryAlerts] = useState({ low_stock: [], overdue_checkouts: [], expiring_medications: [] });
 
   useEffect(() => {
     async function load() {
       try {
-        const [todayRes, injuriesRes, athletesRes, allTreatmentsRes, gpsDashRes, concussionsRes, genMedRes, credentialsRes, scheduleRes, highRiskRes] = await Promise.all([
+        const [todayRes, injuriesRes, athletesRes, allTreatmentsRes, gpsDashRes, concussionsRes, genMedRes, credentialsRes, scheduleRes, highRiskRes, inventoryAlertsRes] = await Promise.all([
           api.get(`/api/daily-treatments?date=${today}`),
           api.get('/api/injuries'),
           api.get('/api/athletes'),
@@ -92,6 +93,7 @@ export default function Landing() {
           api.get('/api/credentials/expiring'),
           api.get(`/api/schedule/requests?date=${today}&status=approved`),
           api.get('/api/athletes/high-risk'),
+          api.get('/api/inventory/alerts'),
         ]);
 
         setTodayTreatments(todayRes.data ?? []);
@@ -115,6 +117,7 @@ export default function Landing() {
         setExpiringCredentials(within30);
         setTodaySchedule(scheduleRes.data ?? []);
         setHighRiskAthletes(highRiskRes.data ?? []);
+        setInventoryAlerts(inventoryAlertsRes.data ?? { low_stock: [], overdue_checkouts: [], expiring_medications: [] });
       } catch (err) {
         console.error('Landing load error:', err);
       } finally {
@@ -189,6 +192,21 @@ export default function Landing() {
             {expiringCredentials.length} credential{expiringCredentials.length !== 1 ? 's' : ''} expiring within 30 days
           </span>
           <span className="credential-alert-link">Review Vault →</span>
+        </Link>
+      )}
+
+      {/* ── Inventory alerts ─────────────────────────────────────────── */}
+      {!loading && (inventoryAlerts.low_stock.length + inventoryAlerts.overdue_checkouts.length + inventoryAlerts.expiring_medications.length) > 0 && (
+        <Link to="/inventory" className="credential-alert-card">
+          <span className="credential-alert-icon" aria-hidden="true"><WarningIcon /></span>
+          <span>
+            {inventoryAlerts.low_stock.length > 0 && `${inventoryAlerts.low_stock.length} item${inventoryAlerts.low_stock.length !== 1 ? 's' : ''} low on stock`}
+            {inventoryAlerts.low_stock.length > 0 && (inventoryAlerts.overdue_checkouts.length > 0 || inventoryAlerts.expiring_medications.length > 0) && ' · '}
+            {inventoryAlerts.overdue_checkouts.length > 0 && `${inventoryAlerts.overdue_checkouts.length} checkout${inventoryAlerts.overdue_checkouts.length !== 1 ? 's' : ''} overdue`}
+            {inventoryAlerts.overdue_checkouts.length > 0 && inventoryAlerts.expiring_medications.length > 0 && ' · '}
+            {inventoryAlerts.expiring_medications.length > 0 && `${inventoryAlerts.expiring_medications.length} medication${inventoryAlerts.expiring_medications.length !== 1 ? 's' : ''} expiring soon`}
+          </span>
+          <span className="credential-alert-link">Review Inventory →</span>
         </Link>
       )}
 

@@ -24,8 +24,9 @@ export default function AthleteProfile() {
   const { name } = useParams();
   const athleteName = decodeURIComponent(name);
   const navigate = useNavigate();
-  const { branding } = useAuth();
+  const { branding, role } = useAuth();
   const costPerVisit = branding?.costPerVisit ?? 50;
+  const canManageInventory = role !== 'coach';
 
   const [treatments, setTreatments] = useState([]);
   const [loading, setLoading]       = useState(true);
@@ -52,6 +53,10 @@ export default function AthleteProfile() {
   const [inviteEmail, setInviteEmail]       = useState('');
   const [inviteSaving, setInviteSaving]     = useState(false);
   const [inviteMsg, setInviteMsg]           = useState(null);
+
+  // Equipment currently checked out to this athlete
+  const [checkouts, setCheckouts]           = useState([]);
+  const [returningId, setReturningId]       = useState(null);
 
   useEffect(() => {
     setLoading(true);
@@ -82,7 +87,29 @@ export default function AthleteProfile() {
     api.get(`/api/athletes/${athlete.id}/risk-flags`)
       .then(({ data }) => setRiskFlags(data))
       .catch(() => {});
+    loadCheckouts(athlete.id);
   }, [athlete?.id]);
+
+  function loadCheckouts(athleteId) {
+    api.get(`/api/inventory/checkouts/active?athlete_id=${athleteId}`)
+      .then(({ data }) => setCheckouts(data))
+      .catch(() => {});
+  }
+
+  async function handleReturnCheckout(checkout) {
+    setReturningId(checkout.id);
+    try {
+      await api.post(`/api/inventory/${checkout.item_id}/return`, {
+        transaction_id: checkout.id,
+        quantity_returned: checkout.quantity,
+      });
+      setCheckouts((prev) => prev.filter((c) => c.id !== checkout.id));
+    } catch (err) {
+      alert(err.response?.data?.error ?? err.message);
+    } finally {
+      setReturningId(null);
+    }
+  }
 
   function startAddFlag() {
     setEditingFlag(null);
@@ -475,6 +502,35 @@ export default function AthleteProfile() {
           {filtered.map((t) => (
             <TreatmentCard key={t.id} treatment={t} onDelete={handleDelete} />
           ))}
+        </div>
+      )}
+
+      {/* Equipment Checkout */}
+      {checkouts.length > 0 && (
+        <div className="parent-access-section">
+          <h2 className="flags-title">Equipment Checkout</h2>
+          <div className="parent-list">
+            {checkouts.map((c) => (
+              <div key={c.id} className="parent-row">
+                <div className="parent-info">
+                  <span className="parent-name">{c.item_name}</span>
+                  <span className="parent-email">
+                    {c.quantity} {c.unit} · Checked out {formatDate(c.created_at?.split('T')[0])}
+                    {c.due_date ? ` · Due ${formatDate(c.due_date)}` : ''}
+                  </span>
+                </div>
+                {canManageInventory && (
+                  <button
+                    className="btn btn--sm btn--danger-ghost"
+                    onClick={() => handleReturnCheckout(c)}
+                    disabled={returningId === c.id}
+                  >
+                    {returningId === c.id ? 'Returning…' : 'Return'}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

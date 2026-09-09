@@ -33,6 +33,7 @@ import Reports from './pages/Reports.jsx';
 import Activity from './pages/Activity.jsx';
 import MarketingPage from './pages/MarketingPage.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
+import SmsConsent from './pages/SmsConsent.jsx';
 import PortalLogin from './pages/portal/PortalLogin.jsx';
 import PortalHome from './pages/portal/PortalHome.jsx';
 import PortalOnboarding from './pages/portal/PortalOnboarding.jsx';
@@ -41,6 +42,7 @@ import PortalRehabView from './pages/portal/PortalRehabView.jsx';
 import PortalConcussionCheckin from './pages/portal/PortalConcussionCheckin.jsx';
 import ParentAthleteDetail from './pages/portal/ParentAthleteDetail.jsx';
 import Forms from './pages/Forms.jsx';
+import Inventory from './pages/Inventory.jsx';
 import { PortalAuthProvider, usePortalAuth } from './context/PortalAuthContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import './App.css';
@@ -217,6 +219,14 @@ const IconForms = () => (
   </svg>
 );
 
+const IconInventory = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+    <line x1="12" y1="22.08" x2="12" y2="12"/>
+  </svg>
+);
+
 const IconVault = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="3" width="18" height="18" rx="2"/>
@@ -290,6 +300,7 @@ function MoreDrawer({ onClose, role }) {
     { label: 'Gen Med',      icon: <IconGenMed />,       path: '/gen-med',     show: role !== 'coach' },
     { label: 'Concussions',  icon: <IconConcussions />,  path: '/concussions', show: role !== 'coach' },
     { label: 'Insights',     icon: <IconInsights />,     path: '/insights',    show: true },
+    { label: 'Inventory',    icon: <IconInventory />,    path: '/inventory',   show: true },
     { label: 'Library',      icon: <IconLibrary />,      path: '/exercises',   show: role !== 'coach' },
     { label: 'Programs',     icon: <IconPrograms />,     path: '/programs',    show: role !== 'coach' },
     { label: 'CEU',          icon: <IconCEU />,          path: '/ceu',         show: role === 'super_admin' },
@@ -483,6 +494,7 @@ function App() {
                 {/* Performance group */}
                 <Link to="/gps" className={`nav-link${p === '/gps' ? ' active' : ''}`}>GPS</Link>
                 <Link to="/insights" className={`nav-link${p === '/insights' ? ' active' : ''}`}>Insights</Link>
+                <Link to="/inventory" className={`nav-link${p.startsWith('/inventory') ? ' active' : ''}`}>Inventory</Link>
 
                 {role !== 'coach' && (
                   <>
@@ -523,6 +535,7 @@ function App() {
         <Routes>
           <Route path="/login" element={session ? <Navigate to="/home" replace /> : <Login />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/sms-consent" element={<SmsConsent />} />
           <Route path="/setup" element={<SetupProfile />} />
           <Route path="/invite/:token" element={<InviteAccept />} />
           <Route path="/admin" element={<ProtectedRoute><CoachRoute><Admin /></CoachRoute></ProtectedRoute>} />
@@ -537,6 +550,7 @@ function App() {
           <Route path="/concussions/:id" element={<ProtectedRoute><ConcussionDetail /></ProtectedRoute>} />
           <Route path="/concussion-checkin/:token" element={<div>Check-in coming soon</div>} />
           <Route path="/insights" element={<ProtectedRoute><Insights /></ProtectedRoute>} />
+          <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
           <Route path="/gps" element={<ProtectedRoute><GPSDashboard /></ProtectedRoute>} />
           <Route path="/exercises" element={<ProtectedRoute><CoachRoute><ExerciseLibrary /></CoachRoute></ProtectedRoute>} />
           <Route path="/programs" element={<ProtectedRoute><CoachRoute><RehabPrograms /></CoachRoute></ProtectedRoute>} />
