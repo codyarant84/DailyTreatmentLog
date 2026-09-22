@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import api from '../lib/api.js';
+import MarketingFooter from '../components/marketing/MarketingFooter.jsx';
+import SeoHead from '../components/marketing/SeoHead.jsx';
 import './MarketingPage.css';
 
 const FEATURES = [
@@ -75,6 +77,7 @@ const STATS = [
 export default function MarketingPage() {
   const { session } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [form, setForm] = useState({ name: '', school: '', role: '', email: '', phone: '', message: '' });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -84,6 +87,16 @@ export default function MarketingPage() {
   useEffect(() => {
     if (session) navigate('/home', { replace: true });
   }, [session, navigate]);
+
+  // Supports links from other marketing pages like `/#demo` or `/#about` —
+  // on arrival here (or on any hash change), scroll to the target section.
+  useEffect(() => {
+    if (!location.hash) return;
+    const id = location.hash.slice(1);
+    requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    });
+  }, [location.hash]);
 
   function scrollTo(id) {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
@@ -106,6 +119,11 @@ export default function MarketingPage() {
 
   return (
     <div className="mp-page">
+      <SeoHead
+        title={null}
+        description="Fieldside is the all-in-one platform for athletic trainers — injury tracking, treatment documentation, concussion management, and GPS load monitoring, built by a certified athletic trainer."
+        path="/"
+      />
       {/* ── Nav ── */}
       <header className="mp-nav">
         <div className="mp-nav-inner">
@@ -115,7 +133,8 @@ export default function MarketingPage() {
           </div>
 
           <nav className={`mp-nav-links${menuOpen ? ' open' : ''}`}>
-            <button onClick={() => scrollTo('features')}>Features</button>
+            <Link to="/features" onClick={() => setMenuOpen(false)}>Features</Link>
+            <Link to="/blog" onClick={() => setMenuOpen(false)}>Blog</Link>
             <button onClick={() => scrollTo('about')}>About</button>
             <button onClick={() => scrollTo('demo')}>Request Demo</button>
           </nav>
@@ -459,21 +478,7 @@ export default function MarketingPage() {
         </div>
       </section>
 
-      {/* ── Footer ── */}
-      <footer className="mp-footer">
-        <div className="mp-footer-inner">
-          <div className="mp-footer-brand">
-            <span className="mp-nav-icon mp-footer-icon">+</span>
-            <span className="mp-nav-name">Fieldside</span>
-          </div>
-          <p className="mp-footer-tag">Athletic Training Management — Built by ATs, for ATs.</p>
-          <div className="mp-footer-links">
-            <Link to="/login">Log In</Link>
-            <a href="mailto:cody@fieldsidehealth.com">Contact</a>
-          </div>
-          <p className="mp-footer-copy">&copy; {new Date().getFullYear()} Fieldside Health. All rights reserved.</p>
-        </div>
-      </footer>
+      <MarketingFooter />
     </div>
   );
 }

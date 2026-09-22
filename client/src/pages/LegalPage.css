@@ -1,0 +1,25 @@
+.legal-card {
+  max-width: 640px;
+}
+
+.legal-placeholder-notice {
+  font-size: 0.82rem;
+  color: var(--color-danger, #c0392b);
+  background: var(--color-danger-light, #fdf0ed);
+  border: 1px solid rgba(192, 57, 43, 0.3);
+  border-radius: var(--radius);
+  padding: 0.65rem 0.9rem;
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
+}
+
+.legal-text {
+  font-size: 0.9rem;
+  color: var(--color-text);
+  line-height: 1.65;
+  margin: 0 0 1rem;
+}
+
+.legal-text a {
+  color: var(--color-primary);
+}

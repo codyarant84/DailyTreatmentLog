@@ -1,5 +1,28 @@
+/* Scoped brand override — Fieldside's own crimson mark, independent of
+   whatever --color-primary a logged-in school's branding sets elsewhere.
+   This page is always anonymous, so no school branding context ever
+   applies here anyway, but scoping (rather than editing the shared
+   index.css default) keeps this from bleeding into Login/ResetPassword,
+   which reuse the same .login-page/.login-brand classes. */
+.sms-consent-page {
+  --color-primary: crimson;
+  --color-primary-dark: #b30f3a;
+  --color-primary-light: #fce4ea;
+}
+
 .sms-consent-card {
-  max-width: 520px;
+  max-width: 560px;
+}
+
+.sms-consent-subhead {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 1.25rem 0 0.5rem;
+}
+
+.sms-consent-subhead:first-of-type {
+  margin-top: 0.5rem;
 }
 
 .sms-consent-text {
@@ -7,6 +30,39 @@
   color: var(--color-text);
   line-height: 1.6;
   margin: 0 0 1rem;
+}
+
+.sms-consent-mockup {
+  margin: 0 0 1.25rem;
+}
+
+.sms-consent-mockup-frame {
+  border: 1.5px dashed var(--color-border);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+  background: var(--color-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sms-consent-mockup-frame .form-group { margin: 0; }
+.sms-consent-mockup-frame input[disabled] { opacity: 0.7; cursor: default; }
+.sms-consent-mockup-frame button[disabled] { opacity: 0.7; cursor: default; }
+
+.sms-consent-mockup-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.sms-consent-mockup-caption {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin-top: 0.5rem;
 }
 
 .sms-consent-box {
@@ -20,11 +76,45 @@
   margin: 0 0 1.25rem;
 }
 
+.sms-consent-box p {
+  margin: 0 0 0.5rem;
+}
+
+.sms-consent-box p:last-child {
+  margin-bottom: 0;
+}
+
+.sms-consent-links {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin: 0 0 1.25rem;
+}
+
+.sms-consent-links a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.sms-consent-links a:hover {
+  text-decoration: underline;
+}
+
+.sms-consent-links-sep {
+  color: var(--color-text-muted);
+}
+
 .sms-consent-fineprint {
   font-size: 0.8rem;
   color: var(--color-text-muted);
   line-height: 1.5;
   margin: 0 0 1.5rem;
+}
+
+.sms-consent-fineprint a {
+  color: var(--color-primary);
 }
 
 .sms-consent-link {

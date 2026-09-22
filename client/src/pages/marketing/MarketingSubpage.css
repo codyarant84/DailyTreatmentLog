@@ -1,0 +1,188 @@
+/* Shared layout for marketing subpages (Features, comparisons, EMR/HIPAA
+   landing pages). Imported alongside ../MarketingPage.css, which supplies
+   the shared tokens, nav, buttons, and footer. */
+
+.sub-hero {
+  padding: 4.5rem 0 3.5rem;
+  background: var(--mp-bg-light);
+  text-align: center;
+}
+
+.sub-hero .mp-section-title { margin-bottom: 0.75rem; }
+.sub-hero .mp-section-sub { max-width: 620px; margin: 0 auto 1.5rem; }
+.sub-hero .mp-hero-actions { justify-content: center; margin-top: 0.5rem; }
+
+.sub-section {
+  padding: 4rem 0;
+  background: #fff;
+}
+
+.sub-section--alt { background: var(--mp-bg-light); }
+
+/* Feature category blocks (Features page) */
+.feature-category {
+  margin-bottom: 3.5rem;
+}
+
+.feature-category:last-child { margin-bottom: 0; }
+
+.feature-category-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--mp-text);
+  margin: 0 0 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--mp-border);
+}
+
+.feature-category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+}
+
+@media (max-width: 720px) {
+  .feature-category-grid { grid-template-columns: 1fr; }
+}
+
+.feature-detail-card {
+  padding: 1.25rem 1.4rem;
+  border: 1px solid var(--mp-border);
+  border-radius: var(--mp-radius);
+  background: #fff;
+}
+
+.feature-detail-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--mp-text);
+  margin: 0 0 0.4rem;
+}
+
+.feature-detail-desc {
+  font-size: 0.9rem;
+  color: var(--mp-text-muted);
+  line-height: 1.6;
+  margin: 0 0 0.6rem;
+}
+
+.feature-detail-context {
+  font-size: 0.85rem;
+  color: var(--mp-text);
+  line-height: 1.55;
+  margin: 0;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--mp-border);
+}
+
+.feature-detail-context strong {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+/* Comparison table */
+.compare-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--mp-border);
+  border-radius: var(--mp-radius);
+}
+
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 560px;
+  background: #fff;
+}
+
+.compare-table th, .compare-table td {
+  padding: 0.9rem 1.1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--mp-border);
+  font-size: 0.9rem;
+}
+
+.compare-table thead th {
+  background: var(--mp-bg-light);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--mp-text-muted);
+  font-weight: 700;
+}
+
+.compare-table thead th.compare-col-fieldside {
+  color: var(--color-primary);
+}
+
+.compare-table tbody tr:last-child td { border-bottom: none; }
+
+.compare-table td.compare-feature-name {
+  font-weight: 600;
+  color: var(--mp-text);
+}
+
+.compare-yes { color: #16a34a; font-weight: 700; }
+.compare-no { color: var(--mp-text-muted); }
+.compare-partial { color: #92400e; }
+
+.compare-disclaimer {
+  font-size: 0.8rem;
+  color: var(--mp-text-muted);
+  line-height: 1.5;
+  margin-top: 1rem;
+}
+
+/* Simple text sections (HIPAA / EMR landing pages) */
+.sub-text-block {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.sub-text-block h2 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--mp-text);
+  margin: 2rem 0 0.75rem;
+}
+
+.sub-text-block h2:first-child { margin-top: 0; }
+
+.sub-text-block p {
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--mp-text);
+  margin: 0 0 1rem;
+}
+
+.sub-text-block ul {
+  margin: 0 0 1rem;
+  padding-left: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sub-text-block ul li {
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: var(--mp-text);
+}
+
+.sub-cta-banner {
+  background: var(--color-primary);
+  padding: 3rem 0;
+  text-align: center;
+}
+
+.sub-cta-banner h2 {
+  color: #fff;
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin: 0 0 0.5rem;
+}
+
+.sub-cta-banner p {
+  color: rgba(255,255,255,0.85);
+  font-size: 1rem;
+  margin: 0 0 1.5rem;
+}

@@ -32,8 +32,17 @@ import Teams from './pages/Teams.jsx';
 import Reports from './pages/Reports.jsx';
 import Activity from './pages/Activity.jsx';
 import MarketingPage from './pages/MarketingPage.jsx';
+import Blog from './pages/blog/Blog.jsx';
+import BlogPost from './pages/blog/BlogPost.jsx';
+import Features from './pages/marketing/Features.jsx';
+import VsHealthyRoster from './pages/marketing/VsHealthyRoster.jsx';
+import VsRankOne from './pages/marketing/VsRankOne.jsx';
+import AthleteTrainerEMR from './pages/marketing/AthleteTrainerEMR.jsx';
+import HIPAACompliance from './pages/marketing/HIPAACompliance.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import SmsConsent from './pages/SmsConsent.jsx';
+import Privacy from './pages/Privacy.jsx';
+import Terms from './pages/Terms.jsx';
 import PortalLogin from './pages/portal/PortalLogin.jsx';
 import PortalHome from './pages/portal/PortalHome.jsx';
 import PortalOnboarding from './pages/portal/PortalOnboarding.jsx';
@@ -417,13 +426,28 @@ function App() {
   const isAdminRole = role === 'admin' || role === 'super_admin';
   const canOpenSettingsGear = isAdminRole || role === 'trainer';
   const p = location.pathname;
-  const isMarketing = p === '/' && !session;
+  // Marketing/content pages render standalone — own nav + footer, no app
+  // shell — same treatment the homepage already got. Rendered regardless of
+  // session state (a logged-in AT can still browse the blog); the homepage
+  // itself stays session-gated below so a logged-in user hitting "/" gets
+  // redirected to /home instead of seeing the marketing page again.
+  const isMarketingSubpage = p === '/blog' || p.startsWith('/blog/') ||
+    p === '/features' || p === '/vs-healthy-roster' || p === '/vs-rank-one' ||
+    p === '/athletic-trainer-emr' || p === '/hipaa-compliance';
+  const isMarketing = (p === '/' && !session) || isMarketingSubpage;
   const isPortal = p.startsWith('/portal');
 
   if (isMarketing) {
     return (
       <Routes>
         <Route path="/" element={<MarketingPage />} />
+        <Route path="/blog" element={<Blog />} />
+        <Route path="/blog/:slug" element={<BlogPost />} />
+        <Route path="/features" element={<Features />} />
+        <Route path="/vs-healthy-roster" element={<VsHealthyRoster />} />
+        <Route path="/vs-rank-one" element={<VsRankOne />} />
+        <Route path="/athletic-trainer-emr" element={<AthleteTrainerEMR />} />
+        <Route path="/hipaa-compliance" element={<HIPAACompliance />} />
       </Routes>
     );
   }
@@ -536,6 +560,8 @@ function App() {
           <Route path="/login" element={session ? <Navigate to="/home" replace /> : <Login />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/sms-consent" element={<SmsConsent />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
           <Route path="/setup" element={<SetupProfile />} />
           <Route path="/invite/:token" element={<InviteAccept />} />
           <Route path="/admin" element={<ProtectedRoute><CoachRoute><Admin /></CoachRoute></ProtectedRoute>} />
